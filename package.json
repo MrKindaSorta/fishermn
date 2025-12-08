@@ -1,0 +1,27 @@
+{
+  "name": "fishermn-frontend",
+  "version": "1.0.0",
+  "description": "FisherMN - Community-powered ice fishing app for Minnesota",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run tailwind:watch\" \"npm run serve\"",
+    "tailwind:watch": "tailwindcss -i ./src/input.css -o ./css/tailwind.css --watch",
+    "tailwind:build": "tailwindcss -i ./src/input.css -o ./css/tailwind.css --minify",
+    "serve": "node server.js",
+    "deploy:build": "npm run tailwind:build && echo Build complete - ready for deployment",
+    "deploy:prepare": "bash scripts/prepare-deploy.sh",
+    "deploy:push": "wrangler pages deploy deploy/ --project-name=fishermn",
+    "deploy": "npm run deploy:prepare && npm run deploy:push",
+    "deploy:dry-run": "npm run deploy:prepare && echo 'Dry run complete. Files ready in deploy/ directory.'"
+  },
+  "keywords": ["fishing", "ice-fishing", "minnesota", "community"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "tailwindcss": "^3.4.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

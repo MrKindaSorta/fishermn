@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FisherMN - Lakes Map</title>
+  <link rel="stylesheet" href="/css/tailwind.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <style>
+    #map {
+      height: calc(100vh - 64px);
+      width: 100%;
+    }
+    .lake-list-item {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lake-list-item:hover {
+      transform: translateX(4px);
+    }
+    .lake-list-item.active {
+      border-left: 4px solid #D4AF37;
+      background-color: #F4F9FC;
+    }
+  </style>
+</head>
+<body class="bg-frost">
+  <!-- Left Sidebar -->
+  <div hx-get="/partials/sidebar-nav.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Top Bar -->
+  <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Main Content Area -->
+  <main class="ml-64 mt-16 flex h-[calc(100vh-64px)]">
+    <!-- Left Panel: Lakes List -->
+    <div class="w-[420px] bg-white border-r border-grayPanel overflow-y-auto">
+      <div class="p-6 border-b border-grayPanel sticky top-0 bg-white z-10">
+        <h2 class="text-2xl font-bold mb-2">Minnesota Lakes</h2>
+        <p class="text-sm text-secondary mb-4">Click a lake to view on map</p>
+
+        <!-- Ice Conditions Legend -->
+        <div class="mb-4 p-3 bg-frost rounded-lg">
+          <p class="text-xs font-semibold mb-2 text-secondary">Ice Conditions</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 bg-evergreen rounded-full"></div>
+              <span>Excellent (15"+)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 bg-gold rounded-full"></div>
+              <span>Good (10-15")</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 bg-secondary rounded-full"></div>
+              <span>Fair (8-10")</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 bg-danger rounded-full"></div>
+              <span>Marginal (<8")</span>
+            </div>
+          </div>
+        </div>
+
+        <input
+          type="text"
+          id="lake-search"
+          placeholder="Search lakes..."
+          class="w-full px-4 py-2 text-sm rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+          onkeyup="filterLakes()"
+        >
+      </div>
+
+      <div id="lakes-list" class="p-6 space-y-3">
+        <!-- Upper Red Lake -->
+        <div class="lake-list-item card py-4 px-4" onclick="flyToLake('lake-1', 48.0635, -94.8797)" data-lake-name="Upper Red Lake">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base">Upper Red Lake</h3>
+            <span class="badge bg-evergreen text-white text-xs px-3 py-1">Excellent</span>
+          </div>
+          <p class="text-xs text-secondary mb-3">Northern Minnesota</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">❄️</span>
+              <span><strong>14"</strong> thick</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">📊</span>
+              <span><strong>12</strong> reports</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🍺</span>
+              <span><strong>3</strong> bars</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🎣</span>
+              <span><strong>3</strong> bait shops</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lake of the Woods -->
+        <div class="lake-list-item card py-4 px-4" onclick="flyToLake('lake-2', 49.0, -94.6)" data-lake-name="Lake of the Woods">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base">Lake of the Woods</h3>
+            <span class="badge bg-evergreen text-white text-xs px-3 py-1">Excellent</span>
+          </div>
+          <p class="text-xs text-secondary mb-3">Northern Minnesota</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">❄️</span>
+              <span><strong>16"</strong> thick</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">📊</span>
+              <span><strong>18</strong> reports</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🍺</span>
+              <span><strong>4</strong> bars</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🎣</span>
+              <span><strong>2</strong> bait • 🎰</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mille Lacs Lake -->
+        <div class="lake-list-item card py-4 px-4" onclick="flyToLake('lake-3', 46.2633, -93.6578)" data-lake-name="Mille Lacs Lake">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base">Mille Lacs Lake</h3>
+            <span class="badge bg-gold text-white text-xs px-3 py-1">Good</span>
+          </div>
+          <p class="text-xs text-secondary mb-3">Central Minnesota</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">❄️</span>
+              <span><strong>10"</strong> thick</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">📊</span>
+              <span><strong>24</strong> reports</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🍺</span>
+              <span><strong>4</strong> bars</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base">🎣</span>
+              <span><strong>3</strong> bait • 🎰</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leech Lake -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-4', 47.2158, -94.4194)" data-lake-name="Leech Lake">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Leech Lake</h3>
+            <span class="badge bg-evergreen text-white text-xs">Excellent</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">North Central MN</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 13"</span>
+            <span>🍺 3</span>
+            <span>🎣 3</span>
+            <span>🎰</span>
+            <span>📊 15</span>
+          </div>
+        </div>
+
+        <!-- Lake Winnibigoshish -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-5', 47.4417, -94.1575)" data-lake-name="Lake Winnibigoshish">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Lake Winnibigoshish</h3>
+            <span class="badge bg-evergreen text-white text-xs">Excellent</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">North Central MN</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 15"</span>
+            <span>🍺 2</span>
+            <span>🎣 2</span>
+            <span>📊 8</span>
+          </div>
+        </div>
+
+        <!-- Lake Vermilion -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-6', 47.9356, -92.3375)" data-lake-name="Lake Vermilion">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Lake Vermilion</h3>
+            <span class="badge bg-gold text-white text-xs">Good</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">Northern MN</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 11"</span>
+            <span>🍺 2</span>
+            <span>🎣 2</span>
+            <span>🎰</span>
+            <span>📊 10</span>
+          </div>
+        </div>
+
+        <!-- Gull Lake -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-7', 46.4069, -94.3553)" data-lake-name="Gull Lake">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Gull Lake</h3>
+            <span class="badge bg-secondary text-white text-xs">Fair</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">Brainerd Lakes</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 8"</span>
+            <span>🍺 3</span>
+            <span>🎣 2</span>
+            <span>📊 6</span>
+          </div>
+        </div>
+
+        <!-- Rainy Lake -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-8', 48.6167, -93.3808)" data-lake-name="Rainy Lake">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Rainy Lake</h3>
+            <span class="badge bg-evergreen text-white text-xs">Excellent</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">International Falls</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 17"</span>
+            <span>🍺 2</span>
+            <span>🎣 2</span>
+            <span>📊 9</span>
+          </div>
+        </div>
+
+        <!-- Otter Tail Lake -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-9', 46.4236, -95.6978)" data-lake-name="Otter Tail Lake">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Otter Tail Lake</h3>
+            <span class="badge bg-gold text-white text-xs">Good</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">West Central MN</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 9"</span>
+            <span>🍺 2</span>
+            <span>🎣 2</span>
+            <span>📊 7</span>
+          </div>
+        </div>
+
+        <!-- Cass Lake -->
+        <div class="lake-list-item card py-3 px-3" onclick="flyToLake('lake-10', 47.3919, -94.6050)" data-lake-name="Cass Lake">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold text-sm">Cass Lake</h3>
+            <span class="badge bg-evergreen text-white text-xs">Excellent</span>
+          </div>
+          <p class="text-xs text-secondary mb-2">North Central MN</p>
+          <div class="flex gap-2 text-xs">
+            <span>❄️ 12"</span>
+            <span>🍺 2</span>
+            <span>🎣 2</span>
+            <span>🎰</span>
+            <span>📊 11</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Interactive Map -->
+    <div class="flex-1 relative">
+      <div id="map"></div>
+
+      <!-- Map Legend -->
+      <div class="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-[1000]">
+        <h3 class="font-bold text-sm mb-3">Ice Conditions</h3>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-evergreen rounded-full"></div>
+            <span>Excellent (15"+)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-gold rounded-full"></div>
+            <span>Good (10-15")</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-secondary rounded-full"></div>
+            <span>Fair (8-10")</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-danger rounded-full"></div>
+            <span>Marginal (<8")</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Initialize map centered on Minnesota
+    const map = L.map('map').setView([46.5, -94.0], 7);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18,
+      minZoom: 6
+    }).addTo(map);
+
+    // Lake data with coordinates
+    const lakes = [
+      { id: 'lake-1', name: 'Upper Red Lake', lat: 48.0635, lon: -94.8797, condition: 'excellent', thickness: 14 },
+      { id: 'lake-2', name: 'Lake of the Woods', lat: 49.0, lon: -94.6, condition: 'excellent', thickness: 16 },
+      { id: 'lake-3', name: 'Mille Lacs Lake', lat: 46.2633, lon: -93.6578, condition: 'good', thickness: 10 },
+      { id: 'lake-4', name: 'Leech Lake', lat: 47.2158, lon: -94.4194, condition: 'excellent', thickness: 13 },
+      { id: 'lake-5', name: 'Lake Winnibigoshish', lat: 47.4417, lon: -94.1575, condition: 'excellent', thickness: 15 },
+      { id: 'lake-6', name: 'Lake Vermilion', lat: 47.9356, lon: -92.3375, condition: 'good', thickness: 11 },
+      { id: 'lake-7', name: 'Gull Lake', lat: 46.4069, lon: -94.3553, condition: 'fair', thickness: 8 },
+      { id: 'lake-8', name: 'Rainy Lake', lat: 48.6167, lon: -93.3808, condition: 'excellent', thickness: 17 },
+      { id: 'lake-9', name: 'Otter Tail Lake', lat: 46.4236, lon: -95.6978, condition: 'good', thickness: 9 },
+      { id: 'lake-10', name: 'Cass Lake', lat: 47.3919, lon: -94.6050, condition: 'excellent', thickness: 12 }
+    ];
+
+    // Color mapping for conditions
+    const conditionColors = {
+      excellent: '#1D4D3C',  // evergreen
+      good: '#D4AF37',       // gold
+      fair: '#4B5563',       // secondary
+      marginal: '#D9534F'    // danger
+    };
+
+    // Add markers for each lake
+    lakes.forEach(lake => {
+      const markerColor = conditionColors[lake.condition];
+
+      // Create custom icon
+      const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color: ${markerColor}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;"></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const marker = L.marker([lake.lat, lake.lon], { icon: customIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="min-width: 200px;">
+            <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">${lake.name}</h3>
+            <p style="font-size: 12px; color: #4B5563; margin-bottom: 8px;">
+              <strong>Ice Thickness:</strong> ${lake.thickness}"<br>
+              <strong>Condition:</strong> ${lake.condition.charAt(0).toUpperCase() + lake.condition.slice(1)}
+            </p>
+            <button
+              onclick="showLakeDetails('${lake.id}')"
+              style="background-color: #0A3A60; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; width: 100%;">
+              View Details
+            </button>
+          </div>
+        `);
+
+      // Store marker reference
+      lake.marker = marker;
+    });
+
+    // Function to fly to a lake and highlight it
+    function flyToLake(lakeId, lat, lon) {
+      // Remove active class from all items
+      document.querySelectorAll('.lake-list-item').forEach(item => {
+        item.classList.remove('active');
+      });
+
+      // Add active class to clicked item
+      event.currentTarget.classList.add('active');
+
+      // Fly to location and zoom in
+      map.flyTo([lat, lon], 10, {
+        duration: 1.5,
+        easeLinearity: 0.5
+      });
+
+      // Open popup for the lake
+      const lake = lakes.find(l => l.id === lakeId);
+      if (lake && lake.marker) {
+        setTimeout(() => {
+          lake.marker.openPopup();
+        }, 1600);
+      }
+    }
+
+    // Function to show lake details
+    function showLakeDetails(lakeId) {
+      alert('Lake details modal would open here for ' + lakeId);
+      // In production, this would open a modal with full lake details
+    }
+
+    // Search filter function
+    function filterLakes() {
+      const searchTerm = document.getElementById('lake-search').value.toLowerCase();
+      const lakeItems = document.querySelectorAll('.lake-list-item');
+
+      lakeItems.forEach(item => {
+        const lakeName = item.getAttribute('data-lake-name').toLowerCase();
+        if (lakeName.includes(searchTerm)) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
