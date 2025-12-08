@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Source files (not needed in production)
+src/
+
+# Development server
+server.js
+
+# Build configs
+tailwind.config.js
+package-lock.json
+
+# Scripts
+scripts/
+
+# Git files
+.git/
+.gitignore
+
+# Documentation
+*.md
+fishermn-plan.md
+
+# Backups
+*.backup
