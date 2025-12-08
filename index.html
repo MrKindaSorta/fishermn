@@ -15,13 +15,18 @@
   <!-- Anti-FOUC Script -->
   <script>
     (function() {
-      const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
-      const currentPath = window.location.pathname;
+      try {
+        const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
+        const currentPath = window.location.pathname;
 
-      if (!isLoggedIn) {
-        if (currentPath === '/' || currentPath === '/index.html') {
-          window.location.replace('/lakes.html');
+        if (!isLoggedIn) {
+          if (currentPath === '/' || currentPath === '/index.html') {
+            window.location.replace('/lakes.html');
+          }
         }
+      } catch (e) {
+        // localStorage blocked, redirect to lakes
+        window.location.replace('/lakes.html');
       }
     })();
   </script>

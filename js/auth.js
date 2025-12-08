@@ -7,17 +7,44 @@ const Auth = {
   // Storage keys
   TOKEN_KEY: 'fishermn_auth_token',
   USER_KEY: 'fishermn_user_data',
+  _storageAvailable: null, // Cache storage availability check
+
+  /**
+   * Check if localStorage is available (not blocked by tracking prevention)
+   * @returns {boolean} True if localStorage can be used
+   */
+  isStorageAvailable() {
+    if (this._storageAvailable !== null) {
+      return this._storageAvailable;
+    }
+
+    try {
+      const test = '__storage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      this._storageAvailable = true;
+      return true;
+    } catch (e) {
+      console.warn('[Auth] localStorage unavailable (tracking prevention):', e.message);
+      this._storageAvailable = false;
+      return false;
+    }
+  },
 
   /**
    * Check if user is authenticated
    * @returns {boolean} True if user has a valid token
    */
   isAuthenticated() {
-    const token = localStorage.getItem(this.TOKEN_KEY);
-    if (!token) return false;
+    if (!this.isStorageAvailable()) {
+      return false; // Treat as logged out if storage blocked
+    }
 
-    // Check if token is expired
     try {
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      if (!token) return false;
+
+      // Check if token is expired
       const payload = this.decodeToken(token);
       if (payload && payload.exp) {
         const now = Math.floor(Date.now() / 1000);
@@ -29,6 +56,7 @@ const Auth = {
       }
       return true;
     } catch (e) {
+      console.error('[Auth] Error checking authentication:', e);
       return false;
     }
   },
@@ -38,13 +66,16 @@ const Auth = {
    * @returns {Object|null} User object or null if not logged in
    */
   getUser() {
-    const userData = localStorage.getItem(this.USER_KEY);
-    if (!userData) return null;
+    if (!this.isStorageAvailable()) {
+      return null;
+    }
 
     try {
+      const userData = localStorage.getItem(this.USER_KEY);
+      if (!userData) return null;
       return JSON.parse(userData);
     } catch (e) {
-      console.error('Failed to parse user data:', e);
+      console.error('[Auth] Error getting user data:', e);
       return null;
     }
   },
@@ -53,20 +84,40 @@ const Auth = {
    * Set authentication data after successful login/register
    * @param {string} token - JWT token
    * @param {Object} userData - User object
+   * @returns {boolean} True if auth was saved successfully
    */
   setAuth(token, userData) {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
-    console.log('[Auth] User authenticated:', userData.displayName);
+    if (!this.isStorageAvailable()) {
+      console.warn('[Auth] Cannot save auth - localStorage blocked');
+      return false;
+    }
+
+    try {
+      localStorage.setItem(this.TOKEN_KEY, token);
+      localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
+      console.log('[Auth] User authenticated:', userData.displayName);
+      return true;
+    } catch (e) {
+      console.error('[Auth] Error saving auth:', e);
+      return false;
+    }
   },
 
   /**
    * Clear authentication data (logout)
    */
   clearAuth() {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    console.log('[Auth] User logged out');
+    if (!this.isStorageAvailable()) {
+      return; // Nothing to clear if storage unavailable
+    }
+
+    try {
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USER_KEY);
+      console.log('[Auth] User logged out');
+    } catch (e) {
+      console.error('[Auth] Error clearing auth:', e);
+    }
   },
 
   /**
@@ -74,7 +125,16 @@ const Auth = {
    * @returns {string|null} JWT token or null if not logged in
    */
   getToken() {
-    return localStorage.getItem(this.TOKEN_KEY);
+    if (!this.isStorageAvailable()) {
+      return null;
+    }
+
+    try {
+      return localStorage.getItem(this.TOKEN_KEY);
+    } catch (e) {
+      console.error('[Auth] Error getting token:', e);
+      return null;
+    }
   },
 
   /**

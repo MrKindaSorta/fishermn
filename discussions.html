@@ -83,13 +83,15 @@
   <!-- Anti-FOUC Script -->
   <script>
     (function() {
-      const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
-      const currentPath = window.location.pathname;
+      try {
+        const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
+        const currentPath = window.location.pathname;
 
-      if (!isLoggedIn) {
-        if (currentPath === '/profile.html') {
-          window.location.replace('/lakes.html');
+        if (!isLoggedIn) {
+          // No redirect for discussions - just show blur overlay
         }
+      } catch (e) {
+        // localStorage blocked, continue (blur overlay will be shown)
       }
     })();
   </script>

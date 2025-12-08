@@ -9,14 +9,19 @@ function setActiveNavLink() {
     '/': 'nav-dashboard',
     '/index.html': 'nav-dashboard',
     '/lakes.html': 'nav-lakes',
+    '/lakes': 'nav-lakes',
     '/lake.html': 'nav-lakes',
+    '/lake': 'nav-lakes',
     '/discussions.html': 'nav-discussions',
+    '/discussions': 'nav-discussions',
     '/leaderboards.html': 'nav-leaderboards',
-    '/profile.html': 'nav-profile'
+    '/leaderboards': 'nav-leaderboards',
+    '/profile.html': 'nav-profile',
+    '/profile': 'nav-profile'
   };
 
-  // Get the nav link ID for current path
-  const activeLinkId = pathMap[currentPath] || 'nav-dashboard';
+  // Get the nav link ID for current path (default to lakes for unknown paths)
+  const activeLinkId = pathMap[currentPath] || 'nav-lakes';
   console.log('[Nav] Mapped to ID:', activeLinkId);
 
   // Remove active classes from all nav links

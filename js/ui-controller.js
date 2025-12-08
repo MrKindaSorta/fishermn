@@ -176,14 +176,14 @@ const UIController = {
     }
 
     // Redirect from Profile to Lakes if logged out
-    if (currentPath === '/profile.html') {
+    if (currentPath === '/profile.html' || currentPath === '/profile') {
       console.log('[UIController] Redirecting from Profile to Lakes');
       window.location.replace('/lakes.html');
       return;
     }
 
     // Apply blur overlay on Discussions
-    if (currentPath === '/discussions.html') {
+    if (currentPath === '/discussions.html' || currentPath === '/discussions') {
       this.applyBlurOverlay(
         'Discussions',
         'Join FisherMN to participate in discussions with the community!'
@@ -191,7 +191,7 @@ const UIController = {
     }
 
     // Apply blur overlay on Leaderboards
-    if (currentPath === '/leaderboards.html') {
+    if (currentPath === '/leaderboards.html' || currentPath === '/leaderboards') {
       this.applyBlurOverlay(
         'Leaderboards',
         'Login to view rankings and compete for season prizes!'

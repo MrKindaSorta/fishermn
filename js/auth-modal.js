@@ -120,7 +120,12 @@ const AuthModal = {
         console.log('[AuthModal] Sign in successful');
 
         // Store auth token and user data
-        Auth.setAuth(data.token, data.user);
+        const authSaved = Auth.setAuth(data.token, data.user);
+
+        if (!authSaved) {
+          this.showError('signin', 'Could not save login. Please disable tracking prevention and try again.');
+          return;
+        }
 
         // Close modal
         this.close();
@@ -187,7 +192,12 @@ const AuthModal = {
         console.log('[AuthModal] Sign up successful');
 
         // Store auth token and user data
-        Auth.setAuth(data.token, data.user);
+        const authSaved = Auth.setAuth(data.token, data.user);
+
+        if (!authSaved) {
+          this.showError('signup', 'Could not save login. Please disable tracking prevention and try again.');
+          return;
+        }
 
         // Close modal
         this.close();
