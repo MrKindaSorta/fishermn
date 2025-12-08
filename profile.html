@@ -10,6 +10,7 @@
   <script src="/js/auth.js"></script>
   <script src="/js/ui-controller.js"></script>
   <script src="/js/auth-modal.js"></script>
+  <script src="/js/profile.js"></script>
 </head>
 <body class="bg-frost">
   <!-- Anti-FOUC Script -->
@@ -41,298 +42,103 @@
   <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
   <!-- Main Content Area -->
-  <main class="ml-64 mt-16 p-6 min-h-screen">
-    <!-- Top Stats Row -->
-    <div class="grid grid-cols-5 gap-4 mb-6">
-      <div class="card bg-gradient-to-br from-primary to-evergreen text-white col-span-2">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 bg-gold rounded-full flex items-center justify-center text-primary text-2xl font-bold">
-              FD
-            </div>
-            <div>
-              <p class="text-2xl font-bold">FisherDude42</p>
-              <p class="text-ice text-sm">Member since Nov 2024</p>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-xs px-2 py-0.5 bg-white/20 rounded">Local Legend Silver</span>
-                <span class="text-gold text-sm">★★★★☆ 4.7</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <main class="ml-64 mt-16 p-6 min-h-screen max-w-4xl">
+    <h1 class="text-2xl font-bold mb-6">Profile Settings</h1>
 
-      <div class="card text-center">
-        <p class="text-3xl font-bold text-primary">34</p>
-        <p class="text-xs text-secondary mt-1">Ice Reports</p>
-        <p class="text-xs text-gold mt-1">+680 XP</p>
-      </div>
-      <div class="card text-center">
-        <p class="text-3xl font-bold text-primary">28</p>
-        <p class="text-xs text-secondary mt-1">Catch Reports</p>
-        <p class="text-xs text-gold mt-1">+420 XP</p>
-      </div>
-      <div class="card text-center">
-        <p class="text-3xl font-bold text-evergreen">62</p>
-        <p class="text-xs text-secondary mt-1">Total Reports</p>
-        <p class="text-xs text-gold mt-1">Rank #11</p>
+    <!-- Profile Header Card -->
+    <div class="card mb-6">
+      <div class="flex items-center gap-4">
+        <div id="profile-initials" class="w-20 h-20 bg-gradient-to-br from-primary to-gold rounded-full flex items-center justify-center text-white text-2xl font-bold">
+          ?
+        </div>
+        <div class="flex-1">
+          <h2 class="text-xl font-bold">User Profile</h2>
+          <p id="profile-rank-badge" class="badge bg-primary text-white inline-flex mt-2">Loading...</p>
+        </div>
+        <div class="text-right">
+          <p id="profile-level" class="font-bold text-primary">Level ?</p>
+          <p id="profile-xp" class="text-sm text-secondary">? XP</p>
+        </div>
       </div>
     </div>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-3 gap-6">
-      <!-- Left Column: Activity & Stats -->
-      <div class="col-span-2 space-y-6">
-        <!-- Rank Progress -->
-        <div class="card">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold">Rank Progress</h2>
-            <span class="text-sm text-secondary">Level 11 / 20</span>
-          </div>
-          <div class="flex items-center gap-6">
-            <div class="flex-1">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-semibold">Progress to Local Legend Gold</span>
-                <span class="text-sm text-secondary">980 / 1,100 XP</span>
-              </div>
-              <div class="w-full bg-grayPanel rounded-full h-4">
-                <div class="bg-gradient-to-r from-gold to-primary h-full rounded-full" style="width: 89%"></div>
-              </div>
-            </div>
-            <div class="text-center px-4 border-l border-grayPanel">
-              <p class="text-3xl font-bold text-gold">120</p>
-              <p class="text-xs text-secondary">XP to go</p>
-            </div>
-          </div>
+    <!-- Account Settings -->
+    <div class="card mb-6">
+      <h3 class="text-lg font-bold mb-4">Account Settings</h3>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Display Name</label>
+          <input
+            type="text"
+            id="profile-display-name"
+            placeholder="Your display name"
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+          >
         </div>
 
-        <!-- Account Settings -->
-        <div class="card">
-          <h2 class="text-xl font-bold mb-6">Account Settings</h2>
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <label class="block text-sm font-medium mb-2">Email Address</label>
-              <input
-                type="email"
-                value="fisherdude@example.com"
-                class="w-full px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              >
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-2">Display Name</label>
-              <input
-                type="text"
-                value="FisherDude42"
-                class="w-full px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              >
-            </div>
-          </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Email Address</label>
+          <input
+            type="email"
+            id="profile-email"
+            placeholder="your@email.com"
+            disabled
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel bg-grayPanel/50 text-secondary cursor-not-allowed"
+          >
+          <p class="text-xs text-secondary mt-1">Email cannot be changed</p>
         </div>
 
-        <!-- Preferences -->
-        <div class="card">
-          <h2 class="text-xl font-bold mb-4">Preferences</h2>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between py-3 border-b border-grayPanel">
-              <div>
-                <p class="font-medium text-sm">Push Notifications</p>
-                <p class="text-xs text-secondary">Receive alerts for ice conditions and replies</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
-                <div class="w-11 h-6 bg-grayPanel peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
-            </div>
-
-            <div class="flex items-center justify-between py-3 border-b border-grayPanel">
-              <div>
-                <p class="font-medium text-sm">Ice Safety Alerts</p>
-                <p class="text-xs text-secondary">Get notified when ice conditions change</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
-                <div class="w-11 h-6 bg-grayPanel peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
-            </div>
-
-            <div class="flex items-center justify-between py-3">
-              <div>
-                <p class="font-medium text-sm">Location Services</p>
-                <p class="text-xs text-secondary">Allow FisherMN to access your location</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
-                <div class="w-11 h-6 bg-grayPanel peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
-            </div>
-          </div>
-
-          <div class="mt-6 pt-4 border-t border-grayPanel flex gap-3">
-            <button class="btn-primary">Save Changes</button>
-            <button class="btn-secondary">Cancel</button>
-          </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="card">
-          <h2 class="text-xl font-bold mb-4">Recent Activity</h2>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between py-2 border-b border-grayPanel">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-gold/10 rounded-full flex items-center justify-center">
-                  <span class="text-gold text-xs">🎣</span>
-                </div>
-                <div>
-                  <p class="text-sm font-medium">Submitted catch report</p>
-                  <p class="text-xs text-secondary">Mille Lacs Lake • 2 hours ago</p>
-                </div>
-              </div>
-              <span class="text-xs text-gold font-bold">+15 XP</span>
-            </div>
-            <div class="flex items-center justify-between py-2 border-b border-grayPanel">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <span class="text-primary text-xs">👍</span>
-                </div>
-                <div>
-                  <p class="text-sm font-medium">Report upvoted</p>
-                  <p class="text-xs text-secondary">Upper Red Lake • 5 hours ago</p>
-                </div>
-              </div>
-              <span class="text-xs text-gold font-bold">+2 XP</span>
-            </div>
-            <div class="flex items-center justify-between py-2">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-evergreen/10 rounded-full flex items-center justify-center">
-                  <span class="text-evergreen text-xs">📍</span>
-                </div>
-                <div>
-                  <p class="text-sm font-medium">Check-in at West Wind Resort</p>
-                  <p class="text-xs text-secondary">Upper Red Lake • 1 day ago</p>
-                </div>
-              </div>
-              <span class="text-xs text-gold font-bold">+15 XP</span>
-            </div>
-          </div>
+        <div>
+          <button class="btn-primary">Save Changes</button>
         </div>
       </div>
+    </div>
 
-      <!-- Right Column: Quick Info & Actions -->
-      <div class="space-y-4">
-        <!-- Lakes Visited -->
-        <div class="card">
-          <h3 class="font-bold text-sm mb-3">Lakes Visited (8)</h3>
-          <div class="space-y-2 text-xs">
-            <div class="flex justify-between items-center">
-              <span class="text-secondary">Mille Lacs Lake</span>
-              <span class="font-bold text-primary">12 reports</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-secondary">Upper Red Lake</span>
-              <span class="font-bold text-primary">9 reports</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-secondary">Lake of the Woods</span>
-              <span class="font-bold text-primary">7 reports</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-secondary">Leech Lake</span>
-              <span class="font-bold text-primary">6 reports</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-secondary">Lake Vermilion</span>
-              <span class="font-bold text-primary">4 reports</span>
-            </div>
-          </div>
-          <button class="text-xs text-primary hover:text-evergreen font-medium mt-3">View All →</button>
-        </div>
+    <!-- Stats Grid -->
+    <div class="card mb-6">
+      <h3 class="text-lg font-bold mb-4">Your Stats</h3>
 
-        <!-- Achievements -->
-        <div class="card">
-          <h3 class="font-bold text-sm mb-3">🏆 Recent Achievements</h3>
-          <div class="space-y-3">
-            <div class="flex items-center gap-2">
-              <div class="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center">
-                <span class="text-xl">🥉</span>
-              </div>
-              <div>
-                <p class="text-xs font-semibold">First 10 Reports</p>
-                <p class="text-xs text-secondary">Unlocked 2 weeks ago</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <span class="text-xl">⭐</span>
-              </div>
-              <div>
-                <p class="text-xs font-semibold">5-Star Report</p>
-                <p class="text-xs text-secondary">Unlocked 4 days ago</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-10 h-10 bg-evergreen/10 rounded-full flex items-center justify-center">
-                <span class="text-xl">🎣</span>
-              </div>
-              <div>
-                <p class="text-xs font-semibold">Lake Explorer</p>
-                <p class="text-xs text-secondary">Visit 5 lakes</p>
-              </div>
-            </div>
-          </div>
+      <div class="grid grid-cols-4 gap-4">
+        <div class="text-center">
+          <p id="profile-ice-reports" class="text-3xl font-bold text-primary">0</p>
+          <p class="text-xs text-secondary mt-1">Ice Reports</p>
         </div>
+        <div class="text-center">
+          <p id="profile-catch-reports" class="text-3xl font-bold text-primary">0</p>
+          <p class="text-xs text-secondary mt-1">Catch Reports</p>
+        </div>
+        <div class="text-center">
+          <p id="profile-total-reports" class="text-3xl font-bold text-evergreen">0</p>
+          <p class="text-xs text-secondary mt-1">Total Reports</p>
+        </div>
+        <div class="text-center">
+          <p id="profile-rank-position" class="text-3xl font-bold text-gold">-</p>
+          <p class="text-xs text-secondary mt-1">Global Rank</p>
+        </div>
+      </div>
+    </div>
 
-        <!-- Quick Links -->
-        <div class="card">
-          <h3 class="font-bold text-sm mb-3">Quick Links</h3>
-          <div class="space-y-2 text-xs">
-            <a href="#" class="block text-primary hover:text-evergreen font-medium">→ My Reports History</a>
-            <a href="#" class="block text-primary hover:text-evergreen font-medium">→ Favorite Lakes</a>
-            <a href="#" class="block text-primary hover:text-evergreen font-medium">→ Rewards & Prizes</a>
-            <a href="#" class="block text-primary hover:text-evergreen font-medium">→ Privacy Settings</a>
-            <a href="#" class="block text-primary hover:text-evergreen font-medium">→ Download My Data</a>
-          </div>
-        </div>
+    <!-- Recent Activity -->
+    <div class="card">
+      <h3 class="text-lg font-bold mb-4">Recent Activity</h3>
 
-        <!-- Season Stats -->
-        <div class="card bg-gold/5 border-gold">
-          <h3 class="font-bold text-sm mb-3">📊 This Season</h3>
-          <div class="space-y-2 text-xs">
-            <div class="flex justify-between">
-              <span class="text-secondary">Total XP Earned</span>
-              <span class="font-bold text-primary">6,980</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-secondary">Days Active</span>
-              <span class="font-bold text-primary">34</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-secondary">Check-ins</span>
-              <span class="font-bold text-primary">15</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-secondary">Upvotes Received</span>
-              <span class="font-bold text-primary">142</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Danger Zone -->
-        <div class="card border-2 border-danger">
-          <h3 class="font-bold text-sm text-danger mb-3">Danger Zone</h3>
-          <div class="space-y-2">
-            <button class="w-full px-3 py-2 rounded-lg text-xs font-medium border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
-              Change Password
-            </button>
-            <button class="w-full px-3 py-2 rounded-lg text-xs font-medium border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
-              Delete Account
-            </button>
-            <button class="w-full px-3 py-2 rounded-lg text-xs font-medium bg-danger text-white hover:bg-danger/90 transition-colors">
-              Log Out
-            </button>
-          </div>
-        </div>
+      <!-- Empty State -->
+      <div class="text-center py-12">
+        <svg class="w-16 h-16 mx-auto text-grayPanel mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <p class="text-secondary text-sm">No recent activity</p>
+        <p class="text-secondary text-xs mt-1">Submit a report to see your activity here!</p>
       </div>
     </div>
   </main>
+
+  <!-- Bottom Nav (Mobile) -->
+  <div hx-get="/partials/nav-bottom.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- FAB Button (Mobile) -->
+  <div hx-get="/partials/fab-button.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
 </body>
 </html>

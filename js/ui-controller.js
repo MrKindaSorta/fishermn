@@ -91,15 +91,20 @@ const UIController = {
 
     // Wait for sidebar to load via HTMX
     const checkInterval = setInterval(() => {
-      const userNameEl = document.querySelector('aside .text-sm.font-semibold');
-      const userLevelEl = document.querySelector('aside .text-xs.text-ice');
+      const initialsEl = document.getElementById('sidebar-initials');
+      const usernameEl = document.getElementById('sidebar-username');
+      const levelXpEl = document.getElementById('sidebar-level-xp');
 
-      if (userNameEl && userLevelEl) {
+      if (initialsEl && usernameEl && levelXpEl) {
         clearInterval(checkInterval);
 
+        // Generate initials from display name
+        const initials = user.displayName ? user.displayName.substring(0, 2).toUpperCase() : '?';
+
         // Update user info with actual data
-        userNameEl.textContent = user.displayName;
-        userLevelEl.textContent = `Level ${user.rankLevel} • ${user.xp} XP`;
+        initialsEl.textContent = initials;
+        usernameEl.textContent = user.displayName;
+        levelXpEl.textContent = `Level ${user.rankLevel} • ${user.xp} XP`;
 
         console.log('[UIController] User info updated');
       }

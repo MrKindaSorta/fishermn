@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FisherMN - Discussions</title>
+  <link rel="stylesheet" href="/css/tailwind.css">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="/js/lake-data.js"></script>
+  <script src="/js/navigation.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui-controller.js"></script>
+  <script src="/js/auth-modal.js"></script>
+  <style>
+    /* Tab styles */
+    .list-tab {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #4B5563;
+      border-radius: 0.5rem;
+      transition: all 0.2s;
+    }
+    .list-tab:hover {
+      background-color: #F4F9FC;
+    }
+    .list-tab.active {
+      background-color: #0A3A60;
+      color: white;
+    }
+    .list-view {
+      display: none;
+    }
+    .list-view.active {
+      display: block;
+    }
+    /* Collapsible section styles */
+    .section-header {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .section-header:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    .section-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .section-content.expanded {
+      max-height: 2000px;
+    }
+    .chevron {
+      transition: transform 0.2s;
+    }
+    .section-header.expanded .chevron {
+      transform: rotate(90deg);
+    }
+    /* Thread item styles */
+    .thread-item {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .thread-item:hover {
+      background-color: #F4F9FC;
+    }
+    .thread-item.active {
+      background-color: #F4F9FC;
+      border-left: 3px solid #D4AF37;
+    }
+    /* Hot badge */
+    .hot-badge {
+      background: linear-gradient(135deg, #f97316, #dc2626);
+      color: white;
+      font-size: 0.625rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-frost overflow-hidden">
+  <!-- Anti-FOUC Script -->
+  <script>
+    (function() {
+      try {
+        const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
+        const currentPath = window.location.pathname;
+
+        if (!isLoggedIn) {
+          // No redirect for discussions - just show blur overlay
+        }
+      } catch (e) {
+        // localStorage blocked, continue (blur overlay will be shown)
+      }
+    })();
+  </script>
+
+  <!-- Auth Modal Loader -->
+  <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
+
+  <!-- Left Sidebar -->
+  <div hx-get="/partials/sidebar-nav.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Top Bar -->
+  <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Main Content Area -->
+  <main class="ml-64 mt-16 h-[calc(100vh-64px)] overflow-hidden">
+    <div class="p-6 h-full flex flex-col">
+      <!-- Split Panel Layout -->
+      <div class="grid grid-cols-3 gap-6 flex-1" style="height: calc(100vh - 180px);">
+        <!-- Left Panel: Thread List (~35%) -->
+        <div class="col-span-1 card p-0 overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-grayPanel bg-white">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold">Discussions</h3>
+              <span id="total-thread-count" class="text-xs text-secondary">-- threads</span>
+            </div>
+            <!-- Tabs -->
+            <div class="flex gap-1 bg-frost rounded-lg p-1">
+              <button class="list-tab active flex-1" data-list-tab="all" onclick="switchListTab('all')">All</button>
+              <button class="list-tab flex-1" data-list-tab="hot" onclick="switchListTab('hot')">🔥 Hot</button>
+              <button class="list-tab flex-1" data-list-tab="new" onclick="switchListTab('new')">New</button>
+            </div>
+          </div>
+          <!-- All View (folder structure) -->
+          <div id="view-all" class="list-view active flex-1 overflow-y-auto">
+            <!-- Sections will be populated by JavaScript -->
+          </div>
+          <!-- Hot View (flat list sorted by hotness) -->
+          <div id="view-hot" class="list-view flex-1 overflow-y-auto">
+            <!-- Hot threads will be populated by JavaScript -->
+          </div>
+          <!-- New View (flat list sorted by recency) -->
+          <div id="view-new" class="list-view flex-1 overflow-y-auto">
+            <!-- New threads will be populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Right Panel: Thread Content (~65%) -->
+        <div class="col-span-2 card p-0 overflow-hidden flex flex-col">
+          <div id="thread-header" class="p-4 border-b border-grayPanel bg-white">
+            <h3 id="thread-title" class="font-bold text-lg">Select a discussion</h3>
+            <p id="thread-meta" class="text-xs text-secondary">Click a thread on the left to view</p>
+          </div>
+          <div id="thread-content" class="flex-1 overflow-y-auto p-4">
+            <!-- Thread posts will be populated by JavaScript -->
+            <div class="text-center text-secondary py-8">
+              <svg class="w-12 h-12 mx-auto mb-3 text-grayPanel" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+              </svg>
+              <p>Select a discussion to view the conversation</p>
+            </div>
+          </div>
+          <!-- Reply Input -->
+          <div id="reply-input" class="p-4 border-t border-grayPanel bg-frost hidden">
+            <div class="flex gap-3">
+              <input type="text" placeholder="Write a reply..." class="flex-1 px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary bg-white">
+              <button class="btn-primary px-4 py-2 rounded-lg">Reply</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Store all discussions with their source
+    let allDiscussions = [];
+    let currentThread = null;
+    let currentTab = 'all';
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      collectAllDiscussions();
+      buildAllView();
+      buildHotView();
+      buildNewView();
+
+      // Auto-select first thread
+      if (allDiscussions.length > 0) {
+        selectThread(allDiscussions[0].source, allDiscussions[0].id);
+      }
+    });
+
+    // Collect all discussions into single array
+    function collectAllDiscussions() {
+      allDiscussions = [];
+
+      // General Discussions
+      if (typeof GENERAL_DISCUSSIONS !== 'undefined' && GENERAL_DISCUSSIONS.length > 0) {
+        GENERAL_DISCUSSIONS.forEach(d => {
+          allDiscussions.push({ ...d, source: 'general', sourceName: 'General' });
+        });
+      }
+
+      // Lake-specific discussions
+      Object.values(LAKES_DATA).forEach(lake => {
+        if (lake.discussions && lake.discussions.length > 0) {
+          lake.discussions.forEach(d => {
+            allDiscussions.push({ ...d, source: lake.id, sourceName: lake.name });
+          });
+        }
+      });
+
+      document.getElementById('total-thread-count').textContent = `${allDiscussions.length} threads`;
+    }
+
+    // Switch between tabs
+    function switchListTab(tab) {
+      currentTab = tab;
+
+      // Update tab button states
+      document.querySelectorAll('.list-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.listTab === tab) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Update view visibility
+      document.querySelectorAll('.list-view').forEach(view => {
+        view.classList.remove('active');
+      });
+      document.getElementById(`view-${tab}`).classList.add('active');
+    }
+
+    // Build the All view (collapsible sections)
+    function buildAllView() {
+      const container = document.getElementById('view-all');
+      let html = '';
+
+      // General Discussions section (expanded by default)
+      if (typeof GENERAL_DISCUSSIONS !== 'undefined' && GENERAL_DISCUSSIONS.length > 0) {
+        html += `
+          <div class="section">
+            <div class="section-header expanded p-4 border-b border-grayPanel flex items-center justify-between" data-section="general" onclick="toggleSection('general')">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 chevron text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+                <span class="text-lg">💬</span>
+                <span class="font-semibold">General</span>
+              </div>
+              <span class="text-xs text-secondary">${GENERAL_DISCUSSIONS.length}</span>
+            </div>
+            <div class="section-content expanded" data-section-content="general">
+              ${buildThreadItems(GENERAL_DISCUSSIONS, 'general', false)}
+            </div>
+          </div>
+        `;
+      }
+
+      // Lake-specific sections (collapsed by default)
+      Object.values(LAKES_DATA).forEach(lake => {
+        if (lake.discussions && lake.discussions.length > 0) {
+          html += `
+            <div class="section">
+              <div class="section-header p-4 border-b border-grayPanel flex items-center justify-between" data-section="${lake.id}" onclick="toggleSection('${lake.id}')">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 chevron text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                  <span class="text-lg">🌊</span>
+                  <span class="font-semibold">${lake.name}</span>
+                </div>
+                <span class="text-xs text-secondary">${lake.discussions.length}</span>
+              </div>
+              <div class="section-content" data-section-content="${lake.id}">
+                ${buildThreadItems(lake.discussions, lake.id, false)}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      container.innerHTML = html;
+    }
+
+    // Calculate hotness score for a thread
+    function calculateHotness(thread) {
+      // Factors: reply count, recency of last reply, pinned status
+      let score = 0;
+
+      // Base score from reply count (more replies = more engagement)
+      score += thread.replyCount * 10;
+
+      // Recency bonus based on lastReplyAt
+      const recency = thread.lastReplyAt.toLowerCase();
+      if (recency.includes('hour') || recency.includes('minute')) {
+        const hours = recency.includes('minute') ? 0.5 : parseInt(recency) || 1;
+        score += Math.max(100 - (hours * 5), 0); // Up to 100 points for very recent
+      } else if (recency.includes('day')) {
+        const days = parseInt(recency) || 1;
+        score += Math.max(50 - (days * 10), 0); // Decreasing value over days
+      }
+
+      // Bonus for high reply count + recent activity (indicates "blowing up")
+      if (thread.replyCount >= 15 && (recency.includes('hour') || recency.includes('minute'))) {
+        score += 50; // Trending bonus
+      }
+
+      // Pinned threads get a small boost
+      if (thread.pinned) {
+        score += 20;
+      }
+
+      return score;
+    }
+
+    // Build the Hot view (flat list sorted by hotness)
+    function buildHotView() {
+      const container = document.getElementById('view-hot');
+
+      // Sort by hotness score
+      const hotThreads = [...allDiscussions]
+        .map(t => ({ ...t, hotness: calculateHotness(t) }))
+        .sort((a, b) => b.hotness - a.hotness)
+        .slice(0, 25);
+
+      let html = '';
+      hotThreads.forEach((thread, index) => {
+        const isHot = index < 3; // Top 3 get hot badge
+        html += buildFlatThreadItem(thread, isHot);
+      });
+
+      container.innerHTML = html || '<div class="p-4 text-center text-secondary">No hot threads</div>';
+    }
+
+    // Parse relative time to sortable value (lower = more recent)
+    function parseRecency(timeStr) {
+      const str = timeStr.toLowerCase();
+      if (str.includes('minute')) return parseInt(str) || 1;
+      if (str.includes('hour')) return (parseInt(str) || 1) * 60;
+      if (str.includes('day')) return (parseInt(str) || 1) * 1440;
+      if (str.includes('week')) return (parseInt(str) || 1) * 10080;
+      // For date strings like "Dec 4", estimate days ago
+      return 30 * 1440; // Default to ~1 month ago
+    }
+
+    // Build the New view (flat list sorted by recency)
+    function buildNewView() {
+      const container = document.getElementById('view-new');
+
+      // Sort by recency (most recent first)
+      const newThreads = [...allDiscussions]
+        .map(t => ({ ...t, recencyValue: parseRecency(t.lastReplyAt) }))
+        .sort((a, b) => a.recencyValue - b.recencyValue)
+        .slice(0, 25);
+
+      let html = '';
+      newThreads.forEach(thread => {
+        html += buildFlatThreadItem(thread, false, true);
+      });
+
+      container.innerHTML = html || '<div class="p-4 text-center text-secondary">No threads</div>';
+    }
+
+    // Build a flat thread item (for Hot/New views)
+    function buildFlatThreadItem(thread, showHotBadge = false, showNew = false) {
+      const pinnedIcon = thread.pinned ? '<span class="text-gold">📌</span> ' : '';
+      const hotBadge = showHotBadge ? '<span class="hot-badge ml-2">HOT</span>' : '';
+      const sourceIcon = thread.source === 'general' ? '💬' : '🌊';
+
+      return `
+        <div class="thread-item p-3 border-b border-grayPanel"
+             data-thread-id="${thread.id}"
+             data-source="${thread.source}"
+             onclick="selectThread('${thread.source}', ${thread.id})">
+          <div class="flex items-start gap-2">
+            <span class="text-sm flex-shrink-0">${sourceIcon}</span>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-sm mb-1 line-clamp-2">${pinnedIcon}${thread.title}${hotBadge}</h4>
+              <p class="text-xs text-secondary">
+                ${thread.sourceName} • ${thread.replyCount} replies • ${thread.lastReplyAt}
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Build thread items HTML for a section (All view)
+    function buildThreadItems(discussions, source, showSource = false) {
+      let html = '';
+      discussions.forEach(thread => {
+        const pinnedIcon = thread.pinned ? '<span class="text-gold">📌</span> ' : '';
+        html += `
+          <div class="thread-item p-3 pl-10 border-b border-grayPanel"
+               data-thread-id="${thread.id}"
+               data-source="${source}"
+               onclick="selectThread('${source}', ${thread.id})">
+            <h4 class="font-medium text-sm mb-1 line-clamp-2">${pinnedIcon}${thread.title}</h4>
+            <p class="text-xs text-secondary">
+              ${thread.replyCount} replies • ${thread.lastReplyAt}
+            </p>
+          </div>
+        `;
+      });
+      return html;
+    }
+
+    // Toggle section expand/collapse
+    function toggleSection(sectionId) {
+      const header = document.querySelector(`[data-section="${sectionId}"]`);
+      const content = document.querySelector(`[data-section-content="${sectionId}"]`);
+
+      if (header && content) {
+        header.classList.toggle('expanded');
+        content.classList.toggle('expanded');
+      }
+    }
+
+    // Select a discussion thread
+    function selectThread(source, threadId) {
+      // Find the thread
+      const thread = allDiscussions.find(t => t.source === source && t.id === threadId);
+      if (!thread) return;
+
+      currentThread = thread;
+
+      // Update active state in thread list
+      document.querySelectorAll('.thread-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.source === source && parseInt(item.dataset.threadId) === threadId) {
+          item.classList.add('active');
+        }
+      });
+
+      // Update thread header
+      document.getElementById('thread-title').textContent = thread.title;
+      const sourceLabel = thread.sourceName === 'General' ? 'General Discussion' : thread.sourceName;
+      document.getElementById('thread-meta').textContent = `Posted by ${thread.author} • ${thread.createdAt} • ${sourceLabel}`;
+
+      // Populate thread content
+      const contentContainer = document.getElementById('thread-content');
+      let html = '';
+
+      thread.posts.forEach(post => {
+        const initials = post.author.substring(0, 2).toUpperCase();
+        const opBadge = post.isOP ? '<span class="text-xs bg-primary text-white px-2 py-0.5 rounded ml-2">OP</span>' : '';
+
+        html += `
+          <div class="mb-4 p-4 rounded-lg ${post.isOP ? 'bg-frost border border-grayPanel' : 'bg-white border border-grayPanel'}">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full ${post.isOP ? 'bg-primary' : 'bg-secondary'} flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                ${initials}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center mb-2">
+                  <span class="font-semibold text-sm">${post.author}</span>
+                  ${opBadge}
+                  <span class="text-xs text-secondary ml-auto">${post.timestamp}</span>
+                </div>
+                <p class="text-sm">${post.content}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      contentContainer.innerHTML = html;
+
+      // Show reply input
+      document.getElementById('reply-input').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

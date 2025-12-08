@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FisherMN - Leaderboards</title>
+  <link rel="stylesheet" href="/css/tailwind.css">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="/js/navigation.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui-controller.js"></script>
+  <script src="/js/auth-modal.js"></script>
+</head>
+<body class="bg-frost">
+  <!-- Anti-FOUC Script -->
+  <script>
+    (function() {
+      try {
+        const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
+        const currentPath = window.location.pathname;
+
+        if (!isLoggedIn) {
+          // No redirect for leaderboards - just show blur overlay
+        }
+      } catch (e) {
+        // localStorage blocked, continue (blur overlay will be shown)
+      }
+    })();
+  </script>
+
+  <!-- Auth Modal Loader -->
+  <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
+
+  <!-- Left Sidebar -->
+  <div hx-get="/partials/sidebar-nav.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Top Bar -->
+  <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Main Content Area -->
+  <main class="ml-64 mt-16 p-6 min-h-screen">
+    <!-- Tab Navigation -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <button class="card text-center hover:shadow-lg transition-all bg-primary text-white">
+        <p class="text-2xl font-bold">847</p>
+        <p class="text-xs mt-1 text-ice">Total Contributors</p>
+      </button>
+      <button class="card text-center hover:shadow-lg transition-all">
+        <p class="text-2xl font-bold text-primary">131</p>
+        <p class="text-xs text-secondary mt-1">Reports Today</p>
+      </button>
+      <button class="card text-center hover:shadow-lg transition-all">
+        <p class="text-2xl font-bold text-gold">15,340</p>
+        <p class="text-xs text-secondary mt-1">Top User XP</p>
+      </button>
+      <button class="card text-center hover:shadow-lg transition-all bg-gold/5 border-gold">
+        <p class="text-2xl font-bold text-gold">#11</p>
+        <p class="text-xs text-secondary mt-1">Your Rank</p>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card mb-6">
+      <div class="flex gap-6 border-b border-grayPanel">
+        <button class="tab tab-active pb-3">Global Rankings</button>
+        <button class="tab pb-3">Per-Lake Leaders</button>
+        <button class="tab pb-3">Season Awards</button>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-4 gap-6">
+      <!-- Top 3 Podium -->
+      <div class="col-span-3 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold mb-4">🏆 Top 3 Contributors</h2>
+          <div class="grid grid-cols-3 gap-4">
+            <!-- 1st Place -->
+            <div class="card bg-gradient-to-br from-gold via-yellow-400 to-gold text-white text-center">
+              <div class="text-5xl mb-2">🥇</div>
+              <div class="w-16 h-16 bg-white rounded-full mx-auto mb-3 flex items-center justify-center text-gold text-2xl font-bold">
+                1
+              </div>
+              <h3 class="text-xl font-bold mb-1">IceMaster99</h3>
+              <p class="text-xs opacity-90 mb-2">State Legend Platinum</p>
+              <p class="text-2xl font-bold">15,340 XP</p>
+              <p class="text-xs opacity-75 mt-2">145 Reports • 4.9 ★</p>
+            </div>
+
+            <!-- 2nd Place -->
+            <div class="card bg-gradient-to-br from-gray-300 via-gray-200 to-gray-300 text-gray-800 text-center">
+              <div class="text-5xl mb-2">🥈</div>
+              <div class="w-16 h-16 bg-white rounded-full mx-auto mb-3 flex items-center justify-center text-gray-600 text-2xl font-bold">
+                2
+              </div>
+              <h3 class="text-xl font-bold mb-1">RainyDayFisher</h3>
+              <p class="text-xs opacity-75 mb-2">State Legend Gold</p>
+              <p class="text-2xl font-bold">13,520 XP</p>
+              <p class="text-xs opacity-60 mt-2">128 Reports • 4.8 ★</p>
+            </div>
+
+            <!-- 3rd Place -->
+            <div class="card bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 text-white text-center">
+              <div class="text-5xl mb-2">🥉</div>
+              <div class="w-16 h-16 bg-white rounded-full mx-auto mb-3 flex items-center justify-center text-amber-700 text-2xl font-bold">
+                3
+              </div>
+              <h3 class="text-xl font-bold mb-1">LOTWExpert</h3>
+              <p class="text-xs opacity-90 mb-2">State Legend Bronze</p>
+              <p class="text-2xl font-bold">12,890 XP</p>
+              <p class="text-xs opacity-75 mt-2">119 Reports • 4.7 ★</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rankings Table -->
+        <div class="card">
+          <h2 class="text-xl font-bold mb-4">Rankings #4-20</h2>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between py-3 border-b border-grayPanel hover:bg-frost transition-colors px-3 rounded">
+              <div class="flex items-center gap-4">
+                <span class="text-xl font-bold text-secondary w-8">#4</span>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold">VV</div>
+                  <div>
+                    <p class="font-bold text-sm">VermilionVet</p>
+                    <p class="text-xs text-secondary">Lake Captain Platinum</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-6">
+                <div>
+                  <p class="text-xs text-secondary">Reports</p>
+                  <p class="font-bold text-sm">98</p>
+                </div>
+                <div>
+                  <p class="text-xs text-secondary">Rating</p>
+                  <p class="font-bold text-sm text-gold">4.6 ★</p>
+                </div>
+                <div>
+                  <p class="font-bold text-lg text-gold">11,450</p>
+                  <p class="text-xs text-secondary">XP</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between py-3 border-b border-grayPanel hover:bg-frost transition-colors px-3 rounded">
+              <div class="flex items-center gap-4">
+                <span class="text-xl font-bold text-secondary w-8">#5</span>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-gold rounded-full flex items-center justify-center text-white text-sm font-bold">ML</div>
+                  <div>
+                    <p class="font-bold text-sm">MilleLacsLocal</p>
+                    <p class="text-xs text-secondary">Lake Captain Gold</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-6">
+                <div>
+                  <p class="text-xs text-secondary">Reports</p>
+                  <p class="font-bold text-sm">87</p>
+                </div>
+                <div>
+                  <p class="text-xs text-secondary">Rating</p>
+                  <p class="font-bold text-sm text-gold">4.8 ★</p>
+                </div>
+                <div>
+                  <p class="font-bold text-lg text-gold">10,200</p>
+                  <p class="text-xs text-secondary">XP</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between py-3 border-b border-grayPanel hover:bg-frost transition-colors px-3 rounded">
+              <div class="flex items-center gap-4">
+                <span class="text-xl font-bold text-secondary w-8">#6</span>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold">WH</div>
+                  <div>
+                    <p class="font-bold text-sm">WalleyeHunter</p>
+                    <p class="text-xs text-secondary">Lake Captain Silver</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-6">
+                <div>
+                  <p class="text-xs text-secondary">Reports</p>
+                  <p class="font-bold text-sm">78</p>
+                </div>
+                <div>
+                  <p class="text-xs text-secondary">Rating</p>
+                  <p class="font-bold text-sm text-gold">4.7 ★</p>
+                </div>
+                <div>
+                  <p class="font-bold text-lg text-gold">9,150</p>
+                  <p class="text-xs text-secondary">XP</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Continue with more ranks... -->
+            <div class="flex items-center justify-between py-3 border-b border-grayPanel hover:bg-frost transition-colors px-3 rounded">
+              <div class="flex items-center gap-4">
+                <span class="text-xl font-bold text-secondary w-8">#7</span>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-evergreen rounded-full flex items-center justify-center text-white text-sm font-bold">CC</div>
+                  <div>
+                    <p class="font-bold text-sm">CassCrewLeader</p>
+                    <p class="text-xs text-secondary">Lake Captain Silver</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-6">
+                <div>
+                  <p class="text-xs text-secondary">Reports</p>
+                  <p class="font-bold text-sm">76</p>
+                </div>
+                <div>
+                  <p class="text-xs text-secondary">Rating</p>
+                  <p class="font-bold text-sm text-gold">4.6 ★</p>
+                </div>
+                <div>
+                  <p class="font-bold text-lg text-gold">9,010</p>
+                  <p class="text-xs text-secondary">XP</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Current User - Highlighted -->
+            <div class="flex items-center justify-between py-3 bg-primary text-white px-3 rounded-lg my-2">
+              <div class="flex items-center gap-4">
+                <span class="text-xl font-bold w-8">#11</span>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-gold rounded-full flex items-center justify-center text-primary text-sm font-bold">FD</div>
+                  <div>
+                    <p class="font-bold text-sm">FisherDude42 (You)</p>
+                    <p class="text-xs text-ice">Local Legend Silver</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-6">
+                <div>
+                  <p class="text-xs text-ice">Reports</p>
+                  <p class="font-bold text-sm">62</p>
+                </div>
+                <div>
+                  <p class="text-xs text-ice">Rating</p>
+                  <p class="font-bold text-sm text-gold">4.7 ★</p>
+                </div>
+                <div>
+                  <p class="font-bold text-lg text-gold">6,980</p>
+                  <p class="text-xs text-ice">XP</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center mt-4">
+            <button class="btn-secondary">Load More Rankings</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Additional Info -->
+      <div class="space-y-4">
+        <!-- Your Progress -->
+        <div class="card bg-gold/5 border-gold">
+          <h3 class="font-bold text-sm mb-3">Your Progress to Top 10</h3>
+          <div class="space-y-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-secondary">Current Rank</span>
+                <span class="font-bold text-primary">#11</span>
+              </div>
+              <div class="w-full bg-grayPanel rounded-full h-2">
+                <div class="bg-gold rounded-full h-full" style="width: 85%"></div>
+              </div>
+            </div>
+            <div class="text-xs space-y-1 pt-2 border-t border-gold/30">
+              <div class="flex justify-between">
+                <span class="text-secondary">XP Gap to #10</span>
+                <span class="font-bold text-primary">530 XP</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-secondary">Reports Needed</span>
+                <span class="font-bold text-primary">~27 reports</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Season Prize -->
+        <div class="card border-2 border-gold">
+          <h3 class="font-bold text-sm mb-2">🏆 Season Prize</h3>
+          <p class="text-xs text-secondary mb-3">Top 10 contributors win</p>
+          <div class="text-center py-3 bg-gold/10 rounded-lg">
+            <p class="text-2xl font-bold text-gold">$500</p>
+            <p class="text-xs text-secondary mt-1">Scheels Gift Card</p>
+          </div>
+          <p class="text-xs text-secondary mt-3">Season ends: March 31, 2025</p>
+        </div>
+
+        <!-- Category Leaders -->
+        <div class="card">
+          <h3 class="font-bold text-sm mb-3">Category Leaders</h3>
+          <div class="space-y-3">
+            <div>
+              <p class="text-xs text-secondary mb-1">Most Ice Reports</p>
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">IM</div>
+                <p class="text-xs font-semibold">IceMaster99</p>
+                <span class="ml-auto text-xs text-gold font-bold">89</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-secondary mb-1">Most Catch Reports</p>
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-gold rounded-full flex items-center justify-center text-white text-xs font-bold">WH</div>
+                <p class="text-xs font-semibold">WalleyeHunter</p>
+                <span class="ml-auto text-xs text-gold font-bold">67</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-secondary mb-1">Most Upvoted</p>
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">LE</div>
+                <p class="text-xs font-semibold">LOTWExpert</p>
+                <span class="ml-auto text-xs text-gold font-bold">892</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Per Lake -->
+        <div class="card">
+          <h3 class="font-bold text-sm mb-3">Top Per-Lake Leaders</h3>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="text-secondary">Upper Red</span>
+              <span class="font-bold text-primary">IceMaster99</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-secondary">Lake of the Woods</span>
+              <span class="font-bold text-primary">LOTWExpert</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-secondary">Mille Lacs</span>
+              <span class="font-bold text-primary">MilleLacsLocal</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-secondary">Leech Lake</span>
+              <span class="font-bold text-primary">LeechLaker</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-secondary">Lake Vermilion</span>
+              <span class="font-bold text-primary">VermilionVet</span>
+            </div>
+          </div>
+          <button class="text-xs text-primary hover:text-evergreen font-medium mt-3">View All Lakes →</button>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <h3 class="font-bold text-sm mb-3">Recent Rank Changes</h3>
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-evergreen">↑</span>
+              <span class="text-secondary">WalleyeHunter</span>
+              <span class="ml-auto font-bold text-evergreen">#5 → #6</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-danger">↓</span>
+              <span class="text-secondary">CrappieKing</span>
+              <span class="ml-auto font-bold text-danger">#8 → #9</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-evergreen">↑</span>
+              <span class="text-secondary">You</span>
+              <span class="ml-auto font-bold text-evergreen">#12 → #11</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

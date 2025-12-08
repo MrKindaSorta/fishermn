@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FisherMN - Lake Details</title>
+  <link rel="stylesheet" href="/css/tailwind.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="/js/lake-data.js"></script>
+  <script src="/js/navigation.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui-controller.js"></script>
+  <script src="/js/auth-modal.js"></script>
+  <style>
+    #lake-map {
+      height: 100%;
+      width: 100%;
+      min-height: 300px;
+    }
+    .poi-item {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .poi-item:hover {
+      background-color: #F4F9FC;
+    }
+    .poi-item.active {
+      background-color: #F4F9FC;
+      border-left: 3px solid #D4AF37;
+    }
+    /* Tab styles */
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      color: #4B5563;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      color: #0A3A60;
+      background-color: #F4F9FC;
+    }
+    .tab-btn.active {
+      color: #0A3A60;
+      border-bottom-color: #D4AF37;
+    }
+    a.tab-btn {
+      text-decoration: none;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    /* Activity post styles */
+    .activity-post {
+      border-left: 3px solid transparent;
+    }
+    .activity-post:hover {
+      border-left-color: #D4AF37;
+    }
+    /* Discussion thread styles */
+    .thread-item {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .thread-item:hover {
+      background-color: #F4F9FC;
+    }
+    .thread-item.active {
+      background-color: #F4F9FC;
+      border-left: 3px solid #D4AF37;
+    }
+  </style>
+</head>
+<body class="bg-frost overflow-hidden">
+  <!-- Auth Modal Loader -->
+  <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
+
+  <!-- Left Sidebar -->
+  <div hx-get="/partials/sidebar-nav.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Top Bar -->
+  <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  <!-- Main Content Area -->
+  <main class="ml-64 mt-16 h-[calc(100vh-64px)] overflow-y-auto">
+    <!-- Navigation Bar - Full Width -->
+    <div class="flex border-b border-grayPanel bg-white">
+      <a href="/lakes.html" class="tab-btn flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Back to Lakes
+      </a>
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="activity">Recent Activity</button>
+      <button class="tab-btn" data-tab="discussions">Discussions</button>
+      <button class="tab-btn" data-tab="about">About</button>
+    </div>
+
+    <!-- Weather Bar -->
+    <div id="weather-widget" class="flex items-center justify-between px-6 py-3 border-b border-grayPanel bg-white">
+      <!-- Left: Current conditions -->
+      <div class="flex items-center gap-4">
+        <span class="text-2xl">🌡️</span>
+        <div>
+          <span id="weather-temp" class="text-xl font-bold text-primary">--°F</span>
+          <span class="text-sm text-secondary ml-2">Feels like <span id="weather-feels">--°F</span></span>
+        </div>
+        <span class="text-sm text-muted" id="weather-conditions">-- • --</span>
+      </div>
+
+      <!-- Right: 3-day forecast (JavaScript populates) -->
+      <div id="forecast-container" class="flex gap-6">
+        <p class="text-xs text-secondary">Loading forecast...</p>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <!-- Tab: Overview -->
+      <div id="tab-overview" class="tab-content active">
+        <!-- Main Grid: Left (Lake Info) + Right (Map) -->
+      <div class="grid grid-cols-5 gap-6">
+        <!-- Left Column: Lake Data (60%) -->
+        <div class="col-span-3 space-y-6">
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-3 gap-4">
+            <div class="card flex items-center gap-3">
+              <span class="text-3xl">❄️</span>
+              <div>
+                <p id="stat-thickness" class="text-2xl font-bold">--"</p>
+                <p class="text-sm text-secondary">Ice Thickness</p>
+              </div>
+            </div>
+            <div class="card flex items-center gap-3">
+              <span class="text-3xl">📊</span>
+              <div>
+                <p id="stat-reports" class="text-2xl font-bold">--</p>
+                <p class="text-sm text-secondary">Reports</p>
+              </div>
+            </div>
+            <div class="card flex items-center gap-3">
+              <span class="text-3xl">📅</span>
+              <div>
+                <p id="stat-last-report" class="text-2xl font-bold">--</p>
+                <p class="text-sm text-secondary">Last Report</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- POI Section -->
+          <div class="card">
+            <h3 class="font-bold text-lg mb-4">Nearby Amenities</h3>
+            <div id="poi-grid" class="grid grid-cols-2 gap-4">
+              <!-- POIs will be populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Recent Reports -->
+          <div class="card">
+            <h3 class="font-bold text-lg mb-4">Recent Reports</h3>
+            <div id="reports-list" class="space-y-3">
+              <!-- Reports will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Map (40%) -->
+        <div class="col-span-2">
+          <div class="card p-0 overflow-hidden sticky top-6">
+            <div class="p-4 border-b border-grayPanel bg-white">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 id="lake-name" class="text-lg font-bold">Loading...</h3>
+                <span id="lake-badge" class="badge bg-evergreen text-white text-xs px-3 py-1">--</span>
+              </div>
+              <p id="lake-region" class="text-sm text-secondary">--</p>
+            </div>
+            <div id="lake-map" style="height: 500px;"></div>
+            <!-- POI Legend -->
+            <div id="poi-legend" class="p-4 border-t border-grayPanel bg-frost">
+              <p class="text-xs font-semibold text-secondary mb-2">Map Legend</p>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="flex items-center gap-2"><span>🎣</span> Bait Shops</div>
+                <div class="flex items-center gap-2"><span>🍺</span> Bars</div>
+                <div class="flex items-center gap-2"><span>🎰</span> Casinos</div>
+                <div class="flex items-center gap-2"><span>🚤</span> Boat Launches</div>
+                <div class="flex items-center gap-2"><span>🏨</span> Lodging</div>
+                <div class="flex items-center gap-2"><span>🏠</span> Fish Houses</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div><!-- End Tab: Overview -->
+
+      <!-- Tab: Recent Activity -->
+      <div id="tab-activity" class="tab-content">
+        <div class="max-w-3xl">
+          <!-- Post Input (placeholder) -->
+          <div class="card mb-6">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
+                U
+              </div>
+              <input type="text" placeholder="Share an update about this lake..." class="flex-1 px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary bg-frost">
+              <button class="btn-primary px-4 py-2 rounded-lg">Post</button>
+            </div>
+          </div>
+
+          <!-- Activity Feed -->
+          <div id="activity-feed" class="space-y-4">
+            <!-- Activity posts will be populated by JavaScript -->
+            <div class="card text-center text-secondary py-8">
+              <p>No recent activity for this lake.</p>
+            </div>
+          </div>
+        </div>
+      </div><!-- End Tab: Recent Activity -->
+
+      <!-- Tab: Discussions -->
+      <div id="tab-discussions" class="tab-content">
+        <div class="grid grid-cols-3 gap-6" style="height: calc(100vh - 280px);">
+          <!-- Left Panel: Thread List (~35%) -->
+          <div class="col-span-1 card p-0 overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-grayPanel bg-white">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold">Discussions</h3>
+                <span id="thread-count" class="text-xs text-secondary">5 threads</span>
+              </div>
+            </div>
+            <div id="thread-list" class="flex-1 overflow-y-auto">
+              <!-- Thread list will be populated by JavaScript -->
+              <div class="p-4 text-center text-secondary">
+                <p>No discussions yet.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Panel: Thread Content (~65%) -->
+          <div class="col-span-2 card p-0 overflow-hidden flex flex-col">
+            <div id="thread-header" class="p-4 border-b border-grayPanel bg-white">
+              <h3 id="thread-title" class="font-bold text-lg">Select a discussion</h3>
+              <p id="thread-meta" class="text-xs text-secondary">Click a thread on the left to view</p>
+            </div>
+            <div id="thread-content" class="flex-1 overflow-y-auto p-4">
+              <!-- Thread posts will be populated by JavaScript -->
+              <div class="text-center text-secondary py-8">
+                <svg class="w-12 h-12 mx-auto mb-3 text-grayPanel" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                <p>Select a discussion to view the conversation</p>
+              </div>
+            </div>
+            <!-- Reply Input -->
+            <div id="reply-input" class="p-4 border-t border-grayPanel bg-frost hidden">
+              <div class="flex gap-3">
+                <input type="text" placeholder="Write a reply..." class="flex-1 px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary bg-white">
+                <button class="btn-primary px-4 py-2 rounded-lg">Reply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- End Tab: Discussions -->
+
+      <!-- Tab: About -->
+      <div id="tab-about" class="tab-content">
+        <div class="max-w-4xl">
+          <div class="card">
+            <h3 class="font-bold text-xl mb-4">About This Lake</h3>
+            <p id="lake-description-about" class="text-secondary leading-relaxed">--</p>
+          </div>
+        </div>
+      </div><!-- End Tab: About -->
+
+    </div>
+  </main>
+
+  <script>
+    let map;
+    let markers = {};
+    let currentLake = null;
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      const params = new URLSearchParams(window.location.search);
+      const lakeId = params.get('id');
+
+      if (!lakeId) {
+        window.location.href = '/lakes.html';
+        return;
+      }
+
+      currentLake = getLakeBySlug(lakeId);
+
+      if (!currentLake) {
+        window.location.href = '/lakes.html';
+        return;
+      }
+
+      populatePage(currentLake);
+      initMap(currentLake);
+      initTabs();
+      populateActivity(currentLake);
+      populateDiscussions(currentLake);
+    });
+
+    function populatePage(lake) {
+      // Update page title
+      document.title = `FisherMN - ${lake.name}`;
+
+      // Header
+      document.getElementById('lake-name').textContent = lake.name;
+      document.getElementById('lake-region').textContent = lake.region;
+
+      // Badge
+      const badge = document.getElementById('lake-badge');
+      badge.textContent = lake.condition.charAt(0).toUpperCase() + lake.condition.slice(1);
+      badge.className = `badge ${getConditionColor(lake.condition)} text-white text-sm px-4 py-1`;
+
+      // Stats
+      document.getElementById('stat-thickness').textContent = `${lake.thickness}"`;
+      document.getElementById('stat-reports').textContent = lake.reports;
+      document.getElementById('stat-last-report').textContent = lake.lastReport;
+
+      // Description (in About tab)
+      document.getElementById('lake-description-about').textContent = lake.description;
+
+      // POI List
+      populatePOIList(lake.pois);
+
+      // Reports
+      populateReports(lake.recentReports);
+
+      // Weather Widget
+      populateWeather(lake.weather);
+    }
+
+    // Weather icon mapping
+    const WEATHER_ICONS = {
+      sunny: '☀️',
+      cloudy: '☁️',
+      snow: '❄️',
+      rain: '🌧️',
+      storm: '⛈️'
+    };
+
+    function populateWeather(weather) {
+      if (!weather) {
+        document.getElementById('weather-widget').style.display = 'none';
+        return;
+      }
+
+      // Current conditions
+      document.getElementById('weather-temp').textContent = `${weather.temp}°F`;
+      document.getElementById('weather-feels').textContent = `Feels like ${weather.feelsLike}°F`;
+      document.getElementById('weather-conditions').textContent = `${weather.wind.direction} ${weather.wind.speed} mph • ${weather.conditions}`;
+
+      // Forecast
+      const forecastContainer = document.getElementById('forecast-container');
+      if (forecastContainer && weather.forecast && weather.forecast.length > 0) {
+        let forecastHtml = '';
+        weather.forecast.forEach(day => {
+          const icon = WEATHER_ICONS[day.icon] || '🌤️';
+          forecastHtml += `
+            <div class="weather-forecast-day text-center">
+              <p class="text-xs text-muted mb-1">${day.day}</p>
+              <p class="text-xl mb-1">${icon}</p>
+              <p class="text-xs font-medium">${day.high}° / ${day.low}°</p>
+            </div>
+          `;
+        });
+        forecastContainer.innerHTML = forecastHtml;
+      } else if (forecastContainer) {
+        // No forecast data - clear container
+        forecastContainer.innerHTML = '<p class="text-xs text-secondary">No forecast available</p>';
+      }
+    }
+
+    function populatePOIList(pois) {
+      const container = document.getElementById('poi-grid');
+
+      // Group POIs by type
+      const grouped = {};
+      pois.forEach(poi => {
+        if (!grouped[poi.type]) {
+          grouped[poi.type] = [];
+        }
+        grouped[poi.type].push(poi);
+      });
+
+      let html = '';
+
+      // Order: bait, bar, casino, launch, lodging, fishhouse, gas
+      const typeOrder = ['bait', 'bar', 'casino', 'launch', 'lodging', 'fishhouse', 'gas'];
+
+      typeOrder.forEach(type => {
+        if (grouped[type]) {
+          const typeInfo = POI_TYPES[type];
+          html += `
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 text-sm font-semibold">
+                <span class="text-lg">${typeInfo.icon}</span>
+                <span>${typeInfo.label}s</span>
+                <span class="text-xs text-secondary font-normal">(${grouped[type].length})</span>
+              </div>
+              <div class="space-y-1">
+          `;
+
+          grouped[type].forEach((poi, index) => {
+            const poiId = `${type}-${index}`;
+            html += `
+              <div class="poi-item p-2 rounded-lg border border-grayPanel bg-frost/50 hover:bg-frost" data-poi-id="${poiId}" onclick="focusPOI('${poiId}', ${poi.lat}, ${poi.lon})">
+                <p class="font-medium text-sm">${poi.name}</p>
+                <p class="text-xs text-secondary">${poi.address}</p>
+              </div>
+            `;
+          });
+
+          html += `</div></div>`;
+        }
+      });
+
+      container.innerHTML = html;
+    }
+
+    function populateReports(reports) {
+      const container = document.getElementById('reports-list');
+
+      let html = '';
+      reports.forEach(report => {
+        html += `
+          <div class="p-3 bg-frost rounded-lg">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-semibold text-xs">${report.user}</span>
+              <span class="text-xs text-secondary">${report.date}</span>
+            </div>
+            <p class="text-xs text-secondary">"${report.text}"</p>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function initMap(lake) {
+      // Initialize map centered on lake
+      map = L.map('lake-map').setView([lake.lat, lake.lon], 11);
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+        minZoom: 8
+      }).addTo(map);
+
+      // Add lake center marker
+      const lakeIcon = L.divIcon({
+        className: 'lake-marker',
+        html: `<div style="background-color: #0A3A60; width: 32px; height: 32px; border-radius: 50%; border: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+          <span style="font-size: 16px;">🎣</span>
+        </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      L.marker([lake.lat, lake.lon], { icon: lakeIcon })
+        .addTo(map)
+        .bindPopup(`<strong>${lake.name}</strong><br>Lake Center`);
+
+      // Add POI markers
+      lake.pois.forEach((poi, index) => {
+        const typeInfo = POI_TYPES[poi.type];
+        const poiId = `${poi.type}-${index}`;
+
+        const poiIcon = L.divIcon({
+          className: 'poi-marker',
+          html: `<div style="background-color: ${typeInfo.color}; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 14px;">${typeInfo.icon}</span>
+          </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+
+        const marker = L.marker([poi.lat, poi.lon], { icon: poiIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="min-width: 150px;">
+              <p style="font-size: 12px; color: ${typeInfo.color}; margin-bottom: 4px;">${typeInfo.icon} ${typeInfo.label}</p>
+              <p style="font-weight: bold; margin-bottom: 4px;">${poi.name}</p>
+              <p style="font-size: 12px; color: #4B5563;">${poi.address}</p>
+            </div>
+          `);
+
+        markers[poiId] = marker;
+      });
+    }
+
+    function focusPOI(poiId, lat, lon) {
+      // Remove active class from all POI items
+      document.querySelectorAll('.poi-item').forEach(item => {
+        item.classList.remove('active');
+      });
+
+      // Add active class to clicked item
+      const clickedItem = document.querySelector(`[data-poi-id="${poiId}"]`);
+      if (clickedItem) {
+        clickedItem.classList.add('active');
+      }
+
+      // Pan to POI and open popup
+      map.flyTo([lat, lon], 14, {
+        duration: 0.8
+      });
+
+      if (markers[poiId]) {
+        setTimeout(() => {
+          markers[poiId].openPopup();
+        }, 900);
+      }
+    }
+
+    // Activity post type icons and labels
+    const ACTIVITY_TYPES = {
+      catch: { icon: '🎣', label: 'CATCH REPORT', color: '#1D4D3C' },
+      ice: { icon: '⚠️', label: 'ICE CONDITION', color: '#DC2626' },
+      hotspot: { icon: '📍', label: 'HOTSPOT', color: '#D4AF37' },
+      photo: { icon: '📸', label: 'PHOTO', color: '#0A3A60' },
+      general: { icon: '💬', label: 'UPDATE', color: '#4B5563' }
+    };
+
+    // Tab switching
+    function initTabs() {
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabId = btn.dataset.tab;
+
+          // Update button states
+          tabButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          // Update content visibility
+          tabContents.forEach(content => {
+            content.classList.remove('active');
+            if (content.id === `tab-${tabId}`) {
+              content.classList.add('active');
+            }
+          });
+
+          // Fix map display when switching to overview tab
+          if (tabId === 'overview' && map) {
+            setTimeout(() => map.invalidateSize(), 100);
+          }
+        });
+      });
+    }
+
+    // Populate activity feed
+    function populateActivity(lake) {
+      const container = document.getElementById('activity-feed');
+
+      if (!lake.activity || lake.activity.length === 0) {
+        container.innerHTML = `
+          <div class="card text-center text-secondary py-8">
+            <p>No recent activity for this lake.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      lake.activity.forEach(post => {
+        const typeInfo = ACTIVITY_TYPES[post.type] || ACTIVITY_TYPES.general;
+        const initials = post.user.substring(0, 2).toUpperCase();
+
+        html += `
+          <div class="card activity-post">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                ${initials}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-semibold">${post.user}</span>
+                  <span class="text-xs text-secondary">${post.timestamp}</span>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: ${typeInfo.color}20; color: ${typeInfo.color};">
+                    ${typeInfo.icon} ${typeInfo.label}
+                  </span>
+                </div>
+                <p class="text-sm mb-3">${post.content}</p>
+                <div class="flex items-center gap-4 text-xs text-secondary">
+                  <button class="flex items-center gap-1 hover:text-primary transition-colors">
+                    <span>👍</span> ${post.likes} likes
+                  </button>
+                  <button class="flex items-center gap-1 hover:text-primary transition-colors">
+                    <span>💬</span> ${post.comments} comments
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // Discussion state
+    let currentThread = null;
+
+    // Populate discussions
+    function populateDiscussions(lake) {
+      const threadList = document.getElementById('thread-list');
+      const threadCount = document.getElementById('thread-count');
+
+      if (!lake.discussions || lake.discussions.length === 0) {
+        threadList.innerHTML = `
+          <div class="p-4 text-center text-secondary">
+            <p>No discussions yet.</p>
+          </div>
+        `;
+        threadCount.textContent = '0 threads';
+        return;
+      }
+
+      threadCount.textContent = `${lake.discussions.length} threads`;
+
+      let html = '';
+      lake.discussions.forEach((thread, index) => {
+        const pinnedIcon = thread.pinned ? '<span class="text-gold">📌</span> ' : '';
+        html += `
+          <div class="thread-item p-4 border-b border-grayPanel ${index === 0 ? 'active' : ''}"
+               data-thread-id="${thread.id}"
+               onclick="selectThread(${thread.id})">
+            <h4 class="font-semibold text-sm mb-1 line-clamp-2">${pinnedIcon}${thread.title}</h4>
+            <p class="text-xs text-secondary">
+              Started by ${thread.author} • ${thread.replyCount} replies • Last: ${thread.lastReplyAt}
+            </p>
+          </div>
+        `;
+      });
+
+      threadList.innerHTML = html;
+
+      // Select first thread by default
+      if (lake.discussions.length > 0) {
+        selectThread(lake.discussions[0].id);
+      }
+    }
+
+    // Select a discussion thread
+    function selectThread(threadId) {
+      const thread = currentLake.discussions.find(t => t.id === threadId);
+      if (!thread) return;
+
+      currentThread = thread;
+
+      // Update active state in thread list
+      document.querySelectorAll('.thread-item').forEach(item => {
+        item.classList.remove('active');
+        if (parseInt(item.dataset.threadId) === threadId) {
+          item.classList.add('active');
+        }
+      });
+
+      // Update thread header
+      document.getElementById('thread-title').textContent = thread.title;
+      document.getElementById('thread-meta').textContent = `Posted by ${thread.author} • ${thread.createdAt}`;
+
+      // Populate thread content
+      const contentContainer = document.getElementById('thread-content');
+      let html = '';
+
+      thread.posts.forEach(post => {
+        const initials = post.author.substring(0, 2).toUpperCase();
+        const opBadge = post.isOP ? '<span class="text-xs bg-primary text-white px-2 py-0.5 rounded ml-2">OP</span>' : '';
+
+        html += `
+          <div class="mb-4 p-4 rounded-lg ${post.isOP ? 'bg-frost border border-grayPanel' : 'bg-white border border-grayPanel'}">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full ${post.isOP ? 'bg-primary' : 'bg-secondary'} flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                ${initials}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center mb-2">
+                  <span class="font-semibold text-sm">${post.author}</span>
+                  ${opBadge}
+                  <span class="text-xs text-secondary ml-auto">${post.timestamp}</span>
+                </div>
+                <p class="text-sm">${post.content}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      contentContainer.innerHTML = html;
+
+      // Show reply input
+      document.getElementById('reply-input').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
