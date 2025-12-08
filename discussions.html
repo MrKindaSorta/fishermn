@@ -8,6 +8,9 @@
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="/js/lake-data.js"></script>
   <script src="/js/navigation.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui-controller.js"></script>
+  <script src="/js/auth-modal.js"></script>
   <style>
     /* Tab styles */
     .list-tab {
@@ -77,6 +80,23 @@
   </style>
 </head>
 <body class="bg-frost overflow-hidden">
+  <!-- Anti-FOUC Script -->
+  <script>
+    (function() {
+      const isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
+      const currentPath = window.location.pathname;
+
+      if (!isLoggedIn) {
+        if (currentPath === '/profile.html') {
+          window.location.replace('/lakes.html');
+        }
+      }
+    })();
+  </script>
+
+  <!-- Auth Modal Loader -->
+  <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
+
   <!-- Left Sidebar -->
   <div hx-get="/partials/sidebar-nav.html" hx-trigger="load" hx-swap="outerHTML"></div>
 

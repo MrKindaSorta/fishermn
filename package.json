@@ -14,7 +14,12 @@
     "deploy": "npm run deploy:prepare && npm run deploy:push",
     "deploy:dry-run": "npm run deploy:prepare && echo 'Dry run complete. Files ready in deploy/ directory.'"
   },
-  "keywords": ["fishing", "ice-fishing", "minnesota", "community"],
+  "keywords": [
+    "fishing",
+    "ice-fishing",
+    "minnesota",
+    "community"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -22,6 +27,8 @@
     "tailwindcss": "^3.4.0"
   },
   "dependencies": {
+    "@tsndr/cloudflare-worker-jwt": "^3.2.0",
+    "bcryptjs": "^3.0.3",
     "express": "^4.18.2"
   }
 }

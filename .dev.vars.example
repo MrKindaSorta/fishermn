@@ -1,0 +1,11 @@
+# Development Environment Variables
+# Copy this file to .dev.vars and fill in your actual values
+# DO NOT commit .dev.vars to git!
+
+# JWT Secret (generate with: openssl rand -base64 32)
+JWT_SECRET=your-32-byte-secret-here
+
+# Google OAuth Credentials (get from Google Cloud Console)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback

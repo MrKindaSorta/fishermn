@@ -31,3 +31,5 @@ build/
 
 # Deployment directory (auto-generated)
 deploy/
+.dev.vars
+.wrangler/

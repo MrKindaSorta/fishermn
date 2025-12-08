@@ -684,28 +684,45 @@ Tables to create:
 See detailed schema in `/home/kspadmin/.claude/plans/happy-hatching-cascade.md`
 
 #### 1.3 Initialize Cloudflare Workers Project
+
+⚠️ **IMPORTANT:** Create Workers project at repository root (parallel to website/), NOT inside website/
+
+This avoids conflicts with Cloudflare Pages GitHub integration.
+
 ```bash
-cd website
+# Navigate to repository root (FisherMN 1.1/)
+cd "C:\Users\Josh Klimek\Desktop\FisherMN 1.1"
+
+# Create workers directory (parallel to website/)
 mkdir workers && cd workers
+
+# Initialize project
 npm init -y
-npm install hono @hono/node-server
-npm install -D @cloudflare/workers-types typescript
+npm install hono
+npm install -D @cloudflare/workers-types typescript wrangler
 npx tsc --init
 ```
 
 Create file structure:
 ```
-workers/
-  src/
-    index.ts          # Main Worker entry
-    routes/           # API route handlers
-    middleware/       # Auth, CORS, validation
-    services/         # Business logic (XP, rank, GPS)
-    utils/            # DB helpers, crypto, JWT
-  migrations/
-    0001_initial.sql  # Database schema
-    0002_seed.sql     # Seed 10 lakes + businesses
-  wrangler.toml       # Configuration
+FisherMN 1.1/
+├── website/              # Frontend (Cloudflare Pages)
+│   ├── index.html
+│   ├── wrangler.toml     # Pages config (already exists)
+│   └── ...
+└── workers/              # Backend API (NEW - separate project)
+    ├── src/
+    │   ├── index.ts      # Main Worker entry
+    │   ├── routes/       # API route handlers
+    │   ├── middleware/   # Auth, CORS, validation
+    │   ├── services/     # Business logic (XP, rank, GPS)
+    │   └── utils/        # DB helpers, crypto, JWT
+    ├── migrations/
+    │   ├── 0001_initial.sql  # Database schema
+    │   └── 0002_seed.sql     # Seed 10 lakes + businesses
+    ├── wrangler.toml     # Workers config (separate from Pages)
+    ├── package.json
+    └── tsconfig.json
 ```
 
 #### 1.4 Configure wrangler.toml
@@ -1059,24 +1076,62 @@ GET /api/v1/lakes/:lakeId/weather
 - Load testing (1000 concurrent users)
 
 #### 10.2 Deploy to Production
-```bash
-# Build worker
-cd workers && npm run build
 
-# Deploy API
+**Frontend (Already Deployed):**
+✅ Live at https://fishermn.com
+✅ Auto-deploys via GitHub integration
+✅ Push to main branch → automatic build & deploy
+
+**Backend (To Deploy):**
+```bash
+# Navigate to workers directory
+cd workers
+
+# Build API
+npm run build
+
+# Deploy Worker to Cloudflare
 wrangler deploy
 
-# Update frontend
-cd ../website
-npm run tailwind:build
-wrangler pages deploy deploy/ --project-name=fishermn
+# API will be available at:
+# - Default: https://fishermn-api.workers.dev
+# - Custom: https://api.fishermn.com (after domain setup)
+
+# Monitor logs
+wrangler tail
+```
+
+**Frontend Updates (Use Real API):**
+```bash
+# Navigate to website directory
+cd website
+
+# Update API calls to use production endpoint
+# Edit config file or environment variables
+
+# Commit and push (triggers auto-deploy)
+git add .
+git commit -m "Connect to production API"
+git push origin main
+
+# Cloudflare Pages automatically:
+# 1. Detects push
+# 2. Builds with npm run tailwind:build
+# 3. Deploys to fishermn.com
+# 4. Live in ~1-2 minutes
 ```
 
 #### 10.3 Configure Custom Domain
-- Point `api.fishermn.com` to Worker
-- Update frontend API calls to use production URL
+1. Go to Cloudflare Dashboard → Workers & Pages
+2. Select fishermn-api worker
+3. Settings → Triggers → Custom Domains
+4. Add `api.fishermn.com`
+5. Update frontend config to use `https://api.fishermn.com`
+6. Push frontend changes (auto-deploys)
 
 **Deliverable:** Fully functional production system
+- Frontend: fishermn.com (auto-deploys from GitHub)
+- Backend: api.fishermn.com (manually deployed via wrangler)
 
 ---
 

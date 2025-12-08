@@ -88,4 +88,44 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  /* Auth-related blur effects */
+  .content-blurred {
+    filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+  }
+}
+
+/* Auth overlay animations */
+#auth-overlay {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+#auth-modal {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+#auth-modal > div:nth-child(2) > div {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
