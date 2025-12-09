@@ -134,6 +134,18 @@ else
     echo "  → No assets to copy"
 fi
 
+# Copy Functions directory
+echo "  → Copying Functions..."
+mkdir -p "$DEPLOY_DIR/functions"
+cp -r "$PROJECT_ROOT/functions"/* "$DEPLOY_DIR/functions/"
+
+# Copy node_modules with Functions dependencies only
+echo "  → Copying Functions dependencies..."
+mkdir -p "$DEPLOY_DIR/node_modules/@tsndr"
+mkdir -p "$DEPLOY_DIR/node_modules/bcryptjs"
+cp -r "$PROJECT_ROOT/node_modules/@tsndr/cloudflare-worker-jwt" "$DEPLOY_DIR/node_modules/@tsndr/" 2>/dev/null || true
+cp -r "$PROJECT_ROOT/node_modules/bcryptjs" "$DEPLOY_DIR/node_modules/" 2>/dev/null || true
+
 echo -e "${GREEN}✓ All production files copied${NC}"
 echo ""
 
