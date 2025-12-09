@@ -35,8 +35,20 @@
   <!-- Auth Modal Loader -->
   <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
 
-  <!-- Left Sidebar -->
-  <div hx-get="/partials/sidebar-nav.html" hx-trigger="load" hx-swap="outerHTML"></div>
+  <!-- Left Sidebar - Auth-aware loading -->
+  <div id="sidebar-container">
+    <aside class="fixed left-0 top-0 h-screen w-64 bg-primary"></aside>
+  </div>
+  <script>
+    (function() {
+      var isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
+      var url = isLoggedIn ? '/partials/sidebar-user.html' : '/partials/sidebar-guest.html';
+      var el = document.getElementById('sidebar-container');
+      el.setAttribute('hx-get', url);
+      el.setAttribute('hx-trigger', 'load');
+      el.setAttribute('hx-swap', 'outerHTML');
+    })();
+  </script>
 
   <!-- Top Bar -->
   <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>

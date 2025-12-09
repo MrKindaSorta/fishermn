@@ -1,6 +1,6 @@
 /**
  * UI Controller - Manages conditional rendering based on auth state
- * Handles logged-in vs logged-out user experiences
+ * Handles page-specific restrictions for logged-out users
  */
 
 const UIController = {
@@ -12,130 +12,11 @@ const UIController = {
 
     console.log('[UIController] Initializing, isLoggedIn:', isLoggedIn);
 
-    if (isLoggedIn) {
-      this.renderLoggedInUI();
-    } else {
-      this.renderLoggedOutUI();
+    if (!isLoggedIn) {
+      this.applyPageRestrictions();
     }
-  },
 
-  /**
-   * Render UI for logged-in users
-   */
-  renderLoggedInUI() {
-    console.log('[UIController] Rendering logged-in UI');
-
-    // Show all navigation items (Dashboard and Profile)
-    this.showElementsByAttribute('data-auth-required', 'true');
-
-    // Show user info, hide login button
-    this.loadUserInfo();
-
-    console.log('[UIController] Logged-in UI rendered');
-  },
-
-  /**
-   * Render UI for logged-out users
-   */
-  renderLoggedOutUI() {
-    console.log('[UIController] Rendering logged-out UI');
-
-    // Auth-required items are already hidden by default in HTML
-    // Login button is already shown by default in HTML
-
-    // Update Add Report button to trigger login
-    this.updateAddReportForGuest();
-
-    // Apply page-specific restrictions
-    this.applyPageRestrictions();
-
-    console.log('[UIController] Logged-out UI rendered');
-  },
-
-  /**
-   * Show elements with specific data attribute
-   * @param {string} attribute - Data attribute name
-   * @param {string} value - Attribute value
-   */
-  showElementsByAttribute(attribute, value) {
-    const elements = document.querySelectorAll(`[${attribute}="${value}"]`);
-    elements.forEach(el => {
-      el.style.display = '';
-    });
-  },
-
-  /**
-   * Hide elements with specific data attribute
-   * @param {string} attribute - Data attribute name
-   * @param {string} value - Attribute value
-   */
-  hideElementsByAttribute(attribute, value) {
-    const elements = document.querySelectorAll(`[${attribute}="${value}"]`);
-    elements.forEach(el => {
-      el.style.display = 'none';
-    });
-  },
-
-  /**
-   * Load user info in navigation (logged in)
-   */
-  loadUserInfo() {
-    const user = Auth.getUser();
-    if (!user) return;
-
-    // Wait for sidebar to load via HTMX
-    const checkInterval = setInterval(() => {
-      const loginBtn = document.getElementById('sidebar-login-btn');
-      const userDetails = document.getElementById('sidebar-user-details');
-      const initialsEl = document.getElementById('sidebar-initials');
-      const usernameEl = document.getElementById('sidebar-username');
-      const levelXpEl = document.getElementById('sidebar-level-xp');
-
-      if (initialsEl && usernameEl && levelXpEl && loginBtn && userDetails) {
-        clearInterval(checkInterval);
-
-        // Hide login button, show user details
-        loginBtn.style.display = 'none';
-        userDetails.style.display = 'flex';
-
-        // Generate initials from display name
-        const initials = user.displayName ? user.displayName.substring(0, 2).toUpperCase() : '?';
-
-        // Update user info with actual data
-        initialsEl.textContent = initials;
-        usernameEl.textContent = user.displayName;
-        levelXpEl.textContent = `Level ${user.rankLevel || 1} • ${user.xp || 0} XP`;
-
-        console.log('[UIController] User info updated');
-      }
-    }, 100);
-
-    // Clear interval after 5 seconds to prevent memory leak
-    setTimeout(() => clearInterval(checkInterval), 5000);
-  },
-
-  /**
-   * Update Add Report button to trigger login for guests
-   */
-  updateAddReportForGuest() {
-    const checkInterval = setInterval(() => {
-      const addReportBtn = document.querySelector('aside button.bg-gold');
-
-      if (addReportBtn && addReportBtn.textContent.includes('Add Report')) {
-        clearInterval(checkInterval);
-
-        // Replace onclick handler
-        addReportBtn.onclick = function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          AuthModal.open();
-        };
-
-        console.log('[UIController] Add Report button updated for guest');
-      }
-    }, 100);
-
-    setTimeout(() => clearInterval(checkInterval), 5000);
+    console.log('[UIController] Initialization complete');
   },
 
   /**
@@ -227,10 +108,7 @@ const UIController = {
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
-  // Wait a bit for HTMX partials to load
-  setTimeout(() => {
-    UIController.init();
-  }, 150);
+  UIController.init();
 });
 
 // Export for use in other modules
