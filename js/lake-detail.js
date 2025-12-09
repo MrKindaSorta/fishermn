@@ -9,9 +9,14 @@ const LakeDetail = {
   iceReports: [],
   catchReports: [],
   businesses: [],
+  discussions: [],
+  weather: null,
   map: null,
   markers: {},
   currentThread: null,
+
+  // Weather API base URL
+  WEATHER_API_URL: 'https://weather-api-proxy.joshua-r-klimek.workers.dev',
 
   // POI type configuration
   POI_TYPES: {
@@ -31,13 +36,26 @@ const LakeDetail = {
     general: { icon: '💬', label: 'UPDATE', color: '#4B5563' }
   },
 
-  // Weather icons
+  // Weather icons - map OpenWeatherMap icon codes to emojis
   WEATHER_ICONS: {
     sunny: '☀️',
     cloudy: '☁️',
     snow: '❄️',
     rain: '🌧️',
     storm: '⛈️'
+  },
+
+  // Map OpenWeatherMap icon codes to our icon names
+  WEATHER_CODE_MAP: {
+    '01d': 'sunny', '01n': 'sunny',      // Clear
+    '02d': 'cloudy', '02n': 'cloudy',    // Few clouds
+    '03d': 'cloudy', '03n': 'cloudy',    // Scattered clouds
+    '04d': 'cloudy', '04n': 'cloudy',    // Broken clouds
+    '09d': 'rain', '09n': 'rain',        // Shower rain
+    '10d': 'rain', '10n': 'rain',        // Rain
+    '11d': 'storm', '11n': 'storm',      // Thunderstorm
+    '13d': 'snow', '13n': 'snow',        // Snow
+    '50d': 'cloudy', '50n': 'cloudy'     // Mist
   },
 
   /**
@@ -121,10 +139,11 @@ const LakeDetail = {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      // Load lake data and businesses in parallel
-      const [lakeResponse, businessesResponse] = await Promise.all([
+      // Load lake data, businesses, and discussions in parallel
+      const [lakeResponse, businessesResponse, discussionsResponse] = await Promise.all([
         fetch(`/api/lakes/${slug}`, { headers }),
-        fetch(`/api/lakes/${slug}/businesses`, { headers })
+        fetch(`/api/lakes/${slug}/businesses`, { headers }),
+        fetch(`/api/lakes/${slug}/discussions`, { headers })
       ]);
 
       if (!lakeResponse.ok) {
@@ -152,13 +171,128 @@ const LakeDetail = {
         }
       }
 
-      // Render all sections
+      // Load discussions
+      if (discussionsResponse.ok) {
+        const discussionsData = await discussionsResponse.json();
+        if (discussionsData.success) {
+          this.discussions = discussionsData.threads || [];
+        }
+      }
+
+      // Render all sections (weather loads async after initial render)
       this.render();
+
+      // Load weather data asynchronously (don't block page load)
+      this.loadWeather();
 
     } catch (error) {
       console.error('[LakeDetail] Error loading lake:', error);
       this.showError('Failed to load lake data. Please try again.');
     }
+  },
+
+  /**
+   * Load weather data from weather API proxy
+   */
+  async loadWeather() {
+    try {
+      const { latitude, longitude } = this.lake;
+
+      // Load current weather and forecast in parallel
+      const [currentRes, forecastRes] = await Promise.all([
+        fetch(`${this.WEATHER_API_URL}/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=imperial`),
+        fetch(`${this.WEATHER_API_URL}/data/2.5/forecast?lat=${latitude}&lon=${longitude}&units=imperial`)
+      ]);
+
+      if (!currentRes.ok || !forecastRes.ok) {
+        throw new Error('Weather API request failed');
+      }
+
+      const currentWeather = await currentRes.json();
+      const forecastData = await forecastRes.json();
+
+      // Transform the data
+      this.weather = {
+        temp: Math.round(currentWeather.main.temp),
+        feelsLike: Math.round(currentWeather.main.feels_like),
+        wind: {
+          speed: Math.round(currentWeather.wind.speed),
+          direction: this.getWindDirection(currentWeather.wind.deg)
+        },
+        conditions: currentWeather.weather[0]?.description || 'Unknown',
+        icon: currentWeather.weather[0]?.icon || '01d',
+        forecast: this.processForecast(forecastData)
+      };
+
+      this.renderWeather();
+
+    } catch (error) {
+      console.error('[LakeDetail] Error loading weather:', error);
+      this.renderWeatherError();
+    }
+  },
+
+  /**
+   * Process 5-day forecast into daily summaries
+   */
+  processForecast(forecastData) {
+    if (!forecastData.list || forecastData.list.length === 0) return [];
+
+    // Group by day
+    const dailyData = {};
+    const today = new Date().toDateString();
+
+    forecastData.list.forEach(item => {
+      const date = new Date(item.dt * 1000);
+      const dayKey = date.toDateString();
+
+      // Skip today
+      if (dayKey === today) return;
+
+      if (!dailyData[dayKey]) {
+        dailyData[dayKey] = {
+          date: date,
+          temps: [],
+          icons: []
+        };
+      }
+
+      dailyData[dayKey].temps.push(item.main.temp);
+      dailyData[dayKey].icons.push(item.weather[0]?.icon);
+    });
+
+    // Convert to array and take first 3 days
+    const days = Object.values(dailyData).slice(0, 3);
+
+    return days.map(day => {
+      const dayName = day.date.toLocaleDateString('en-US', { weekday: 'short' });
+      const high = Math.round(Math.max(...day.temps));
+      const low = Math.round(Math.min(...day.temps));
+      // Get most common icon (simple mode selection)
+      const iconCounts = {};
+      day.icons.forEach(icon => {
+        iconCounts[icon] = (iconCounts[icon] || 0) + 1;
+      });
+      const mostCommonIcon = Object.keys(iconCounts).reduce((a, b) =>
+        iconCounts[a] > iconCounts[b] ? a : b
+      );
+
+      return {
+        day: dayName,
+        high,
+        low,
+        icon: this.WEATHER_CODE_MAP[mostCommonIcon] || 'cloudy'
+      };
+    });
+  },
+
+  /**
+   * Convert wind degrees to cardinal direction
+   */
+  getWindDirection(degrees) {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(degrees / 45) % 8;
+    return directions[index];
   },
 
   /**
@@ -174,7 +308,7 @@ const LakeDetail = {
     this.renderPOIs();
     this.renderIceReports();
     this.renderCatchReports();
-    this.renderWeather();
+    this.renderWeatherLoading(); // Show loading state until weather loads
     this.renderActivity();
     this.renderDiscussions();
     this.renderAbout();
@@ -402,28 +536,39 @@ const LakeDetail = {
   },
 
   /**
-   * Render weather widget (mock data for now)
+   * Render weather loading state
+   */
+  renderWeatherLoading() {
+    document.getElementById('weather-temp').textContent = '--°F';
+    document.getElementById('weather-feels').textContent = '--°F';
+    document.getElementById('weather-conditions').textContent = 'Loading weather...';
+
+    const forecastContainer = document.getElementById('forecast-container');
+    if (forecastContainer) {
+      forecastContainer.innerHTML = '<p class="text-xs text-secondary">Loading forecast...</p>';
+    }
+  },
+
+  /**
+   * Render weather widget with real data
    */
   renderWeather() {
-    // Mock weather data - will be replaced with actual API
-    const weather = {
-      temp: 28,
-      feelsLike: 22,
-      wind: { direction: 'NW', speed: 12 },
-      conditions: 'Partly Cloudy',
-      forecast: [
-        { day: 'Tue', high: 30, low: 18, icon: 'cloudy' },
-        { day: 'Wed', high: 25, low: 12, icon: 'snow' },
-        { day: 'Thu', high: 22, low: 8, icon: 'sunny' }
-      ]
-    };
+    if (!this.weather) {
+      this.renderWeatherError();
+      return;
+    }
+
+    const weather = this.weather;
 
     document.getElementById('weather-temp').textContent = `${weather.temp}°F`;
     document.getElementById('weather-feels').textContent = `${weather.feelsLike}°F`;
-    document.getElementById('weather-conditions').textContent = `${weather.wind.direction} ${weather.wind.speed} mph • ${weather.conditions}`;
+
+    // Capitalize first letter of conditions
+    const conditions = weather.conditions.charAt(0).toUpperCase() + weather.conditions.slice(1);
+    document.getElementById('weather-conditions').textContent = `${weather.wind.direction} ${weather.wind.speed} mph • ${conditions}`;
 
     const forecastContainer = document.getElementById('forecast-container');
-    if (forecastContainer && weather.forecast) {
+    if (forecastContainer && weather.forecast && weather.forecast.length > 0) {
       forecastContainer.innerHTML = weather.forecast.map(day => `
         <div class="weather-forecast-day text-center">
           <p class="text-xs text-muted mb-1">${day.day}</p>
@@ -431,11 +576,27 @@ const LakeDetail = {
           <p class="text-xs font-medium">${day.high}° / ${day.low}°</p>
         </div>
       `).join('');
+    } else if (forecastContainer) {
+      forecastContainer.innerHTML = '<p class="text-xs text-secondary">Forecast unavailable</p>';
     }
   },
 
   /**
-   * Render activity feed (builds from reports for now)
+   * Render weather error state
+   */
+  renderWeatherError() {
+    document.getElementById('weather-temp').textContent = '--°F';
+    document.getElementById('weather-feels').textContent = '--°F';
+    document.getElementById('weather-conditions').textContent = 'Weather unavailable';
+
+    const forecastContainer = document.getElementById('forecast-container');
+    if (forecastContainer) {
+      forecastContainer.innerHTML = '<p class="text-xs text-secondary">Unable to load forecast</p>';
+    }
+  },
+
+  /**
+   * Render activity feed (builds from reports)
    */
   renderActivity() {
     const container = document.getElementById('activity-feed');
@@ -512,71 +673,56 @@ const LakeDetail = {
   },
 
   /**
-   * Render discussions (mock data for now)
+   * Render discussions from API
    */
   renderDiscussions() {
     const threadList = document.getElementById('thread-list');
     const threadCount = document.getElementById('thread-count');
 
-    // Mock discussions - will be replaced with API
-    const discussions = [
-      {
-        id: 1,
-        title: 'Best spots for walleye this week?',
-        author: 'IceFisher_Mike',
-        replyCount: 12,
-        lastReplyAt: '2h ago',
-        createdAt: 'Dec 5, 2024',
-        pinned: false,
-        posts: [
-          { author: 'IceFisher_Mike', content: 'Anyone having luck with walleye lately? Thinking of heading out this weekend.', timestamp: 'Dec 5, 2024', isOP: true },
-          { author: 'WalleyeKing', content: 'Try the north end near the drop-off. Was pulling them in yesterday around 6pm.', timestamp: 'Dec 5, 2024', isOP: false },
-          { author: 'MNAngler', content: 'Second that! North end has been hot. Use minnows.', timestamp: 'Dec 6, 2024', isOP: false }
-        ]
-      },
-      {
-        id: 2,
-        title: 'Ice conditions update - Dec 7th',
-        author: 'SafetyFirst',
-        replyCount: 5,
-        lastReplyAt: '5h ago',
-        createdAt: 'Dec 7, 2024',
-        pinned: true,
-        posts: [
-          { author: 'SafetyFirst', content: 'Checked the main access today. 8-10 inches of good ice. Stay away from the inlet area though.', timestamp: 'Dec 7, 2024', isOP: true },
-          { author: 'LocalGuide', content: 'Thanks for the update! Any pressure cracks?', timestamp: 'Dec 7, 2024', isOP: false }
-        ]
-      }
-    ];
-
-    if (discussions.length === 0) {
-      threadList.innerHTML = '<div class="p-4 text-center text-secondary"><p>No discussions yet.</p></div>';
+    if (this.discussions.length === 0) {
+      threadList.innerHTML = `
+        <div class="p-4 text-center text-secondary">
+          <p class="mb-3">No discussions yet.</p>
+          <p class="text-xs">Start a conversation about this lake!</p>
+        </div>
+      `;
       threadCount.textContent = '0 threads';
+
+      // Reset thread content area
+      document.getElementById('thread-title').textContent = 'No discussions';
+      document.getElementById('thread-meta').textContent = 'Be the first to start a discussion about this lake';
+      document.getElementById('thread-content').innerHTML = `
+        <div class="text-center text-secondary py-8">
+          <svg class="w-12 h-12 mx-auto mb-3 text-grayPanel" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+          <p>No discussions to display</p>
+        </div>
+      `;
+      document.getElementById('reply-input').classList.add('hidden');
       return;
     }
 
-    threadCount.textContent = `${discussions.length} threads`;
+    threadCount.textContent = `${this.discussions.length} thread${this.discussions.length !== 1 ? 's' : ''}`;
 
-    threadList.innerHTML = discussions.map((thread, index) => {
-      const pinnedIcon = thread.pinned ? '<span class="text-gold">📌</span> ' : '';
+    threadList.innerHTML = this.discussions.map((thread, index) => {
+      const pinnedIcon = thread.isPinned ? '<span class="text-gold">📌</span> ' : '';
+      const lastReply = thread.lastReplyAt ? this.formatDate(thread.lastReplyAt) : this.formatDate(thread.createdAt);
       return `
         <div class="thread-item p-4 border-b border-grayPanel ${index === 0 ? 'active' : ''}"
              data-thread-id="${thread.id}"
-             onclick="LakeDetail.selectThread(${thread.id})">
+             onclick="LakeDetail.selectThread('${thread.id}')">
           <h4 class="font-semibold text-sm mb-1 line-clamp-2">${pinnedIcon}${thread.title}</h4>
           <p class="text-xs text-secondary">
-            Started by ${thread.author} • ${thread.replyCount} replies • Last: ${thread.lastReplyAt}
+            Started by ${thread.author.displayName} • ${thread.replyCount} replies • Last: ${lastReply}
           </p>
         </div>
       `;
     }).join('');
 
-    // Store discussions for thread selection
-    this._discussions = discussions;
-
     // Select first thread by default
-    if (discussions.length > 0) {
-      this.selectThread(discussions[0].id);
+    if (this.discussions.length > 0) {
+      this.selectThread(this.discussions[0].id);
     }
   },
 
@@ -584,9 +730,7 @@ const LakeDetail = {
    * Select a discussion thread
    */
   selectThread(threadId) {
-    if (!this._discussions) return;
-
-    const thread = this._discussions.find(t => t.id === threadId);
+    const thread = this.discussions.find(t => t.id === threadId);
     if (!thread) return;
 
     this.currentThread = thread;
@@ -594,39 +738,64 @@ const LakeDetail = {
     // Update active state in thread list
     document.querySelectorAll('.thread-item').forEach(item => {
       item.classList.remove('active');
-      if (parseInt(item.dataset.threadId) === threadId) {
+      if (item.dataset.threadId === threadId) {
         item.classList.add('active');
       }
     });
 
     // Update thread header
     document.getElementById('thread-title').textContent = thread.title;
-    document.getElementById('thread-meta').textContent = `Posted by ${thread.author} • ${thread.createdAt}`;
+    document.getElementById('thread-meta').textContent = `Posted by ${thread.author.displayName} • ${this.formatDate(thread.createdAt)}`;
 
-    // Populate thread content
+    // Populate thread content - start with the OP (thread body)
     const contentContainer = document.getElementById('thread-content');
-    contentContainer.innerHTML = thread.posts.map(post => {
-      const initials = post.author.substring(0, 2).toUpperCase();
-      const opBadge = post.isOP ? '<span class="text-xs bg-primary text-white px-2 py-0.5 rounded ml-2">OP</span>' : '';
+    let html = '';
 
-      return `
-        <div class="mb-4 p-4 rounded-lg ${post.isOP ? 'bg-frost border border-grayPanel' : 'bg-white border border-grayPanel'}">
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full ${post.isOP ? 'bg-primary' : 'bg-secondary'} flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-              ${initials}
+    // Original post (the thread body)
+    const opInitials = thread.author.displayName.substring(0, 2).toUpperCase();
+    html += `
+      <div class="mb-4 p-4 rounded-lg bg-frost border border-grayPanel">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+            ${opInitials}
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center mb-2">
+              <span class="font-semibold text-sm">${thread.author.displayName}</span>
+              <span class="text-xs bg-primary text-white px-2 py-0.5 rounded ml-2">OP</span>
+              <span class="text-xs text-secondary ml-auto">${this.formatDate(thread.createdAt)}</span>
             </div>
-            <div class="flex-1">
-              <div class="flex items-center mb-2">
-                <span class="font-semibold text-sm">${post.author}</span>
-                ${opBadge}
-                <span class="text-xs text-secondary ml-auto">${post.timestamp}</span>
-              </div>
-              <p class="text-sm">${post.content}</p>
-            </div>
+            <p class="text-sm">${thread.body}</p>
           </div>
         </div>
-      `;
-    }).join('');
+      </div>
+    `;
+
+    // Replies
+    if (thread.posts && thread.posts.length > 0) {
+      thread.posts.forEach(post => {
+        const initials = post.author.displayName.substring(0, 2).toUpperCase();
+
+        html += `
+          <div class="mb-4 p-4 rounded-lg bg-white border border-grayPanel">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                ${initials}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center mb-2">
+                  <span class="font-semibold text-sm">${post.author.displayName}</span>
+                  <span class="text-xs text-secondary ml-auto">${this.formatDate(post.createdAt)}</span>
+                </div>
+                <p class="text-sm">${post.body}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    contentContainer.innerHTML = html;
 
     // Show reply input
     document.getElementById('reply-input').classList.remove('hidden');
