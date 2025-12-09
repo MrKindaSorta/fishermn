@@ -107,7 +107,11 @@ export async function comparePassword(password, hash) {
  * @returns {string} UUID-style user ID
  */
 export function generateUserId() {
-  return 'user-' + crypto.randomUUID();
+  // Generate random UUID using Cloudflare Workers-compatible method
+  const randomId = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return 'user-' + randomId;
 }
 
 /**
