@@ -405,8 +405,9 @@ Tap → options:
 - **Cloudflare R2** for photo storage
 
 ### Auth
-- Email + password
-- Sign in with Google/Apple (later)
+- Email + password ✅ IMPLEMENTED
+- Sign in with Google ✅ IMPLEMENTED
+- Sign in with Apple (future)
 
 ### Location
 - Device GPS for nearby lakes
@@ -1174,6 +1175,161 @@ git push origin main
 
 ---
 
+## 🔐 Authentication System
+
+### Overview
+
+FisherMN uses a dual authentication system:
+1. **Email/Password** - Traditional registration with JWT tokens
+2. **Google OAuth 2.0** - Social login with Google accounts
+
+Both methods generate JWT tokens stored in:
+- **HTTP-only cookies** (server-side, secure)
+- **localStorage** (client-side, for frontend state)
+
+### Email/Password Authentication
+
+#### Registration Flow
+1. User submits email, password, displayName via `POST /api/auth/register`
+2. Backend validates input and checks for duplicate email
+3. Password is hashed using SHA-256 (via Web Crypto API)
+4. User record created in D1 database with default rank (Rookie Bronze, Level 1)
+5. JWT token generated (24-hour expiration)
+6. Response returns JSON with token and user data
+7. Frontend saves token to `localStorage.fishermn_auth_token`
+8. Frontend saves user data to `localStorage.fishermn_user_data`
+9. HTTP-only cookie `auth_token` also set for API requests
+
+#### Login Flow
+1. User submits email and password via `POST /api/auth/login`
+2. Backend finds user by email
+3. Password hash compared using SHA-256
+4. JWT token generated
+5. Response returns JSON with token and user data
+6. Frontend saves to localStorage
+7. HTTP-only cookie set
+
+#### Implementation Files
+- **Backend**: `functions/api/auth/login.js`, `functions/api/auth/register.js`
+- **Frontend**: `public/js/auth-modal.js`, `public/js/auth.js`
+- **Library**: `functions/lib/auth.js` (JWT generation), `functions/lib/db.js` (user queries)
+
+### Google OAuth 2.0 Authentication
+
+#### OAuth Flow
+1. User clicks "Sign in with Google" button
+2. Frontend redirects to `GET /api/auth/google`
+3. Backend generates CSRF state token using `Math.random()`
+4. Backend sets `oauth_state` cookie with state token (10-minute expiration)
+5. Backend redirects to Google OAuth consent screen with parameters:
+   - `client_id`: Google OAuth client ID
+   - `redirect_uri`: `https://fishermn.com/api/auth/google/callback`
+   - `response_type`: code
+   - `scope`: email profile
+   - `state`: CSRF token
+6. User approves consent on Google
+7. Google redirects to callback URL with authorization code and state
+8. Backend verifies state token matches cookie (CSRF protection)
+9. Backend exchanges authorization code for access token
+10. Backend fetches user profile from Google API
+11. Backend checks if user exists by Google ID or email
+12. If new user, creates account with `oauth_provider='google'` and `password_hash=null`
+13. Backend updates `last_login_at` timestamp
+14. Backend generates JWT token
+15. Backend returns HTML with JavaScript that:
+    - Saves JWT to `localStorage.fishermn_auth_token`
+    - Saves user data to `localStorage.fishermn_user_data`
+    - Redirects to home page
+16. HTTP-only `auth_token` cookie also set
+17. User is logged in
+
+#### Google Cloud Console Configuration
+- **Application type**: Web application
+- **Authorized JavaScript origins**: `https://fishermn.com`
+- **Authorized redirect URIs**:
+  - `https://fishermn.com/api/auth/google/callback`
+  - `https://fishermn.pages.dev/api/auth/google/callback`
+
+#### Cloudflare Environment Variables
+Set in Cloudflare Pages → Settings → Environment variables:
+- `GOOGLE_CLIENT_ID` - OAuth client ID from Google Console
+- `GOOGLE_CLIENT_SECRET` - OAuth client secret from Google Console
+- `GOOGLE_REDIRECT_URI` - `https://fishermn.com/api/auth/google/callback`
+- `JWT_SECRET` - Random 32-byte secret for signing JWTs
+
+#### Implementation Files
+- **Initiation**: `functions/api/auth/google.js`
+- **Callback**: `functions/api/auth/google/callback.js`
+- **Frontend**: `public/js/auth-modal.js` (Google sign-in button)
+
+#### Key Implementation Details (Cloudflare Workers/Pages Specific)
+
+**CRITICAL: Immutable Headers**
+- `Response.redirect()` creates responses with immutable headers
+- Cannot call `.set()` or `.append()` on redirect response headers
+- **Solution**: Use `new Response(null, { status: 302, headers: {...} })`
+
+**Multiple Set-Cookie Headers**
+- RFC 6265 prohibits folding multiple cookies into one header
+- **Wrong**: `'Set-Cookie': 'cookie1=val1, cookie2=val2'`
+- **Correct**: Use `Headers` class with `.append()` for each cookie:
+  ```javascript
+  const headers = new Headers();
+  headers.append('Set-Cookie', 'cookie1=val1; ...');
+  headers.append('Set-Cookie', 'cookie2=val2; ...');
+  ```
+
+**State Token Generation**
+- Originally used `crypto.getRandomValues()` with `Array.from()` - caused Error 1101
+- **Solution**: Use `Math.random().toString(36)` (sufficient for CSRF tokens)
+
+**JWT Package Import**
+- Top-level static imports can cause module load failures in Pages Functions
+- **Solution**: Use dynamic imports when needed, or static import (both work for @tsndr/cloudflare-worker-jwt)
+
+**Database Schema Requirements**
+- `created_at` - NOT NULL
+- `updated_at` - NOT NULL
+- `last_login_at` - Nullable (not `last_login`)
+
+**localStorage and OAuth**
+- OAuth redirects cannot directly set localStorage (requires JavaScript)
+- **Solution**: Callback returns HTML with `<script>` that saves token to localStorage then redirects
+- This matches how frontend expects authentication to work
+
+### Session Management
+
+#### Token Verification
+- API endpoints extract token from:
+  1. `Authorization: Bearer <token>` header
+  2. `auth_token` HTTP-only cookie
+- Middleware verifies JWT signature using `JWT_SECRET`
+- Decoded payload attached to `context.data.user`
+
+#### Token Expiration
+- Tokens expire after 24 hours
+- Frontend checks expiration before making API calls
+- Expired tokens automatically cleared from localStorage
+
+#### Logout
+1. User clicks logout
+2. Frontend calls `POST /api/auth/logout`
+3. Backend clears `auth_token` cookie
+4. Frontend clears localStorage
+5. User redirected to lakes page
+
+### Security Features
+
+- **CSRF Protection**: State tokens in OAuth flow
+- **HTTP-only cookies**: Prevent XSS attacks on tokens
+- **Secure cookies**: Only transmitted over HTTPS
+- **SameSite**: Strict for auth_token, Lax for oauth_state
+- **Password hashing**: SHA-256 via Web Crypto API
+- **JWT expiration**: 24-hour lifespan
+- **Input validation**: Email format, password length, sanitization
+
+---
+
 ## 🎨 Design System
 
 ### Flutter App Design Context
@@ -1387,6 +1543,8 @@ Use fade/slide for modals:
 | `POST /api/auth/login` | ✅ COMPLETE | `functions/api/auth/login.js` | JWT auth with cookie |
 | `GET /api/auth/me` | ✅ COMPLETE | `functions/api/auth/me.js` | Get current user |
 | `POST /api/auth/logout` | ✅ COMPLETE | `functions/api/auth/logout.js` | Clear auth cookie |
+| `GET /api/auth/google` | ✅ COMPLETE | `functions/api/auth/google.js` | Initiate Google OAuth |
+| `GET /api/auth/google/callback` | ✅ COMPLETE | `functions/api/auth/google/callback.js` | Handle OAuth callback |
 | `GET /api/lakes` | ✅ COMPLETE | `functions/api/lakes/index.js` | List all lakes |
 | `GET /api/lakes/:slug` | ✅ COMPLETE | `functions/api/lakes/[slug].js` | Get lake with reports |
 | `GET /api/lakes/:slug/ice-reports` | ✅ COMPLETE | `functions/api/lakes/[slug]/ice-reports.js` | List ice reports |
