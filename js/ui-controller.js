@@ -74,10 +74,11 @@ const UIController = {
       mainContent.style.pointerEvents = 'none';
       mainContent.style.userSelect = 'none';
 
-      // Create overlay
+      // Create overlay - positioned to not block sidebar (left: 256px = w-64)
       const overlay = document.createElement('div');
       overlay.id = 'auth-overlay';
-      overlay.className = 'fixed inset-0 z-40 flex items-center justify-center bg-black/30';
+      overlay.className = 'fixed top-0 right-0 bottom-0 z-40 flex items-center justify-center bg-black/30';
+      overlay.style.left = '256px'; // Same as sidebar width (w-64)
       overlay.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center">
           <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
