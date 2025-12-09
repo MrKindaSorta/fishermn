@@ -12,13 +12,9 @@ export async function onRequestGet(context) {
       return Response.redirect('/?error=oauth_config_error', 302);
     }
 
-    // Generate CSRF state token
-    const stateBytes = crypto.getRandomValues(new Uint8Array(16));
-    const stateArray = [];
-    for (let i = 0; i < stateBytes.length; i++) {
-      stateArray.push(stateBytes[i].toString(16).padStart(2, '0'));
-    }
-    const state = stateArray.join('');
+    // Generate simple random state token
+    const state = Math.random().toString(36).substring(2) +
+                  Math.random().toString(36).substring(2);
 
     // Build OAuth URL
     const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth' +
