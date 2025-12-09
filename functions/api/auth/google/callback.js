@@ -1,43 +1,116 @@
 /**
  * GET /api/auth/google/callback
- * Handle Google OAuth callback - simplified version for testing
+ * Handle Google OAuth callback
+ * All functions inlined to avoid import issues
  */
 
 export async function onRequestGet(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+
   try {
-    const { request, env } = context;
-    const url = new URL(request.url);
-
-    console.log('[OAuth Callback] Received callback');
-
-    // Get authorization code
+    // Get OAuth code and state
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
 
     if (!code) {
-      console.error('[OAuth Callback] No code provided');
       return Response.redirect('/?error=oauth_failed', 302);
     }
 
-    console.log('[OAuth Callback] Code received, length:', code.length);
+    // Verify state (CSRF protection)
+    const cookies = request.headers.get('Cookie') || '';
+    const stateCookie = cookies.split(';')
+      .find(c => c.trim().startsWith('oauth_state='));
+    const savedState = stateCookie ? stateCookie.split('=')[1] : null;
 
-    // For now, just show success
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'OAuth callback received successfully',
-      hasCode: !!code,
-      hasState: !!state,
-      codeLength: code?.length || 0
-    }, null, 2), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    if (!savedState || savedState !== state) {
+      console.error('[OAuth Callback] State mismatch');
+      return Response.redirect('/?error=oauth_failed', 302);
+    }
+
+    // Exchange code for token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'code=' + encodeURIComponent(code) +
+            '&client_id=' + encodeURIComponent(env.GOOGLE_CLIENT_ID) +
+            '&client_secret=' + encodeURIComponent(env.GOOGLE_CLIENT_SECRET) +
+            '&redirect_uri=' + encodeURIComponent(env.GOOGLE_REDIRECT_URI) +
+            '&grant_type=authorization_code'
     });
+
+    if (!tokenResponse.ok) {
+      console.error('[OAuth Callback] Token exchange failed');
+      return Response.redirect('/?error=oauth_failed', 302);
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    // Get user profile
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
+    });
+
+    if (!profileResponse.ok) {
+      console.error('[OAuth Callback] Profile fetch failed');
+      return Response.redirect('/?error=oauth_failed', 302);
+    }
+
+    const profile = await profileResponse.json();
+
+    // Generate user ID
+    const userId = 'user-' + Math.random().toString(36).substring(2) +
+                             Math.random().toString(36).substring(2);
+
+    const email = profile.email.toLowerCase();
+    const displayName = profile.name || email.split('@')[0];
+
+    // Check if user exists by OAuth provider
+    let user = await env.DB.prepare(
+      'SELECT * FROM users WHERE oauth_provider = ? AND oauth_provider_id = ?'
+    ).bind('google', profile.id).first();
+
+    if (!user) {
+      // Check by email
+      user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
+        .bind(email).first();
+
+      if (!user) {
+        // Create new user
+        await env.DB.prepare(
+          'INSERT INTO users (id, email, password_hash, display_name, oauth_provider, oauth_provider_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(userId, email, null, displayName, 'google', profile.id, Date.now()).run();
+
+        user = { id: userId, email, display_name: displayName };
+      }
+    }
+
+    // Update last login
+    await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?')
+      .bind(Date.now(), user.id).run();
+
+    // Generate JWT token using dynamic import
+    const jwt = await import('@tsndr/cloudflare-worker-jwt');
+    const token = await jwt.default.sign({
+      sub: user.id,
+      email: user.email || email,
+      displayName: user.display_name || displayName,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+    }, env.JWT_SECRET);
+
+    // Set auth cookie and redirect
+    const response = Response.redirect('/', 302);
+    response.headers.set('Set-Cookie',
+      'auth_token=' + token + '; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/');
+    response.headers.append('Set-Cookie',
+      'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/');
+
+    return response;
 
   } catch (error) {
     console.error('[OAuth Callback] Error:', error.message);
-    return new Response('Callback error: ' + error.message, {
-      status: 200,
-      headers: { 'Content-Type': 'text/plain' }
-    });
+    console.error('[OAuth Callback] Stack:', error.stack);
+    return Response.redirect('/?error=oauth_failed', 302);
   }
 }
