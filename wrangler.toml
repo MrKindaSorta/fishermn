@@ -1,6 +1,5 @@
 name = "fishermn"
 compatibility_date = "2025-12-08"
-account_id = "ce115cacc8399727e03f87e6604f9d6c"
 
 # Deploy from root for GitHub integration
 # The .cfignore file controls what gets excluded
