@@ -3,8 +3,6 @@
  * Handle Google OAuth callback
  */
 
-import jwt from '@tsndr/cloudflare-worker-jwt';
-
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -99,8 +97,9 @@ export async function onRequestGet(context) {
     await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?')
       .bind(Date.now(), user.id).run();
 
-    // Generate JWT token
-    const token = await jwt.sign({
+    // Generate JWT token (dynamic import to avoid module load issues)
+    const jwtModule = await import('@tsndr/cloudflare-worker-jwt');
+    const token = await jwtModule.default.sign({
       sub: user.id,
       email: user.email || email,
       displayName: user.display_name || displayName,
