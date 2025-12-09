@@ -1,7 +1,9 @@
 /**
  * GET /api/auth/google/callback
- * Step 5: Add database operations
+ * Complete OAuth callback handler
  */
+
+import jwt from '@tsndr/cloudflare-worker-jwt';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
@@ -12,7 +14,7 @@ export async function onRequestGet(context) {
     const state = url.searchParams.get('state');
 
     if (!code) {
-      return new Response('No code');
+      return Response.redirect('/?error=oauth_failed', 302);
     }
 
     // Verify state
@@ -21,7 +23,7 @@ export async function onRequestGet(context) {
     const savedState = stateCookie ? stateCookie.split('=')[1] : null;
 
     if (!savedState || savedState !== state) {
-      return new Response('State mismatch');
+      return Response.redirect('/?error=oauth_failed', 302);
     }
 
     // Exchange code for token
@@ -36,7 +38,7 @@ export async function onRequestGet(context) {
     });
 
     if (!tokenResponse.ok) {
-      return new Response('Token exchange failed');
+      return Response.redirect('/?error=oauth_failed', 302);
     }
 
     const tokenData = await tokenResponse.json();
@@ -47,7 +49,7 @@ export async function onRequestGet(context) {
     });
 
     if (!profileResponse.ok) {
-      return new Response('Profile fetch failed');
+      return Response.redirect('/?error=oauth_failed', 302);
     }
 
     const profile = await profileResponse.json();
@@ -57,7 +59,6 @@ export async function onRequestGet(context) {
     const email = profile.email.toLowerCase();
     const displayName = profile.name || email.split('@')[0];
 
-    // Check if user exists
     let user = await env.DB.prepare('SELECT * FROM users WHERE oauth_provider = ? AND oauth_provider_id = ?')
       .bind('google', profile.id).first();
 
@@ -77,9 +78,25 @@ export async function onRequestGet(context) {
     await env.DB.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
       .bind(Date.now(), user.id).run();
 
-    return new Response('Step 5 OK: User created/found! ID: ' + user.id);
+    // Generate JWT
+    const token = await jwt.sign({
+      sub: user.id,
+      email: user.email || email,
+      displayName: user.display_name || displayName,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+    }, env.JWT_SECRET);
+
+    // Create redirect with auth cookie using Headers class
+    const headers = new Headers();
+    headers.set('Location', '/');
+    headers.append('Set-Cookie', 'auth_token=' + token + '; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/');
+    headers.append('Set-Cookie', 'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/');
+
+    return new Response(null, { status: 302, headers });
 
   } catch (error) {
-    return new Response('EXCEPTION at Step 5: ' + error.message + '\nStack: ' + error.stack);
+    console.error('[OAuth Callback] Error:', error.message);
+    return Response.redirect('/?error=oauth_failed', 302);
   }
 }
