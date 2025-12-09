@@ -1,68 +1,50 @@
 /**
  * GET /api/auth/google
- * Initiate Google OAuth flow
+ * Diagnostic version to identify 500 error cause
  */
 
 export async function onRequestGet(context) {
-  const { env } = context;
-
   try {
-    console.log('[OAuth] Initiating Google OAuth flow');
+    console.log('[OAuth Test] Endpoint called');
+    console.log('[OAuth Test] Context:', typeof context);
+    console.log('[OAuth Test] Has env:', !!context?.env);
 
-    // Validate required environment variables
-    if (!env.GOOGLE_CLIENT_ID) {
-      console.error('[OAuth] Missing GOOGLE_CLIENT_ID environment variable');
-      return Response.redirect('/?error=oauth_config_error', 302);
-    }
+    const { env } = context;
 
-    if (!env.GOOGLE_REDIRECT_URI) {
-      console.error('[OAuth] Missing GOOGLE_REDIRECT_URI environment variable');
-      return Response.redirect('/?error=oauth_config_error', 302);
-    }
+    // Check environment variables
+    const hasClientId = !!env?.GOOGLE_CLIENT_ID;
+    const hasRedirectUri = !!env?.GOOGLE_REDIRECT_URI;
 
-    // Log configuration (partial for security)
-    console.log('[OAuth] Client ID:', env.GOOGLE_CLIENT_ID.substring(0, 20) + '...');
-    console.log('[OAuth] Redirect URI:', env.GOOGLE_REDIRECT_URI);
+    console.log('[OAuth Test] Has GOOGLE_CLIENT_ID:', hasClientId);
+    console.log('[OAuth Test] Has GOOGLE_REDIRECT_URI:', hasRedirectUri);
 
-    // Generate random state token for CSRF protection
-    const state = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const diagnostics = {
+      endpointWorking: true,
+      contextType: typeof context,
+      hasEnv: !!env,
+      hasClientId,
+      hasRedirectUri,
+      clientIdLength: env?.GOOGLE_CLIENT_ID?.length || 0,
+      redirectUriValue: env?.GOOGLE_REDIRECT_URI || 'undefined'
+    };
 
-    // Build Google OAuth authorization URL
-    const params = new URLSearchParams({
-      client_id: env.GOOGLE_CLIENT_ID,
-      redirect_uri: env.GOOGLE_REDIRECT_URI,
-      response_type: 'code',
-      scope: 'email profile',
-      state: state,
-      access_type: 'online',
-      prompt: 'select_account'
+    return new Response(JSON.stringify(diagnostics, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-    // Validate the constructed URL doesn't contain undefined/null
-    if (authUrl.includes('undefined') || authUrl.includes('null')) {
-      console.error('[OAuth] Invalid OAuth URL constructed:', authUrl);
-      return Response.redirect('/?error=oauth_config_error', 302);
-    }
-
-    console.log('[OAuth] Redirecting to Google OAuth');
-
-    // Store state in cookie for verification in callback
-    const response = Response.redirect(authUrl, 302);
-    response.headers.set(
-      'Set-Cookie',
-      `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/`
-    );
-
-    return response;
-
   } catch (error) {
-    console.error('[OAuth] Error initiating Google OAuth:', error);
-    console.error('[OAuth] Error message:', error.message);
-    console.error('[OAuth] Error stack:', error.stack);
-    return Response.redirect('/?error=oauth_failed', 302);
+    console.error('[OAuth Test] Error:', error);
+    console.error('[OAuth Test] Error message:', error.message);
+    console.error('[OAuth Test] Error stack:', error.stack);
+
+    return new Response(JSON.stringify({
+      error: true,
+      message: error.message,
+      stack: error.stack
+    }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
