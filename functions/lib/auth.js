@@ -3,8 +3,7 @@
  * Uses @tsndr/cloudflare-worker-jwt for JWT operations
  */
 
-// Note: In production, install: npm install @tsndr/cloudflare-worker-jwt bcryptjs
-// For now, this provides the interface that will be used
+import jwt from '@tsndr/cloudflare-worker-jwt';
 
 /**
  * Generate a JWT token for a user
@@ -13,9 +12,6 @@
  * @returns {Promise<string>} JWT token
  */
 export async function generateToken(user, secret) {
-  // In production, use @tsndr/cloudflare-worker-jwt
-  // const jwt = require('@tsndr/cloudflare-worker-jwt');
-
   const payload = {
     sub: user.id,
     email: user.email,
@@ -24,14 +20,7 @@ export async function generateToken(user, secret) {
     exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
   };
 
-  // For development, return a simple base64 encoded token
-  // Replace with actual JWT signing in production
-  if (typeof jwt !== 'undefined' && jwt.sign) {
-    return await jwt.sign(payload, secret);
-  }
-
-  // Fallback for development
-  return Buffer.from(JSON.stringify(payload)).toString('base64');
+  return await jwt.sign(payload, secret);
 }
 
 /**
@@ -42,24 +31,11 @@ export async function generateToken(user, secret) {
  */
 export async function verifyToken(token, secret) {
   try {
-    // In production, use @tsndr/cloudflare-worker-jwt
-    // const jwt = require('@tsndr/cloudflare-worker-jwt');
+    const isValid = await jwt.verify(token, secret);
+    if (!isValid) return null;
 
-    if (typeof jwt !== 'undefined' && jwt.verify) {
-      const isValid = await jwt.verify(token, secret);
-      if (!isValid) return null;
-      return jwt.decode(token).payload;
-    }
-
-    // Fallback for development - decode base64
-    const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-
-    // Check expiration
-    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
-      return null; // Token expired
-    }
-
-    return decoded;
+    const { payload } = jwt.decode(token);
+    return payload;
   } catch (error) {
     console.error('Token verification error:', error);
     return null;
