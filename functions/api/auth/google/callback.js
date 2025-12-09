@@ -46,7 +46,10 @@ export async function onRequestGet(context) {
     });
 
     if (!tokenResponse.ok) {
-      console.error('Failed to exchange code for token');
+      const errorBody = await tokenResponse.text();
+      console.error('[OAuth Callback] Failed to exchange code for token');
+      console.error('[OAuth Callback] Status:', tokenResponse.status);
+      console.error('[OAuth Callback] Error response:', errorBody);
       return Response.redirect('/?error=oauth_failed', 302);
     }
 
@@ -124,7 +127,19 @@ export async function onRequestGet(context) {
     return response;
 
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    console.error('[OAuth Callback] Error:', error);
+    console.error('[OAuth Callback] Error message:', error.message);
+    console.error('[OAuth Callback] Error stack:', error.stack);
+
+    // Log environment variable status for debugging
+    console.error('[OAuth Callback] Config check:', {
+      hasClientId: !!env.GOOGLE_CLIENT_ID,
+      hasClientSecret: !!env.GOOGLE_CLIENT_SECRET,
+      hasRedirectUri: !!env.GOOGLE_REDIRECT_URI,
+      hasJwtSecret: !!env.JWT_SECRET,
+      hasDb: !!env.DB
+    });
+
     return Response.redirect('/?error=oauth_failed', 302);
   }
 }
