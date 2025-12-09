@@ -7,7 +7,9 @@ export async function onRequestGet(context) {
   const { env } = context;
 
   // Generate random state token for CSRF protection
-  const state = crypto.randomUUID();
+  const state = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 
   // Build Google OAuth authorization URL
   const params = new URLSearchParams({
