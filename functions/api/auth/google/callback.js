@@ -1,6 +1,6 @@
 /**
  * GET /api/auth/google/callback
- * Step 4: Add profile fetch
+ * Step 5: Add database operations
  */
 
 export async function onRequestGet(context) {
@@ -12,7 +12,7 @@ export async function onRequestGet(context) {
     const state = url.searchParams.get('state');
 
     if (!code) {
-      return new Response('Step 1 FAILED: No code');
+      return new Response('No code');
     }
 
     // Verify state
@@ -21,7 +21,7 @@ export async function onRequestGet(context) {
     const savedState = stateCookie ? stateCookie.split('=')[1] : null;
 
     if (!savedState || savedState !== state) {
-      return new Response('Step 2 FAILED: State mismatch');
+      return new Response('State mismatch');
     }
 
     // Exchange code for token
@@ -36,7 +36,7 @@ export async function onRequestGet(context) {
     });
 
     if (!tokenResponse.ok) {
-      return new Response('Step 3 FAILED: Token exchange - status ' + tokenResponse.status);
+      return new Response('Token exchange failed');
     }
 
     const tokenData = await tokenResponse.json();
@@ -47,14 +47,39 @@ export async function onRequestGet(context) {
     });
 
     if (!profileResponse.ok) {
-      return new Response('Step 4 FAILED: Profile fetch - status ' + profileResponse.status);
+      return new Response('Profile fetch failed');
     }
 
     const profile = await profileResponse.json();
 
-    return new Response('Step 4 OK: Got profile! Email: ' + profile.email + ', Name: ' + profile.name);
+    // Database operations
+    const userId = 'user-' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    const email = profile.email.toLowerCase();
+    const displayName = profile.name || email.split('@')[0];
+
+    // Check if user exists
+    let user = await env.DB.prepare('SELECT * FROM users WHERE oauth_provider = ? AND oauth_provider_id = ?')
+      .bind('google', profile.id).first();
+
+    if (!user) {
+      user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+
+      if (!user) {
+        await env.DB.prepare(
+          'INSERT INTO users (id, email, password_hash, display_name, oauth_provider, oauth_provider_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(userId, email, null, displayName, 'google', profile.id, Date.now()).run();
+
+        user = { id: userId, email, display_name: displayName };
+      }
+    }
+
+    // Update last login
+    await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?')
+      .bind(Date.now(), user.id).run();
+
+    return new Response('Step 5 OK: User created/found! ID: ' + user.id);
 
   } catch (error) {
-    return new Response('EXCEPTION: ' + error.message + '\nStack: ' + error.stack);
+    return new Response('EXCEPTION at Step 5: ' + error.message + '\nStack: ' + error.stack);
   }
 }
