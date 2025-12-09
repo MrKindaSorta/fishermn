@@ -3,9 +3,6 @@ node_modules/
 package-lock.json
 yarn.lock
 
-# Generated CSS
-css/tailwind.css
-
 # Logs
 *.log
 npm-debug.log*
@@ -29,7 +26,6 @@ Thumbs.db
 dist/
 build/
 
-# Deployment directory (auto-generated)
-deploy/
+# Cloudflare local artifacts
 .dev.vars
 .wrangler/

@@ -1,26 +1,16 @@
-# Dependencies
+# Development files not needed in production
 node_modules/
-
-# Source files (not needed in production)
-src/
-
-# Development server
 server.js
-
-# Build configs
+src/
 tailwind.config.js
 package-lock.json
-
-# Scripts
 scripts/
-
-# Git files
 .git/
 .gitignore
-
-# Documentation
+.dev.vars
+.dev.vars.example
 *.md
-fishermn-plan.md
-
-# Backups
+docs/
 *.backup
+backups/
+.wrangler/

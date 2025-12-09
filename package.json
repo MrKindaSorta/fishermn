@@ -8,11 +8,7 @@
     "tailwind:watch": "tailwindcss -i ./src/input.css -o ./public/css/tailwind.css --watch",
     "tailwind:build": "tailwindcss -i ./src/input.css -o ./public/css/tailwind.css --minify",
     "serve": "node server.js",
-    "deploy:build": "npm run tailwind:build && echo Build complete - ready for deployment",
-    "deploy:prepare": "bash scripts/prepare-deploy.sh",
-    "deploy:push": "wrangler pages deploy deploy/ --project-name=fishermn",
-    "deploy": "npm run deploy:prepare && npm run deploy:push",
-    "deploy:dry-run": "npm run deploy:prepare && echo 'Dry run complete. Files ready in deploy/ directory.'"
+    "build": "npm run tailwind:build"
   },
   "keywords": [
     "fishing",
