@@ -50,6 +50,67 @@ function loadProfileData() {
   console.log('[Profile] User data loaded successfully');
 }
 
+/**
+ * Save profile changes to backend
+ */
+async function saveProfileChanges() {
+  const displayNameEl = document.getElementById('profile-display-name');
+  const displayName = displayNameEl?.value?.trim();
+
+  if (!displayName) {
+    UIController.showFeedback('Display name cannot be empty', 'error');
+    return;
+  }
+
+  try {
+    const token = Auth.getToken();
+
+    if (!token) {
+      UIController.showFeedback('Not authenticated', 'error');
+      return;
+    }
+
+    const response = await fetch('/api/user/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ displayName })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Failed to update profile');
+    }
+
+    // Update localStorage with new user data
+    const currentUser = Auth.getUser();
+    const updatedUser = {
+      ...currentUser,
+      displayName: data.user.displayName
+    };
+    localStorage.setItem('fishermn_user_data', JSON.stringify(updatedUser));
+
+    // Update initials
+    const initialsEl = document.getElementById('profile-initials');
+    if (initialsEl) {
+      const initials = displayName.substring(0, 2).toUpperCase();
+      initialsEl.textContent = initials;
+    }
+
+    // Show success feedback
+    UIController.showFeedback('Profile updated successfully!', 'success');
+
+    console.log('[Profile] Profile updated successfully');
+
+  } catch (error) {
+    console.error('[Profile] Save error:', error);
+    UIController.showFeedback(error.message || 'Failed to save changes', 'error');
+  }
+}
+
 // Load profile data when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
@@ -57,4 +118,10 @@ document.addEventListener('DOMContentLoaded', function() {
       loadProfileData();
     }
   }, 200);
+
+  // Add save button click handler
+  const saveButton = document.querySelector('.card button.btn-primary');
+  if (saveButton) {
+    saveButton.addEventListener('click', saveProfileChanges);
+  }
 });

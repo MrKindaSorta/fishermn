@@ -187,6 +187,31 @@ export async function incrementReportCount(db, userId, reportType) {
 }
 
 /**
+ * Update user profile information
+ * @param {D1Database} db - D1 database instance
+ * @param {string} userId - User ID
+ * @param {Object} updates - Profile updates (displayName, etc.)
+ * @returns {Promise<Object>} Updated user object
+ */
+export async function updateUserProfile(db, userId, updates) {
+  const { displayName } = updates;
+  const now = new Date().toISOString();
+
+  try {
+    await db
+      .prepare('UPDATE users SET display_name = ?, updated_at = ? WHERE id = ?')
+      .bind(displayName, now, userId)
+      .run();
+
+    // Fetch and return updated user
+    return await findUserById(db, userId);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw new Error('Failed to update profile');
+  }
+}
+
+/**
  * Format user object for API response (remove sensitive fields)
  * @param {Object} user - User object from database
  * @returns {Object} Sanitized user object
