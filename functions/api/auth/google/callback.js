@@ -4,7 +4,7 @@
  */
 
 import jwt from '@tsndr/cloudflare-worker-jwt';
-import { findUserById, formatUserForResponse } from '../../lib/db.js';
+import { findUserById, formatUserForResponse } from '../../../lib/db.js';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
