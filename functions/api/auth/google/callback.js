@@ -1,8 +1,9 @@
 /**
  * GET /api/auth/google/callback
  * Handle Google OAuth callback
- * All functions inlined to avoid import issues
  */
+
+import jwt from '@tsndr/cloudflare-worker-jwt';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
@@ -89,9 +90,8 @@ export async function onRequestGet(context) {
     await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?')
       .bind(Date.now(), user.id).run();
 
-    // Generate JWT token using dynamic import
-    const jwt = await import('@tsndr/cloudflare-worker-jwt');
-    const token = await jwt.default.sign({
+    // Generate JWT token
+    const token = await jwt.sign({
       sub: user.id,
       email: user.email || email,
       displayName: user.display_name || displayName,
@@ -99,14 +99,14 @@ export async function onRequestGet(context) {
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
     }, env.JWT_SECRET);
 
-    // Set auth cookie and redirect
-    const response = Response.redirect('/', 302);
-    response.headers.set('Set-Cookie',
-      'auth_token=' + token + '; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/');
-    response.headers.append('Set-Cookie',
-      'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/');
-
-    return response;
+    // Return redirect with cookies in constructor (immutable headers fix)
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': '/',
+        'Set-Cookie': 'auth_token=' + token + '; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/, oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/'
+      }
+    });
 
   } catch (error) {
     console.error('[OAuth Callback] Error:', error.message);
