@@ -3,8 +3,6 @@
  * Handle Google OAuth callback
  */
 
-import jwt from '@tsndr/cloudflare-worker-jwt';
-
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -91,8 +89,9 @@ export async function onRequestGet(context) {
 
     console.log('[OAuth Callback] User created/found');
 
-    // Generate JWT
-    const token = await jwt.sign({
+    // Generate JWT (dynamic import - top-level imports cause Error 1101)
+    const jwtModule = await import('@tsndr/cloudflare-worker-jwt');
+    const token = await jwtModule.default.sign({
       sub: user.id,
       email: user.email || email,
       displayName: user.display_name || displayName,
