@@ -28,11 +28,8 @@ const UIController = {
     // Show all navigation items (Dashboard and Profile)
     this.showElementsByAttribute('data-auth-required', 'true');
 
-    // Load user info in navigation
+    // Show user info, hide login button
     this.loadUserInfo();
-
-    // Enable Add Report button (default functionality)
-    // No changes needed - existing onclick handlers work
 
     console.log('[UIController] Logged-in UI rendered');
   },
@@ -43,11 +40,8 @@ const UIController = {
   renderLoggedOutUI() {
     console.log('[UIController] Rendering logged-out UI');
 
-    // Hide Dashboard and Profile nav items
-    this.hideElementsByAttribute('data-auth-required', 'true');
-
-    // Replace user info with Login/Sign Up button in sidebar
-    this.loadGuestSidebar();
+    // Auth-required items are already hidden by default in HTML
+    // Login button is already shown by default in HTML
 
     // Update Add Report button to trigger login
     this.updateAddReportForGuest();
@@ -91,12 +85,18 @@ const UIController = {
 
     // Wait for sidebar to load via HTMX
     const checkInterval = setInterval(() => {
+      const loginBtn = document.getElementById('sidebar-login-btn');
+      const userDetails = document.getElementById('sidebar-user-details');
       const initialsEl = document.getElementById('sidebar-initials');
       const usernameEl = document.getElementById('sidebar-username');
       const levelXpEl = document.getElementById('sidebar-level-xp');
 
-      if (initialsEl && usernameEl && levelXpEl) {
+      if (initialsEl && usernameEl && levelXpEl && loginBtn && userDetails) {
         clearInterval(checkInterval);
+
+        // Hide login button, show user details
+        loginBtn.style.display = 'none';
+        userDetails.style.display = 'flex';
 
         // Generate initials from display name
         const initials = user.displayName ? user.displayName.substring(0, 2).toUpperCase() : '?';
@@ -104,40 +104,13 @@ const UIController = {
         // Update user info with actual data
         initialsEl.textContent = initials;
         usernameEl.textContent = user.displayName;
-        levelXpEl.textContent = `Level ${user.rankLevel} • ${user.xp} XP`;
+        levelXpEl.textContent = `Level ${user.rankLevel || 1} • ${user.xp || 0} XP`;
 
         console.log('[UIController] User info updated');
       }
     }, 100);
 
     // Clear interval after 5 seconds to prevent memory leak
-    setTimeout(() => clearInterval(checkInterval), 5000);
-  },
-
-  /**
-   * Load guest sidebar with Login button
-   */
-  loadGuestSidebar() {
-    const checkInterval = setInterval(() => {
-      const userInfoSection = document.querySelector('aside > div:last-child');
-
-      if (userInfoSection) {
-        clearInterval(checkInterval);
-
-        // Replace user info with Login button
-        userInfoSection.innerHTML = `
-          <button
-            onclick="AuthModal.open()"
-            class="w-full px-4 py-3 bg-gold text-white font-semibold rounded-lg hover:bg-gold/90 transition-colors text-center"
-          >
-            Login / Sign Up
-          </button>
-        `;
-
-        console.log('[UIController] Guest sidebar loaded');
-      }
-    }, 100);
-
     setTimeout(() => clearInterval(checkInterval), 5000);
   },
 
