@@ -1,5 +1,6 @@
 name = "fishermn"
 compatibility_date = "2025-12-08"
+compatibility_flags = ["nodejs_compat"]
 
 # Build output directory configured in Cloudflare Dashboard (/)
 # No pages_build_output_dir needed for Git integration
