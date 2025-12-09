@@ -1,6 +1,6 @@
 /**
  * GET /api/auth/google/callback
- * Complete Google OAuth callback handler
+ * Incremental test - add logic step by step
  */
 
 export async function onRequestGet(context) {
@@ -8,12 +8,11 @@ export async function onRequestGet(context) {
   const url = new URL(request.url);
 
   try {
-    // Get code and state
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
 
     if (!code) {
-      return Response.redirect('/?error=oauth_failed', 302);
+      return new Response('Step 1 FAILED: No code');
     }
 
     // Verify state
@@ -22,7 +21,7 @@ export async function onRequestGet(context) {
     const savedState = stateCookie ? stateCookie.split('=')[1] : null;
 
     if (!savedState || savedState !== state) {
-      return Response.redirect('/?error=oauth_failed', 302);
+      return new Response('Step 2 FAILED: State mismatch');
     }
 
     // Exchange code for token
@@ -37,67 +36,14 @@ export async function onRequestGet(context) {
     });
 
     if (!tokenResponse.ok) {
-      return Response.redirect('/?error=oauth_failed', 302);
+      return new Response('Step 3 FAILED: Token exchange failed with status ' + tokenResponse.status);
     }
 
     const tokenData = await tokenResponse.json();
 
-    // Get user profile
-    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
-    });
-
-    if (!profileResponse.ok) {
-      return Response.redirect('/?error=oauth_failed', 302);
-    }
-
-    const profile = await profileResponse.json();
-
-    // User operations
-    const userId = 'user-' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-    const email = profile.email.toLowerCase();
-    const displayName = profile.name || email.split('@')[0];
-
-    // Check/create user
-    let user = await env.DB.prepare('SELECT * FROM users WHERE oauth_provider = ? AND oauth_provider_id = ?')
-      .bind('google', profile.id).first();
-
-    if (!user) {
-      user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
-
-      if (!user) {
-        await env.DB.prepare(
-          'INSERT INTO users (id, email, password_hash, display_name, oauth_provider, oauth_provider_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(userId, email, null, displayName, 'google', profile.id, Date.now()).run();
-
-        user = { id: userId, email, display_name: displayName };
-      }
-    }
-
-    // Update last login
-    await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?')
-      .bind(Date.now(), user.id).run();
-
-    // Generate JWT with dynamic import
-    const jwtModule = await import('@tsndr/cloudflare-worker-jwt');
-    const token = await jwtModule.default.sign({
-      sub: user.id,
-      email: user.email || email,
-      displayName: user.display_name || displayName,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
-    }, env.JWT_SECRET);
-
-    // Create redirect with auth cookie (using Headers class)
-    const headers = new Headers();
-    headers.set('Location', '/');
-    headers.append('Set-Cookie', 'auth_token=' + token + '; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/');
-    headers.append('Set-Cookie', 'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/');
-
-    return new Response(null, { status: 302, headers });
+    return new Response('Step 3 OK: Got access token! Length: ' + (tokenData.access_token?.length || 0));
 
   } catch (error) {
-    console.error('[OAuth Callback] Error:', error.message);
-    return Response.redirect('/?error=oauth_failed', 302);
+    return new Response('EXCEPTION: ' + error.message + '\nStack: ' + error.stack);
   }
 }
