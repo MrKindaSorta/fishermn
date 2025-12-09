@@ -1,6 +1,6 @@
 /**
  * GET /api/auth/google/callback
- * Incremental test - add logic step by step
+ * Step 4: Add profile fetch
  */
 
 export async function onRequestGet(context) {
@@ -36,12 +36,23 @@ export async function onRequestGet(context) {
     });
 
     if (!tokenResponse.ok) {
-      return new Response('Step 3 FAILED: Token exchange failed with status ' + tokenResponse.status);
+      return new Response('Step 3 FAILED: Token exchange - status ' + tokenResponse.status);
     }
 
     const tokenData = await tokenResponse.json();
 
-    return new Response('Step 3 OK: Got access token! Length: ' + (tokenData.access_token?.length || 0));
+    // Get user profile
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
+    });
+
+    if (!profileResponse.ok) {
+      return new Response('Step 4 FAILED: Profile fetch - status ' + profileResponse.status);
+    }
+
+    const profile = await profileResponse.json();
+
+    return new Response('Step 4 OK: Got profile! Email: ' + profile.email + ', Name: ' + profile.name);
 
   } catch (error) {
     return new Response('EXCEPTION: ' + error.message + '\nStack: ' + error.stack);
