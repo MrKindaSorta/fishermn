@@ -61,33 +61,56 @@ This runs two processes concurrently:
 ## 📁 Project Structure
 
 ```
-website/
+fishermn/
 ├── index.html                      # Dashboard (Home screen)
 ├── lakes.html                      # Lakes list screen
+├── lake.html                       # Lake detail screen
 ├── profile.html                    # User profile screen
 ├── leaderboards.html              # Leaderboards screen
-├── css/
-│   └── tailwind.css               # Compiled Tailwind CSS
-├── js/
-│   └── app.js                     # Custom utilities
-├── partials/
-│   ├── header.html                # App header component
-│   ├── nav-bottom.html            # Bottom navigation
-│   ├── rank-badge.html            # User rank display
-│   ├── xp-bar.html                # XP progress bar
-│   └── fab-button.html            # Floating action button
-├── data/
-│   ├── lakes.json                 # Mock lake data (10 lakes)
-│   ├── reports.json               # Mock ice/catch reports
-│   ├── user.json                  # Current user profile
-│   ├── businesses.json            # Bars, bait, resorts, casinos
-│   └── leaderboards.json          # Top contributors
+├── discussions.html               # Discussions screen
+├── public/                        # Public assets
+│   ├── css/
+│   │   └── tailwind.css           # Compiled Tailwind CSS
+│   ├── js/
+│   │   ├── auth.js                # Authentication
+│   │   ├── auth-modal.js          # Auth modal logic
+│   │   ├── navigation.js          # Navigation controller
+│   │   ├── ui-controller.js       # UI state management
+│   │   ├── dashboard.js           # Dashboard page logic
+│   │   ├── lake-detail.js         # Lake detail page logic
+│   │   └── profile.js             # Profile page logic
+│   └── partials/
+│       ├── auth-modal.html        # Login/register modal
+│       ├── top-bar.html           # Top navigation bar
+│       ├── sidebar-user.html      # Authenticated user sidebar
+│       ├── sidebar-guest.html     # Guest sidebar
+│       ├── header.html            # Header component
+│       ├── rank-badge.html        # User rank badge
+│       └── xp-bar.html            # XP progress bar
+├── functions/                     # Cloudflare Pages Functions (API)
+│   ├── api/
+│   │   ├── auth/                  # Authentication endpoints
+│   │   └── lakes/                 # Lake endpoints
+│   ├── lib/                       # Shared utilities
+│   └── _middleware.js             # Global middleware
+├── migrations/                    # Database migrations
+│   ├── 001-create-users.sql
+│   ├── 002-create-lakes.sql
+│   └── 003-add-remaining-tables.sql
+├── scripts/
+│   └── prepare-deploy.sh          # Deployment preparation
 ├── src/
 │   └── input.css                  # Tailwind source file
+├── backups/                       # Backup files
+├── docs/                          # Documentation
+│   ├── AUTH_SETUP.md
+│   ├── DEPLOYMENT.md
+│   └── fishermn-plan.md
+├── README.md                      # Project documentation (this file)
 ├── tailwind.config.js             # Tailwind configuration
 ├── package.json                   # Dependencies & scripts
 ├── server.js                      # Express development server
-└── README.md                      # This file
+└── wrangler.toml                  # Cloudflare configuration
 ```
 
 ## 🎨 Design System

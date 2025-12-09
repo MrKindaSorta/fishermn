@@ -9,6 +9,7 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Helper function removed - no longer using mock JSON data
 
@@ -34,9 +35,9 @@ app.get('/leaderboards.html', (req, res) => {
 });
 
 // Serve partials
-app.get('/partials/:name', (req, res) => {
+app.get('/public/partials/:name', (req, res) => {
   const filename = req.params.name;
-  res.sendFile(path.join(__dirname, 'partials', filename));
+  res.sendFile(path.join(__dirname, 'public', 'partials', filename));
 });
 
 // API: Get lakes list as HTML

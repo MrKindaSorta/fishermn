@@ -75,7 +75,7 @@ if ! npm run tailwind:build; then
 fi
 
 # Verify CSS was built
-if [ ! -f "$PROJECT_ROOT/css/tailwind.css" ]; then
+if [ ! -f "$PROJECT_ROOT/public/css/tailwind.css" ]; then
     echo -e "${RED}✗ tailwind.css not found after build${NC}"
     exit 1
 fi
@@ -107,31 +107,24 @@ echo -e "${YELLOW}[3/5] Copying production files...${NC}"
 # Create directory structure
 mkdir -p "$DEPLOY_DIR/css"
 mkdir -p "$DEPLOY_DIR/js"
-mkdir -p "$DEPLOY_DIR/data"
 mkdir -p "$DEPLOY_DIR/partials"
 mkdir -p "$DEPLOY_DIR/assets/icons"
 
 # Copy HTML files (root level)
 echo "  → Copying HTML files..."
 cp "$PROJECT_ROOT"/*.html "$DEPLOY_DIR/" 2>/dev/null || true
-# Remove backup file if it exists
-rm -f "$DEPLOY_DIR/lakes.html.backup"
 
 # Copy CSS (built file only)
 echo "  → Copying CSS..."
-cp "$PROJECT_ROOT/css/tailwind.css" "$DEPLOY_DIR/css/"
+cp "$PROJECT_ROOT/public/css/tailwind.css" "$DEPLOY_DIR/css/"
 
 # Copy JavaScript
 echo "  → Copying JavaScript..."
-cp "$PROJECT_ROOT/js"/*.js "$DEPLOY_DIR/js/"
-
-# Copy JSON data
-echo "  → Copying JSON data..."
-cp "$PROJECT_ROOT/data"/*.json "$DEPLOY_DIR/data/"
+cp "$PROJECT_ROOT/public/js"/*.js "$DEPLOY_DIR/js/"
 
 # Copy partials
 echo "  → Copying partials..."
-cp "$PROJECT_ROOT/partials"/*.html "$DEPLOY_DIR/partials/"
+cp "$PROJECT_ROOT/public/partials"/*.html "$DEPLOY_DIR/partials/"
 
 # Copy assets (if any exist)
 if [ -d "$PROJECT_ROOT/assets/icons" ] && [ "$(ls -A "$PROJECT_ROOT/assets/icons" 2>/dev/null)" ]; then
@@ -172,7 +165,6 @@ done
 # Check required directories
 REQUIRED_DIRS=(
     "js"
-    "data"
     "partials"
 )
 

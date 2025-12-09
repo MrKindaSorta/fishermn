@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FisherMN - Profile</title>
-  <link rel="stylesheet" href="/css/tailwind.css">
+  <link rel="stylesheet" href="/public/css/tailwind.css">
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <script src="/js/navigation.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/ui-controller.js"></script>
-  <script src="/js/auth-modal.js"></script>
-  <script src="/js/profile.js"></script>
+  <script src="/public/js/navigation.js"></script>
+  <script src="/public/js/auth.js"></script>
+  <script src="/public/js/ui-controller.js"></script>
+  <script src="/public/js/auth-modal.js"></script>
+  <script src="/public/js/profile.js"></script>
 </head>
 <body class="bg-frost">
   <!-- Anti-FOUC Script -->
@@ -33,7 +33,7 @@
   </script>
 
   <!-- Auth Modal Loader -->
-  <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
+  <div hx-get="/public/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
 
   <!-- Left Sidebar - Auth-aware loading -->
   <div id="sidebar-container">
@@ -42,7 +42,7 @@
   <script>
     (function() {
       var isLoggedIn = !!localStorage.getItem('fishermn_auth_token');
-      var url = isLoggedIn ? '/partials/sidebar-user.html' : '/partials/sidebar-guest.html';
+      var url = isLoggedIn ? '/public/partials/sidebar-user.html' : '/public/partials/sidebar-guest.html';
       var el = document.getElementById('sidebar-container');
       el.setAttribute('hx-get', url);
       el.setAttribute('hx-trigger', 'load');
@@ -51,7 +51,7 @@
   </script>
 
   <!-- Top Bar -->
-  <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+  <div hx-get="/public/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
   <!-- Main Content Area -->
   <main class="ml-64 mt-16 p-6 min-h-screen max-w-4xl">

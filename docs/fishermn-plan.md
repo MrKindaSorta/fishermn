@@ -1415,9 +1415,9 @@ Use fade/slide for modals:
 | Profile | ✅ COMPLETE | `profile.html` | User stats and settings |
 | Leaderboards | ✅ COMPLETE | `leaderboards.html` | Empty state, needs API |
 | Discussions | ✅ COMPLETE | `discussions.html` | Empty state, needs API |
-| Auth Modal | ✅ COMPLETE | `partials/auth-modal.html` | Login/register modal |
-| Sidebar (Guest) | ✅ COMPLETE | `partials/sidebar-guest.html` | Nav for logged-out users |
-| Sidebar (User) | ✅ COMPLETE | `partials/sidebar-user.html` | Nav for logged-in users |
+| Auth Modal | ✅ COMPLETE | `public/partials/auth-modal.html` | Login/register modal |
+| Sidebar (Guest) | ✅ COMPLETE | `public/partials/sidebar-guest.html` | Nav for logged-out users |
+| Sidebar (User) | ✅ COMPLETE | `public/partials/sidebar-user.html` | Nav for logged-in users |
 
 ### Key Libraries & Files
 
@@ -1427,10 +1427,10 @@ Use fade/slide for modals:
 | `functions/lib/db.js` | User database queries | ✅ COMPLETE |
 | `functions/lib/lakes.js` | Lake/report database queries | ✅ COMPLETE |
 | `functions/lib/validation.js` | Input validation utilities | ✅ COMPLETE |
-| `js/auth.js` | Frontend auth state management | ✅ COMPLETE |
-| `js/auth-modal.js` | Login/register modal logic | ✅ COMPLETE |
-| `js/lake-detail.js` | Lake page dynamic loading | ✅ COMPLETE |
-| `js/ui-controller.js` | Auth-based UI restrictions | ✅ COMPLETE |
+| `public/js/auth.js` | Frontend auth state management | ✅ COMPLETE |
+| `public/js/auth-modal.js` | Login/register modal logic | ✅ COMPLETE |
+| `public/js/lake-detail.js` | Lake page dynamic loading | ✅ COMPLETE |
+| `public/js/ui-controller.js` | Auth-based UI restrictions | ✅ COMPLETE |
 
 ### Infrastructure
 
