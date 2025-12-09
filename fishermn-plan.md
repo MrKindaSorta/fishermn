@@ -1355,3 +1355,117 @@ Use fade/slide for modals:
 | Modals | Sliding bottom sheet | HTMX slide-up modal |
 
 **Goal:** Clients won't know which is app or web — the visual system is aligned.
+
+---
+
+## 📋 Implementation Status (Updated: December 2024)
+
+### Database Tables
+
+| Table | Status | Migration File | Notes |
+|-------|--------|----------------|-------|
+| `users` | ✅ COMPLETE | `001-create-users.sql` | Includes rank/XP/reliability fields, seeded with test user |
+| `lakes` | ✅ COMPLETE | `002-create-lakes.sql` | 10 MN lakes seeded with coordinates, amenities, official ice data |
+| `ice_reports` | ✅ COMPLETE | `002-create-lakes.sql` | Added quadrant, confidence, upvotes/downvotes in 003 |
+| `catch_reports` | ✅ COMPLETE | `002-create-lakes.sql` | Added quadrant, depth_band, upvotes/downvotes in 003 |
+| `lake_favorites` | ✅ COMPLETE | `002-create-lakes.sql` | User favorite lakes |
+| `businesses` | ✅ COMPLETE | `003-add-remaining-tables.sql` | 86 businesses seeded for all 10 lakes |
+| `checkins` | ✅ COMPLETE | `003-add-remaining-tables.sql` | GPS-verified check-ins |
+| `votes` | ✅ COMPLETE | `003-add-remaining-tables.sql` | Upvote/downvote tracking |
+| `fact_checks` | ✅ COMPLETE | `003-add-remaining-tables.sql` | Community verification |
+| `xp_events` | ✅ COMPLETE | `003-add-remaining-tables.sql` | XP transaction log |
+| `discussion_threads` | ✅ COMPLETE | `003-add-remaining-tables.sql` | Forum threads |
+| `discussion_posts` | ✅ COMPLETE | `003-add-remaining-tables.sql` | Forum replies |
+| `rewards` | ✅ COMPLETE | `003-add-remaining-tables.sql` | Prizes/rewards system |
+| `reward_claims` | ✅ COMPLETE | `003-add-remaining-tables.sql` | User reward claims |
+
+### API Endpoints
+
+| Endpoint | Status | File | Notes |
+|----------|--------|------|-------|
+| `POST /api/auth/register` | ✅ COMPLETE | `functions/api/auth/register.js` | Email/password registration |
+| `POST /api/auth/login` | ✅ COMPLETE | `functions/api/auth/login.js` | JWT auth with cookie |
+| `GET /api/auth/me` | ✅ COMPLETE | `functions/api/auth/me.js` | Get current user |
+| `POST /api/auth/logout` | ✅ COMPLETE | `functions/api/auth/logout.js` | Clear auth cookie |
+| `GET /api/lakes` | ✅ COMPLETE | `functions/api/lakes/index.js` | List all lakes |
+| `GET /api/lakes/:slug` | ✅ COMPLETE | `functions/api/lakes/[slug].js` | Get lake with reports |
+| `GET /api/lakes/:slug/ice-reports` | ✅ COMPLETE | `functions/api/lakes/[slug]/ice-reports.js` | List ice reports |
+| `POST /api/lakes/:slug/ice-reports` | ✅ COMPLETE | `functions/api/lakes/[slug]/ice-reports.js` | Submit ice report |
+| `GET /api/lakes/:slug/catch-reports` | ✅ COMPLETE | `functions/api/lakes/[slug]/catch-reports.js` | List catch reports |
+| `POST /api/lakes/:slug/catch-reports` | ✅ COMPLETE | `functions/api/lakes/[slug]/catch-reports.js` | Submit catch report |
+| `POST /api/lakes/:slug/favorite` | ✅ COMPLETE | `functions/api/lakes/[slug]/favorite.js` | Add to favorites |
+| `DELETE /api/lakes/:slug/favorite` | ✅ COMPLETE | `functions/api/lakes/[slug]/favorite.js` | Remove from favorites |
+| `GET /api/businesses` | ⏳ PENDING | - | List businesses |
+| `GET /api/businesses/:id` | ⏳ PENDING | - | Get business details |
+| `POST /api/checkins` | ⏳ PENDING | - | Submit check-in |
+| `GET /api/discussions` | ⏳ PENDING | - | List discussions |
+| `POST /api/discussions` | ⏳ PENDING | - | Create thread |
+| `POST /api/discussions/:id/replies` | ⏳ PENDING | - | Reply to thread |
+| `PUT /api/reports/:id/vote` | ⏳ PENDING | - | Vote on report |
+| `GET /api/leaderboards/global` | ⏳ PENDING | - | Global leaderboard |
+| `GET /api/leaderboards/lake/:id` | ⏳ PENDING | - | Per-lake leaderboard |
+
+### Frontend Pages
+
+| Page | Status | File | Notes |
+|------|--------|------|-------|
+| Dashboard | ✅ COMPLETE | `index.html` | Redirects to lakes if logged out |
+| Lakes Map | ✅ COMPLETE | `lakes.html` | Interactive map with filters, hardcoded data |
+| Lake Detail | ✅ COMPLETE | `lake.html` | Dynamic loading via API |
+| Profile | ✅ COMPLETE | `profile.html` | User stats and settings |
+| Leaderboards | ✅ COMPLETE | `leaderboards.html` | Empty state, needs API |
+| Discussions | ✅ COMPLETE | `discussions.html` | Empty state, needs API |
+| Auth Modal | ✅ COMPLETE | `partials/auth-modal.html` | Login/register modal |
+| Sidebar (Guest) | ✅ COMPLETE | `partials/sidebar-guest.html` | Nav for logged-out users |
+| Sidebar (User) | ✅ COMPLETE | `partials/sidebar-user.html` | Nav for logged-in users |
+
+### Key Libraries & Files
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `functions/lib/auth.js` | JWT generation/verification | ✅ COMPLETE |
+| `functions/lib/db.js` | User database queries | ✅ COMPLETE |
+| `functions/lib/lakes.js` | Lake/report database queries | ✅ COMPLETE |
+| `functions/lib/validation.js` | Input validation utilities | ✅ COMPLETE |
+| `js/auth.js` | Frontend auth state management | ✅ COMPLETE |
+| `js/auth-modal.js` | Login/register modal logic | ✅ COMPLETE |
+| `js/lake-detail.js` | Lake page dynamic loading | ✅ COMPLETE |
+| `js/ui-controller.js` | Auth-based UI restrictions | ✅ COMPLETE |
+
+### Infrastructure
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Cloudflare Pages | ✅ DEPLOYED | fishermn.pages.dev (auto-deploys from GitHub) |
+| Cloudflare D1 | ✅ CONFIGURED | Database ID: b851bcff-3f89-4598-8699-00f6920c3077 |
+| Cloudflare Functions | ✅ WORKING | Pages Functions in /functions directory |
+| JWT Authentication | ✅ WORKING | Using @tsndr/cloudflare-worker-jwt |
+| Custom Domain | ⏳ PENDING | Need to configure fishermn.com |
+
+### Business Data Seeded
+
+All 10 launch lakes have businesses seeded (86 total):
+
+| Lake | Bars | Bait | Resorts | Casino |
+|------|------|------|---------|--------|
+| Upper Red Lake | 3 | 3 | 3 | 0 |
+| Lake of the Woods | 4 | 2 | 4 | 1 |
+| Mille Lacs Lake | 4 | 3 | 4 | 1 |
+| Leech Lake | 3 | 3 | 3 | 1 |
+| Lake Winnibigoshish | 2 | 2 | 3 | 0 |
+| Lake Vermilion | 2 | 2 | 3 | 1 |
+| Gull Lake | 3 | 2 | 3 | 0 |
+| Rainy Lake | 2 | 2 | 3 | 0 |
+| Otter Tail Lake | 2 | 2 | 2 | 0 |
+| Cass Lake | 2 | 2 | 3 | 1 |
+
+---
+
+### Next Priority Tasks
+
+1. **Connect lakes.html to API** - Replace hardcoded lake data with `/api/lakes` call
+2. **Build business API endpoints** - GET /api/businesses for lake-life features
+3. **Implement voting system** - Allow users to upvote/downvote reports
+4. **Build XP service** - Proper XP awarding with xp_events logging
+5. **Build discussion API** - Enable community discussions
+6. **Deploy to custom domain** - Configure fishermn.com
