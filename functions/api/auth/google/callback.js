@@ -66,8 +66,8 @@ export async function onRequestGet(context) {
 
       if (!user) {
         await env.DB.prepare(
-          'INSERT INTO users (id, email, password_hash, display_name, oauth_provider, oauth_provider_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(userId, email, null, displayName, 'google', profile.id, Date.now()).run();
+          'INSERT INTO users (id, email, password_hash, display_name, oauth_provider, oauth_provider_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        ).bind(userId, email, null, displayName, 'google', profile.id, Date.now(), Date.now()).run();
 
         user = { id: userId, email, display_name: displayName };
       }
