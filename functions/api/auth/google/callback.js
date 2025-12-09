@@ -87,13 +87,38 @@ export async function onRequestGet(context) {
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
     }, env.JWT_SECRET);
 
-    // Create redirect with auth cookie using Headers class
+    // Format user data for frontend
+    const userData = {
+      id: user.id,
+      email: user.email || email,
+      displayName: user.display_name || displayName
+    };
+
+    // Return HTML that saves to localStorage then redirects
+    const html = `<!DOCTYPE html>
+<html>
+<head><title>Logging in...</title></head>
+<body>
+<script>
+  try {
+    localStorage.setItem('fishermn_auth_token', ${JSON.stringify(token)});
+    localStorage.setItem('fishermn_user_data', ${JSON.stringify(JSON.stringify(userData))});
+    window.location.href = '/';
+  } catch(e) {
+    console.error('Auth save failed:', e);
+    window.location.href = '/?error=oauth_failed';
+  }
+</script>
+<p>Logging in...</p>
+</body>
+</html>`;
+
     const headers = new Headers();
-    headers.set('Location', '/');
     headers.append('Set-Cookie', 'auth_token=' + token + '; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/');
     headers.append('Set-Cookie', 'oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/');
+    headers.set('Content-Type', 'text/html');
 
-    return new Response(null, { status: 302, headers });
+    return new Response(html, { status: 200, headers });
 
   } catch (error) {
     console.error('[OAuth Callback] Error:', error.message);
