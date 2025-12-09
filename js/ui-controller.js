@@ -223,7 +223,7 @@ const UIController = {
       // Create overlay
       const overlay = document.createElement('div');
       overlay.id = 'auth-overlay';
-      overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/30';
+      overlay.className = 'fixed inset-0 z-40 flex items-center justify-center bg-black/30';
       overlay.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center">
           <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
