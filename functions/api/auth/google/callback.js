@@ -4,6 +4,7 @@
  */
 
 import jwt from '@tsndr/cloudflare-worker-jwt';
+import { findUserById, formatUserForResponse } from '../../lib/db.js';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
@@ -78,21 +79,24 @@ export async function onRequestGet(context) {
     await env.DB.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
       .bind(Date.now(), user.id).run();
 
+    // Fetch full user data from database (includes all rank/XP/stats)
+    const fullUser = await findUserById(env.DB, user.id);
+
+    if (!fullUser) {
+      return Response.redirect('/?error=oauth_failed', 302);
+    }
+
     // Generate JWT
     const token = await jwt.sign({
-      sub: user.id,
-      email: user.email || email,
-      displayName: user.display_name || displayName,
+      sub: fullUser.id,
+      email: fullUser.email,
+      displayName: fullUser.display_name,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
     }, env.JWT_SECRET);
 
-    // Format user data for frontend
-    const userData = {
-      id: user.id,
-      email: user.email || email,
-      displayName: user.display_name || displayName
-    };
+    // Format user data for frontend (includes all rank/XP/stats)
+    const userData = formatUserForResponse(fullUser);
 
     // Return HTML that saves to localStorage then redirects
     const html = `<!DOCTYPE html>
