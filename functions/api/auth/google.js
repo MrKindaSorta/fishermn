@@ -1,62 +1,29 @@
 /**
  * GET /api/auth/google
- * Initiate Google OAuth flow
+ * Simplified test to identify what's causing the 500 error
  */
 
 export async function onRequestGet(context) {
   try {
     const { env } = context;
 
-    console.log('[OAuth] Initiating Google OAuth flow');
+    console.log('[OAuth] Starting OAuth flow');
 
-    // Validate required environment variables
-    if (!env.GOOGLE_CLIENT_ID) {
-      console.error('[OAuth] Missing GOOGLE_CLIENT_ID environment variable');
-      return Response.redirect('/?error=oauth_config_error', 302);
-    }
+    // Test 1: Can we build a simple URL?
+    const testUrl = 'https://accounts.google.com/o/oauth2/v2/auth?test=1';
+    console.log('[OAuth] Test URL:', testUrl);
 
-    if (!env.GOOGLE_REDIRECT_URI) {
-      console.error('[OAuth] Missing GOOGLE_REDIRECT_URI environment variable');
-      return Response.redirect('/?error=oauth_config_error', 302);
-    }
-
-    console.log('[OAuth] Environment variables validated');
-
-    // Generate random state token for CSRF protection
-    const state = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    console.log('[OAuth] Generated state token');
-
-    // Build Google OAuth authorization URL
-    const params = new URLSearchParams({
-      client_id: env.GOOGLE_CLIENT_ID,
-      redirect_uri: env.GOOGLE_REDIRECT_URI,
-      response_type: 'code',
-      scope: 'email profile',
-      state: state,
-      access_type: 'online',
-      prompt: 'select_account'
-    });
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-    console.log('[OAuth] Built authorization URL, redirecting to Google');
-
-    // Store state in cookie for verification in callback
-    const response = Response.redirect(authUrl, 302);
-    response.headers.set(
-      'Set-Cookie',
-      `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/`
-    );
+    // Test 2: Can we create a redirect response?
+    const response = Response.redirect(testUrl, 302);
+    console.log('[OAuth] Created redirect response');
 
     return response;
 
   } catch (error) {
-    console.error('[OAuth] Error initiating Google OAuth:', error);
-    console.error('[OAuth] Error message:', error.message);
-    console.error('[OAuth] Error stack:', error.stack);
-    return Response.redirect('/?error=oauth_failed', 302);
+    console.error('[OAuth] Error:', error);
+    return new Response('Error: ' + error.message, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' }
+    });
   }
 }
