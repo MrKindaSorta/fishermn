@@ -74,7 +74,7 @@ export async function onRequestGet(context) {
     }
 
     // Update last login
-    await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?')
+    await env.DB.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
       .bind(Date.now(), user.id).run();
 
     return new Response('Step 5 OK: User created/found! ID: ' + user.id);
