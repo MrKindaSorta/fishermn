@@ -12,8 +12,18 @@
   <script src="/js/auth.js"></script>
   <script src="/js/ui-controller.js"></script>
   <script src="/js/auth-modal.js"></script>
+  <script src="/js/lake-detail.js"></script>
+  <style>
+    #lake-map {
+      z-index: 0;
+    }
+    .leaflet-pane,
+    .leaflet-control {
+      z-index: 1 !important;
+    }
+  </style>
 </head>
-<body class="bg-frost overflow-hidden">
+<body class="bg-frost">
   <!-- Auth Modal Loader -->
   <div hx-get="/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
 
@@ -36,20 +46,22 @@
   <div hx-get="/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
   <!-- Main Content Area -->
-  <main class="ml-64 mt-16 p-6 min-h-screen">
-    <h1 class="text-2xl font-bold mb-6">Lake Details</h1>
-
-    <!-- Empty State -->
-    <div class="card text-center py-20">
-      <svg class="w-20 h-20 mx-auto text-grayPanel mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+  <main class="ml-64 mt-16 p-6 min-h-screen max-w-4xl">
+    <!-- Back link -->
+    <a href="/lakes.html" class="inline-flex items-center gap-2 text-primary hover:text-gold mb-4 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
       </svg>
-      <h2 class="text-xl font-bold text-primary mb-3">Lake Details Coming Soon</h2>
-      <p class="text-secondary mb-6 max-w-md mx-auto">
-        We're adding detailed lake information including ice conditions,
-        reports, amenities, and points of interest.
-      </p>
-      <a href="/lakes.html" class="btn-primary inline-block">Browse All Lakes</a>
+      Back to Lakes
+    </a>
+
+    <!-- Dynamic content container -->
+    <div id="lake-content">
+      <!-- Loading state - will be replaced by JS -->
+      <div class="card text-center py-20">
+        <div class="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p class="text-secondary">Loading lake data...</p>
+      </div>
     </div>
   </main>
 
