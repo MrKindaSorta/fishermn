@@ -8,7 +8,7 @@
  */
 
 import { createErrorResponse, createSuccessResponse } from '../../lib/validation.js';
-import { formatLakeForResponse, getLakeReportCounts } from '../../lib/lakes.js';
+import { formatLakeForResponse } from '../../lib/lakes.js';
 
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -52,17 +52,8 @@ export async function onRequestGet(context) {
       .first();
     const total = countResult?.total || 0;
 
-    // Format lakes and get report counts
-    const formattedLakes = await Promise.all(
-      lakes.map(async (lake) => {
-        const formatted = formatLakeForResponse(lake);
-        const counts = await getLakeReportCounts(env.DB, lake.id);
-        return {
-          ...formatted,
-          reportCounts: counts
-        };
-      })
-    );
+    // Format lakes (report counts removed - not displayed on list page)
+    const formattedLakes = lakes.map(lake => formatLakeForResponse(lake));
 
     return createSuccessResponse({
       lakes: formattedLakes,
