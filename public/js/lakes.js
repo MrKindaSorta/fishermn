@@ -24,18 +24,15 @@ class LakesList {
       this.initMap();
       this.renderLakeTiles();
 
-      // Initial markers: top 100 by ice thickness (proxy for "popular")
-      const popularLakes = this.lakes
-        .filter(l => l.officialIce?.thickness)
-        .sort((a, b) => (b.officialIce.thickness || 0) - (a.officialIce.thickness || 0))
-        .slice(0, 100);
+      // Initial markers: first 100 lakes (mix of lakes with/without ice data)
+      const initialMarkers = this.lakes.slice(0, 100);
 
-      this.renderMapMarkers(popularLakes);
+      this.renderMapMarkers(initialMarkers);
 
       this.initFilters();
       this.initInfiniteScroll(); // Set up scroll detection
 
-      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, showing top ${popularLakes.length} markers`);
+      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, showing ${initialMarkers.length} initial markers`);
     } catch (error) {
       console.error('Failed to initialize lakes page:', error);
       this.showError('Failed to load lakes. Please refresh the page.');
@@ -305,12 +302,11 @@ class LakesList {
     const lakes = lakesToRender || this.lakes;
 
     lakes.forEach(lake => {
-      // Skip lakes with less than 4 inches of ice
       const thickness = lake.officialIce?.thickness;
-      if (!thickness || thickness < 4) return;
-
-      const color = this.getMarkerColor(thickness);
       const condition = lake.officialIce?.condition || 'N/A';
+
+      // Get color based on ice thickness (or default gray for lakes without data)
+      const color = thickness ? this.getMarkerColor(thickness) : '#6B7280'; // Gray for no data
 
       const customIcon = L.divIcon({
         className: 'custom-marker',
@@ -325,7 +321,7 @@ class LakesList {
           <div style="min-width: 200px;">
             <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">${this.escapeHtml(lake.name)}</h3>
             <p style="font-size: 12px; color: #4B5563; margin-bottom: 8px;">
-              Ice: ${thickness}" • ${this.escapeHtml(condition)}
+              ${thickness ? `Ice: ${thickness}" • ${this.escapeHtml(condition)}` : 'No ice data available'}
             </p>
             <a href="/lake.html?id=${encodeURIComponent(lake.slug)}"
                style="color: #0A3A60; text-decoration: underline; font-size: 12px;">
