@@ -20,14 +20,22 @@ class LakesList {
 
   async init() {
     try {
-      await this.loadLakes(0, false); // Load first 500
+      await this.loadLakes(0, false); // Load first 500 (for list)
       this.initMap();
       this.renderLakeTiles();
-      this.renderMapMarkers();
+
+      // Initial markers: top 100 by ice thickness (proxy for "popular")
+      const popularLakes = this.lakes
+        .filter(l => l.officialIce?.thickness)
+        .sort((a, b) => (b.officialIce.thickness || 0) - (a.officialIce.thickness || 0))
+        .slice(0, 100);
+
+      this.renderMapMarkers(popularLakes);
+
       this.initFilters();
       this.initInfiniteScroll(); // Set up scroll detection
 
-      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes`);
+      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, showing top ${popularLakes.length} markers`);
     } catch (error) {
       console.error('Failed to initialize lakes page:', error);
       this.showError('Failed to load lakes. Please refresh the page.');
@@ -340,36 +348,52 @@ class LakesList {
   }
 
   /**
-   * Get lakes within current map viewport
-   * @returns {Array} Filtered array of lakes
+   * Fetch lakes within current map viewport from API
+   * @returns {Promise<Array>} Lakes in viewport
    */
-  getVisibleLakes() {
-    if (!this.map) return this.lakes;
+  async fetchViewportLakes() {
+    if (!this.map) return [];
 
     const bounds = this.map.getBounds();
+    const params = new URLSearchParams({
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest(),
+      limit: 500  // Still paginate within viewport
+    });
 
-    return this.lakes.filter(lake =>
-      bounds.contains([lake.latitude, lake.longitude])
-    );
+    try {
+      const response = await fetch(`/api/lakes?${params}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || 'Failed to fetch lakes');
+
+      return data.lakes;
+    } catch (error) {
+      console.error('Error fetching viewport lakes:', error);
+      return [];
+    }
   }
 
   /**
-   * Update list to show only lakes visible on map
-   * Called on map moveend/zoomend events
+   * Update list and markers to show only lakes visible on map
+   * Fetches from API (server-side filtering)
    */
-  updateViewportFilteredList() {
-    const visibleLakes = this.getVisibleLakes();
-
-    // Mark that we're using viewport filter
+  async updateViewportFilteredList() {
     this.viewportFilterActive = true;
+
+    // Fetch lakes in viewport from API
+    const viewportLakes = await this.fetchViewportLakes();
 
     // Update list tiles (async, non-blocking)
     requestAnimationFrame(() => {
-      this.renderLakeTiles(visibleLakes);
+      this.renderLakeTiles(viewportLakes);
     });
 
-    // Also update markers
-    this.renderMapMarkers(visibleLakes);
+    // Update markers
+    this.renderMapMarkers(viewportLakes);
   }
 
   /**

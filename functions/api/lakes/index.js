@@ -21,19 +21,50 @@ export async function onRequestGet(context) {
     const offset = parseInt(url.searchParams.get('offset')) || 0;
     const search = url.searchParams.get('search') || '';
 
+    // Viewport bounds parameters (optional)
+    const north = parseFloat(url.searchParams.get('north'));
+    const south = parseFloat(url.searchParams.get('south'));
+    const east = parseFloat(url.searchParams.get('east'));
+    const west = parseFloat(url.searchParams.get('west'));
+    const hasViewport = !isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west);
+
     let query;
     let params = [];
 
-    if (search) {
-      // Search mode - return ALL matching lakes (no pagination)
+    if (search && hasViewport) {
+      // Mode 1: Search within viewport bounds
+      query = `
+        SELECT * FROM lakes
+        WHERE LOWER(name) LIKE ?
+          AND latitude BETWEEN ? AND ?
+          AND longitude BETWEEN ? AND ?
+        ORDER BY name ASC
+        LIMIT ? OFFSET ?
+      `;
+      params = [`%${search.toLowerCase()}%`, south, north, west, east, limit, offset];
+
+    } else if (search) {
+      // Mode 2: Search all lakes (no pagination)
       query = `
         SELECT * FROM lakes
         WHERE LOWER(name) LIKE ?
         ORDER BY name ASC
       `;
       params = [`%${search.toLowerCase()}%`];
+
+    } else if (hasViewport) {
+      // Mode 3: Viewport query - fetch ALL lakes in bounds
+      query = `
+        SELECT * FROM lakes
+        WHERE latitude BETWEEN ? AND ?
+          AND longitude BETWEEN ? AND ?
+        ORDER BY name ASC
+        LIMIT ? OFFSET ?
+      `;
+      params = [south, north, west, east, limit, offset];
+
     } else {
-      // Pagination mode - return limited set
+      // Mode 4: Default pagination
       query = `
         SELECT * FROM lakes
         ORDER BY name ASC
@@ -59,7 +90,7 @@ export async function onRequestGet(context) {
       lakes: formattedLakes,
       count: formattedLakes.length,
       total,
-      hasMore: !search && (offset + formattedLakes.length < total),
+      hasMore: !search && !hasViewport && (offset + formattedLakes.length < total),
       offset: search ? 0 : offset
     });
 
