@@ -659,10 +659,22 @@ class LakesList {
   }
 
   /**
-   * Sort lakes alphabetically
+   * Sort lakes alphabetically with letters first, then numbers/special characters
    */
   sortLakesAlphabetically() {
-    this.lakes.sort((a, b) => a.name.localeCompare(b.name));
+    this.lakes.sort((a, b) => {
+      // Check if first character is alphabetic
+      const aIsAlpha = /^[A-Za-z]/.test(a.name);
+      const bIsAlpha = /^[A-Za-z]/.test(b.name);
+
+      // If one starts with letter and one doesn't, letter comes first
+      if (aIsAlpha !== bIsAlpha) {
+        return aIsAlpha ? -1 : 1;
+      }
+
+      // Both start with letter OR both start with non-letter, sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
     this.applyFilters();
   }
 

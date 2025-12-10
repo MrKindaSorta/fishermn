@@ -38,7 +38,13 @@ export async function onRequestGet(context) {
         WHERE LOWER(name) LIKE ?
           AND latitude BETWEEN ? AND ?
           AND longitude BETWEEN ? AND ?
-        ORDER BY name ASC
+        ORDER BY
+          CASE
+            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
+              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
+            ELSE 1
+          END,
+          name ASC
         LIMIT ? OFFSET ?
       `;
       params = [`%${search.toLowerCase()}%`, south, north, west, east, limit, offset];
@@ -48,7 +54,13 @@ export async function onRequestGet(context) {
       query = `
         SELECT * FROM lakes
         WHERE LOWER(name) LIKE ?
-        ORDER BY name ASC
+        ORDER BY
+          CASE
+            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
+              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
+            ELSE 1
+          END,
+          name ASC
       `;
       params = [`%${search.toLowerCase()}%`];
 
@@ -58,7 +70,13 @@ export async function onRequestGet(context) {
         SELECT * FROM lakes
         WHERE latitude BETWEEN ? AND ?
           AND longitude BETWEEN ? AND ?
-        ORDER BY name ASC
+        ORDER BY
+          CASE
+            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
+              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
+            ELSE 1
+          END,
+          name ASC
         LIMIT ? OFFSET ?
       `;
       params = [south, north, west, east, limit, offset];
@@ -67,7 +85,13 @@ export async function onRequestGet(context) {
       // Mode 4: Default pagination
       query = `
         SELECT * FROM lakes
-        ORDER BY name ASC
+        ORDER BY
+          CASE
+            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
+              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
+            ELSE 1
+          END,
+          name ASC
         LIMIT ? OFFSET ?
       `;
       params = [limit, offset];
