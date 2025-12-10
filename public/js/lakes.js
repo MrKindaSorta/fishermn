@@ -1,0 +1,465 @@
+/**
+ * LakesList - Dynamic lake listing with map integration
+ * Fetches lake data from D1 database via API and renders tiles + map markers
+ */
+class LakesList {
+  constructor() {
+    this.lakes = [];
+    this.map = null;
+    this.markers = [];
+    this.activeLakeId = null;
+  }
+
+  async init() {
+    try {
+      await this.loadLakes();
+      this.initMap();
+      this.renderLakeTiles();
+      this.renderMapMarkers();
+      this.initFilters();
+    } catch (error) {
+      console.error('Failed to initialize lakes page:', error);
+      this.showError('Failed to load lakes. Please refresh the page.');
+    }
+  }
+
+  /**
+   * Fetch lakes from API
+   */
+  async loadLakes() {
+    try {
+      const response = await fetch('/api/lakes');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || 'API error');
+
+      this.lakes = data.lakes || [];
+
+      if (this.lakes.length === 0) {
+        this.showEmptyState();
+      }
+    } catch (error) {
+      console.error('Error loading lakes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize Leaflet map
+   */
+  initMap() {
+    this.map = L.map('map').setView([46.5, -94.0], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18,
+      minZoom: 6
+    }).addTo(this.map);
+  }
+
+  /**
+   * Render lake tiles in the list
+   */
+  renderLakeTiles(lakesToRender = null) {
+    const lakes = lakesToRender || this.lakes;
+    const container = document.getElementById('lakes-list');
+
+    if (lakes.length === 0) {
+      this.showEmptyFilterState();
+      return;
+    }
+
+    container.innerHTML = lakes.map(lake => this.createLakeTileHTML(lake)).join('');
+  }
+
+  /**
+   * Generate HTML for a single lake tile
+   */
+  createLakeTileHTML(lake) {
+    const thickness = lake.officialIce?.thickness || null;
+    const condition = lake.officialIce?.condition || '';
+    const thicknessClass = this.getThicknessClass(thickness);
+    const thicknessValue = thickness !== null ? thickness : '--';
+
+    return `
+      <div class="lake-list-item card py-3 px-4"
+           onclick="window.lakesList.flyToLake('${lake.id}', ${lake.latitude}, ${lake.longitude})"
+           data-lake-name="${this.escapeHtml(lake.name)}"
+           data-condition="${this.escapeHtml(condition)}"
+           data-thickness="${thicknessValue}"
+           data-casino="${lake.amenities?.hasCasino || false}"
+           data-bars="${lake.amenities?.barsCount || 0}"
+           data-resort="${lake.amenities?.hasLodging || false}"
+           data-baitshop="${lake.amenities?.hasBaitShop || false}"
+           data-icehouse="${lake.amenities?.hasIceHouseRental || false}"
+           data-lodging="${lake.amenities?.hasLodging || false}"
+           data-restaurant="${lake.amenities?.hasRestaurant || false}"
+           data-boatlaunch="${lake.amenities?.hasBoatLaunch || false}"
+           data-gasstation="${lake.amenities?.hasGasStation || false}"
+           data-grocery="${lake.amenities?.hasGrocery || false}"
+           data-guideservice="${lake.amenities?.hasGuideService || false}">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-base">${this.escapeHtml(lake.name)}</h3>
+          <span class="badge ${thicknessClass} text-white text-xs px-3 py-1">${thicknessValue}"</span>
+        </div>
+        <p class="text-xs text-secondary">${this.escapeHtml(lake.region || 'Minnesota')}</p>
+      </div>
+    `;
+  }
+
+  /**
+   * Get badge color class based on ice thickness
+   */
+  getThicknessClass(thickness) {
+    if (!thickness || thickness < 6) return 'bg-orange';
+    if (thickness < 12) return 'bg-gold';
+    return 'bg-evergreen';
+  }
+
+  /**
+   * Render map markers
+   */
+  renderMapMarkers(lakesToRender = null) {
+    // Clear existing markers
+    this.markers.forEach(marker => this.map.removeLayer(marker));
+    this.markers = [];
+
+    const lakes = lakesToRender || this.lakes;
+
+    lakes.forEach(lake => {
+      // Skip lakes with less than 4 inches of ice
+      const thickness = lake.officialIce?.thickness;
+      if (!thickness || thickness < 4) return;
+
+      const color = this.getMarkerColor(thickness);
+      const condition = lake.officialIce?.condition || 'N/A';
+
+      const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;"></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const marker = L.marker([lake.latitude, lake.longitude], { icon: customIcon })
+        .addTo(this.map)
+        .bindPopup(`
+          <div style="min-width: 200px;">
+            <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">${this.escapeHtml(lake.name)}</h3>
+            <p style="font-size: 12px; color: #4B5563; margin-bottom: 8px;">
+              Ice: ${thickness}" • ${this.escapeHtml(condition)}
+            </p>
+            <a href="/lake.html?id=${encodeURIComponent(lake.slug)}"
+               style="color: #0A3A60; text-decoration: underline; font-size: 12px;">
+              View Lake Page →
+            </a>
+          </div>
+        `);
+
+      this.markers.push(marker);
+    });
+  }
+
+  /**
+   * Get marker color based on thickness
+   */
+  getMarkerColor(thickness) {
+    if (thickness < 6) return '#FF8C00'; // Orange
+    if (thickness < 12) return '#D4AF37'; // Gold
+    return '#22C55E'; // Green
+  }
+
+  /**
+   * Fly to lake on map and highlight tile
+   */
+  flyToLake(lakeId, lat, lon) {
+    // Remove active class from all tiles
+    document.querySelectorAll('.lake-list-item').forEach(item => {
+      item.classList.remove('active');
+    });
+
+    // Add active class to clicked tile
+    const tiles = document.querySelectorAll('.lake-list-item');
+    tiles.forEach(tile => {
+      const tileName = tile.getAttribute('data-lake-name');
+      const clickedLake = this.lakes.find(l => l.id === lakeId);
+      if (tileName === clickedLake?.name) {
+        tile.classList.add('active');
+      }
+    });
+
+    // Fly to location on map
+    this.map.flyTo([lat, lon], 11, {
+      duration: 1.5
+    });
+
+    this.activeLakeId = lakeId;
+  }
+
+  /**
+   * Initialize filter event listeners
+   */
+  initFilters() {
+    // Search input
+    const searchInput = document.getElementById('lake-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => this.applyFilters());
+    }
+
+    // Thickness slider
+    const thicknessSlider = document.getElementById('thickness-filter');
+    const thicknessValue = document.getElementById('thickness-value');
+    if (thicknessSlider) {
+      thicknessSlider.addEventListener('input', (e) => {
+        if (thicknessValue) {
+          thicknessValue.textContent = e.target.value;
+        }
+        this.applyFilters();
+      });
+    }
+
+    // Bar counter buttons
+    const decreaseBtn = document.querySelector('[onclick="adjustBarCounter(-1)"]');
+    const increaseBtn = document.querySelector('[onclick="adjustBarCounter(1)"]');
+    if (decreaseBtn) {
+      decreaseBtn.setAttribute('onclick', '');
+      decreaseBtn.addEventListener('click', () => this.adjustBarCounter(-1));
+    }
+    if (increaseBtn) {
+      increaseBtn.setAttribute('onclick', '');
+      increaseBtn.addEventListener('click', () => this.adjustBarCounter(1));
+    }
+
+    // Amenity checkboxes
+    const amenityCheckboxes = document.querySelectorAll('input[type="checkbox"][id^="filter-"]');
+    amenityCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => this.applyFilters());
+    });
+
+    // Filter toggle button
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterToggle) {
+      filterToggle.addEventListener('click', () => this.toggleFilters());
+    }
+
+    // Clear filters button
+    const clearBtn = document.getElementById('clear-filters');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this.clearFilters());
+    }
+
+    // Sort button
+    const sortBtn = document.getElementById('sort-alpha');
+    if (sortBtn) {
+      sortBtn.addEventListener('click', () => this.sortLakesAlphabetically());
+    }
+  }
+
+  /**
+   * Apply all active filters
+   */
+  applyFilters() {
+    const searchTerm = (document.getElementById('lake-search')?.value || '').toLowerCase();
+    const thicknessFilter = parseInt(document.getElementById('thickness-filter')?.value || '0');
+    const barsFilter = parseInt(document.getElementById('bars-counter')?.value || '0');
+
+    const filteredLakes = this.lakes.filter(lake => {
+      // Search filter
+      if (searchTerm && !lake.name.toLowerCase().includes(searchTerm)) {
+        return false;
+      }
+
+      // Thickness filter
+      const thickness = lake.officialIce?.thickness;
+      if (thicknessFilter > 0 && (!thickness || thickness < thicknessFilter)) {
+        return false;
+      }
+
+      // Bars filter
+      const barsCount = lake.amenities?.barsCount || 0;
+      if (barsFilter > 0 && barsCount < barsFilter) {
+        return false;
+      }
+
+      // Amenity filters
+      const amenityFilters = {
+        'filter-casino': 'hasCasino',
+        'filter-baitshop': 'hasBaitShop',
+        'filter-icehouse': 'hasIceHouseRental',
+        'filter-lodging': 'hasLodging',
+        'filter-restaurant': 'hasRestaurant',
+        'filter-boatlaunch': 'hasBoatLaunch',
+        'filter-gas': 'hasGasStation',
+        'filter-grocery': 'hasGrocery',
+        'filter-guide': 'hasGuideService'
+      };
+
+      for (const [checkboxId, amenityKey] of Object.entries(amenityFilters)) {
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox?.checked && !lake.amenities?.[amenityKey]) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Update results count
+    const resultCount = document.getElementById('result-count');
+    if (resultCount) {
+      resultCount.textContent = filteredLakes.length;
+    }
+
+    // Re-render tiles and markers
+    this.renderLakeTiles(filteredLakes);
+    this.renderMapMarkers(filteredLakes);
+  }
+
+  /**
+   * Adjust bar counter
+   */
+  adjustBarCounter(delta) {
+    const counter = document.getElementById('bars-counter');
+    if (!counter) return;
+
+    let value = parseInt(counter.value) + delta;
+    value = Math.max(0, Math.min(10, value));
+    counter.value = value;
+
+    this.applyFilters();
+  }
+
+  /**
+   * Toggle filter panel visibility
+   */
+  toggleFilters() {
+    const panel = document.getElementById('filter-panel');
+    const btn = document.getElementById('filter-toggle');
+
+    if (panel && btn) {
+      const isHidden = panel.classList.contains('hidden');
+      if (isHidden) {
+        panel.classList.remove('hidden');
+        btn.textContent = 'Hide Filters ▲';
+      } else {
+        panel.classList.add('hidden');
+        btn.textContent = 'Show Filters ▼';
+      }
+    }
+  }
+
+  /**
+   * Clear all filters
+   */
+  clearFilters() {
+    // Reset search
+    const searchInput = document.getElementById('lake-search');
+    if (searchInput) searchInput.value = '';
+
+    // Reset thickness slider
+    const thicknessSlider = document.getElementById('thickness-filter');
+    const thicknessValue = document.getElementById('thickness-value');
+    if (thicknessSlider) {
+      thicknessSlider.value = '0';
+      if (thicknessValue) thicknessValue.textContent = '0';
+    }
+
+    // Reset bar counter
+    const barsCounter = document.getElementById('bars-counter');
+    if (barsCounter) barsCounter.value = '0';
+
+    // Uncheck all amenity checkboxes
+    document.querySelectorAll('input[type="checkbox"][id^="filter-"]').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+
+    this.applyFilters();
+  }
+
+  /**
+   * Sort lakes alphabetically
+   */
+  sortLakesAlphabetically() {
+    this.lakes.sort((a, b) => a.name.localeCompare(b.name));
+    this.applyFilters();
+  }
+
+  /**
+   * Show loading state
+   */
+  showLoading() {
+    const container = document.getElementById('lakes-list');
+    if (container) {
+      container.innerHTML = `
+        <div class="text-center py-8 text-secondary">
+          <div class="animate-pulse">Loading lakes...</div>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Show error state
+   */
+  showError(message) {
+    const container = document.getElementById('lakes-list');
+    if (container) {
+      container.innerHTML = `
+        <div class="card text-center py-8">
+          <p class="text-red-600 mb-2">⚠️ ${this.escapeHtml(message)}</p>
+          <button onclick="location.reload()" class="btn-primary px-4 py-2 rounded-lg">Reload Page</button>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Show empty state (no lakes in database)
+   */
+  showEmptyState() {
+    const container = document.getElementById('lakes-list');
+    if (container) {
+      container.innerHTML = `
+        <div class="card text-center py-8 text-secondary">
+          <p>No lakes available.</p>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Show empty filter state (no lakes match filters)
+   */
+  showEmptyFilterState() {
+    const container = document.getElementById('lakes-list');
+    if (container) {
+      container.innerHTML = `
+        <div class="card text-center py-8 text-secondary">
+          <p class="mb-2">No lakes match your filters.</p>
+          <button onclick="window.lakesList.clearFilters()" class="text-primary hover:underline text-sm">Clear Filters</button>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  window.lakesList = new LakesList();
+  window.lakesList.init();
+});
