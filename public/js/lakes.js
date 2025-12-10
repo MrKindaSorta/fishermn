@@ -4,19 +4,28 @@
  */
 class LakesList {
   constructor() {
-    this.lakes = [];
+    this.lakes = [];              // All loaded lakes (accumulates with scroll)
+    this.currentOffset = 0;       // Pagination offset
+    this.hasMore = true;          // Whether more lakes exist
+    this.isLoading = false;       // Prevent duplicate loads
+    this.totalLakes = 0;          // Total lakes in DB
+    this.searchMode = false;      // Whether in search mode
     this.map = null;
     this.markers = [];
     this.activeLakeId = null;
+    this.scrollThreshold = 400;   // Load more at 400th lake
   }
 
   async init() {
     try {
-      await this.loadLakes();
+      await this.loadLakes(0, false); // Load first 500
       this.initMap();
       this.renderLakeTiles();
       this.renderMapMarkers();
       this.initFilters();
+      this.initInfiniteScroll(); // Set up scroll detection
+
+      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes`);
     } catch (error) {
       console.error('Failed to initialize lakes page:', error);
       this.showError('Failed to load lakes. Please refresh the page.');
@@ -24,17 +33,32 @@ class LakesList {
   }
 
   /**
-   * Fetch lakes from API
+   * Fetch lakes from API with pagination
+   * @param {number} offset - Pagination offset
+   * @param {boolean} append - Whether to append to existing lakes or replace
    */
-  async loadLakes() {
+  async loadLakes(offset = 0, append = false) {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
     try {
-      const response = await fetch('/api/lakes');
+      const response = await fetch(`/api/lakes?limit=500&offset=${offset}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const data = await response.json();
       if (!data.success) throw new Error(data.message || 'API error');
 
-      this.lakes = data.lakes || [];
+      if (append) {
+        this.lakes = [...this.lakes, ...(data.lakes || [])];
+      } else {
+        this.lakes = data.lakes || [];
+      }
+
+      this.hasMore = data.hasMore || false;
+      this.totalLakes = data.total || 0;
+      this.currentOffset = offset + (data.lakes?.length || 0);
+
+      console.log(`Loaded ${data.count} lakes (${this.lakes.length}/${this.totalLakes} total)`);
 
       if (this.lakes.length === 0) {
         this.showEmptyState();
@@ -42,6 +66,8 @@ class LakesList {
     } catch (error) {
       console.error('Error loading lakes:', error);
       throw error;
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -56,6 +82,106 @@ class LakesList {
       maxZoom: 18,
       minZoom: 6
     }).addTo(this.map);
+  }
+
+  /**
+   * Initialize infinite scroll detection
+   */
+  initInfiniteScroll() {
+    const lakesListContainer = document.getElementById('lakes-list');
+    if (!lakesListContainer) return;
+
+    lakesListContainer.addEventListener('scroll', () => {
+      if (this.isLoading || !this.hasMore || this.searchMode) return;
+
+      // Check if scrolled to threshold (400th lake)
+      const tiles = lakesListContainer.querySelectorAll('.lake-list-item');
+
+      // Find which lake is currently in view
+      let visibleLakeIndex = 0;
+      tiles.forEach((tile, index) => {
+        const rect = tile.getBoundingClientRect();
+        const containerRect = lakesListContainer.getBoundingClientRect();
+        // Check if tile is in the upper half of the visible container
+        if (rect.top < containerRect.top + containerRect.height / 2) {
+          visibleLakeIndex = index;
+        }
+      });
+
+      // Load more when reaching threshold
+      if (visibleLakeIndex >= this.scrollThreshold && this.hasMore) {
+        this.loadMoreLakes();
+      }
+    });
+  }
+
+  /**
+   * Load more lakes (infinite scroll)
+   */
+  async loadMoreLakes() {
+    if (this.isLoading || !this.hasMore) return;
+
+    console.log(`Loading more lakes from offset ${this.currentOffset}...`);
+    this.showLoadingMore();
+
+    try {
+      await this.loadLakes(this.currentOffset, true); // append mode
+
+      // Append new tiles to existing list
+      const container = document.getElementById('lakes-list');
+      const newTilesHTML = this.lakes
+        .slice(this.currentOffset - 500, this.currentOffset)
+        .map(lake => this.createLakeTileHTML(lake))
+        .join('');
+
+      this.removeLoadingMore();
+      container.insertAdjacentHTML('beforeend', newTilesHTML);
+
+      // Update map markers with all loaded lakes
+      this.renderMapMarkers();
+    } catch (error) {
+      console.error('Error loading more lakes:', error);
+      this.removeLoadingMore();
+    }
+  }
+
+  /**
+   * Search lakes server-side (searches ALL lakes in DB)
+   */
+  async searchLakes(searchTerm) {
+    if (!searchTerm || searchTerm.trim() === '') {
+      // Clear search - return to browse mode
+      this.searchMode = false;
+      this.currentOffset = 0;
+      this.hasMore = true;
+      this.lakes = [];
+      await this.init(); // Reload initial 500
+      return;
+    }
+
+    this.searchMode = true;
+    this.isLoading = true;
+
+    try {
+      const response = await fetch(`/api/lakes?search=${encodeURIComponent(searchTerm)}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || 'API error');
+
+      this.lakes = data.lakes || [];
+      this.hasMore = false; // No pagination in search mode
+
+      console.log(`Search found ${data.count} lakes matching "${searchTerm}"`);
+
+      this.renderLakeTiles();
+      this.renderMapMarkers();
+    } catch (error) {
+      console.error('Error searching lakes:', error);
+      this.showError('Search failed. Please try again.');
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   /**
@@ -201,10 +327,16 @@ class LakesList {
    * Initialize filter event listeners
    */
   initFilters() {
-    // Search input
+    // Search input with debouncing for server-side search
     const searchInput = document.getElementById('lake-search');
     if (searchInput) {
-      searchInput.addEventListener('input', () => this.applyFilters());
+      let searchTimeout;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          this.searchLakes(e.target.value);
+        }, 300); // 300ms debounce
+      });
     }
 
     // Thickness slider
@@ -441,6 +573,28 @@ class LakesList {
         </div>
       `;
     }
+  }
+
+  /**
+   * Show loading indicator at bottom of list (for infinite scroll)
+   */
+  showLoadingMore() {
+    const container = document.getElementById('lakes-list');
+    if (container && !document.getElementById('loading-more')) {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'loading-more';
+      loadingDiv.className = 'text-center py-4 text-secondary text-sm';
+      loadingDiv.innerHTML = '<div class="animate-pulse">Loading more lakes...</div>';
+      container.appendChild(loadingDiv);
+    }
+  }
+
+  /**
+   * Remove loading indicator
+   */
+  removeLoadingMore() {
+    const loadingDiv = document.getElementById('loading-more');
+    if (loadingDiv) loadingDiv.remove();
   }
 
   /**
