@@ -24,15 +24,23 @@ class LakesList {
       this.initMap();
       this.renderLakeTiles();
 
-      // Initial markers: first 100 lakes (mix of lakes with/without ice data)
-      const initialMarkers = this.lakes.slice(0, 100);
+      // Split lakes into priority groups
+      const lakesWithIce = this.lakes.filter(l => l.officialIce?.thickness);
+      const lakesWithoutIce = this.lakes.filter(l => !l.officialIce?.thickness);
+
+      // Initial markers: ice data lakes first, then others (up to 100 total)
+      let initialMarkers = lakesWithIce.slice(0, 100);
+      if (initialMarkers.length < 100) {
+        const remaining = 100 - initialMarkers.length;
+        initialMarkers = [...initialMarkers, ...lakesWithoutIce.slice(0, remaining)];
+      }
 
       this.renderMapMarkers(initialMarkers);
 
       this.initFilters();
       this.initInfiniteScroll(); // Set up scroll detection
 
-      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, showing ${initialMarkers.length} initial markers`);
+      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, showing ${initialMarkers.length} markers (${lakesWithIce.slice(0, 100).length} with ice data)`);
     } catch (error) {
       console.error('Failed to initialize lakes page:', error);
       this.showError('Failed to load lakes. Please refresh the page.');
@@ -292,46 +300,73 @@ class LakesList {
   }
 
   /**
-   * Render map markers
+   * Render map markers with optional priority mode
+   * @param {Array} lakesToRender - Lakes to render (default: all loaded lakes)
+   * @param {boolean} priorityMode - If true, prioritize ice data lakes
    */
-  renderMapMarkers(lakesToRender = null) {
+  renderMapMarkers(lakesToRender = null, priorityMode = false) {
     // Clear existing markers
     this.markers.forEach(marker => this.map.removeLayer(marker));
     this.markers = [];
 
     const lakes = lakesToRender || this.lakes;
 
-    lakes.forEach(lake => {
-      const thickness = lake.officialIce?.thickness;
-      const condition = lake.officialIce?.condition || 'N/A';
+    if (priorityMode) {
+      // Viewport mode: ALL ice data lakes + others (up to 500 total)
+      const lakesWithIce = lakes.filter(l => l.officialIce?.thickness);
+      const lakesWithoutIce = lakes.filter(l => !l.officialIce?.thickness);
 
-      // Get color based on ice thickness (or default gray for lakes without data)
-      const color = thickness ? this.getMarkerColor(thickness) : '#6B7280'; // Gray for no data
+      // Show ALL ice data lakes (no limit - always visible!)
+      let lakesToShow = [...lakesWithIce];
 
-      const customIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
-      });
+      // Fill remaining up to 500 with others
+      if (lakesToShow.length < 500) {
+        const remaining = 500 - lakesToShow.length;
+        lakesToShow = [...lakesToShow, ...lakesWithoutIce.slice(0, remaining)];
+      }
 
-      const marker = L.marker([lake.latitude, lake.longitude], { icon: customIcon })
-        .addTo(this.map)
-        .bindPopup(`
-          <div style="min-width: 200px;">
-            <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">${this.escapeHtml(lake.name)}</h3>
-            <p style="font-size: 12px; color: #4B5563; margin-bottom: 8px;">
-              ${thickness ? `Ice: ${thickness}" • ${this.escapeHtml(condition)}` : 'No ice data available'}
-            </p>
-            <a href="/lake.html?id=${encodeURIComponent(lake.slug)}"
-               style="color: #0A3A60; text-decoration: underline; font-size: 12px;">
-              View Lake Page →
-            </a>
-          </div>
-        `);
+      lakesToShow.forEach(lake => this.createMarker(lake));
 
-      this.markers.push(marker);
+    } else {
+      // Normal mode: render all provided lakes
+      lakes.forEach(lake => this.createMarker(lake));
+    }
+  }
+
+  /**
+   * Create individual marker
+   * @param {Object} lake - Lake object
+   */
+  createMarker(lake) {
+    const thickness = lake.officialIce?.thickness;
+    const condition = lake.officialIce?.condition || 'N/A';
+
+    // Get color based on ice thickness (or default gray for lakes without data)
+    const color = thickness ? this.getMarkerColor(thickness) : '#6B7280'; // Gray for no data
+
+    const customIcon = L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
     });
+
+    const marker = L.marker([lake.latitude, lake.longitude], { icon: customIcon })
+      .addTo(this.map)
+      .bindPopup(`
+        <div style="min-width: 200px;">
+          <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">${this.escapeHtml(lake.name)}</h3>
+          <p style="font-size: 12px; color: #4B5563; margin-bottom: 8px;">
+            ${thickness ? `Ice: ${thickness}" • ${this.escapeHtml(condition)}` : 'No ice data available'}
+          </p>
+          <a href="/lake.html?id=${encodeURIComponent(lake.slug)}"
+             style="color: #0A3A60; text-decoration: underline; font-size: 12px;">
+            View Lake Page →
+          </a>
+        </div>
+      `);
+
+    this.markers.push(marker);
   }
 
   /**
@@ -388,8 +423,8 @@ class LakesList {
       this.renderLakeTiles(viewportLakes);
     });
 
-    // Update markers
-    this.renderMapMarkers(viewportLakes);
+    // Update markers with priority mode: ALL ice data lakes + others
+    this.renderMapMarkers(viewportLakes, true);
   }
 
   /**
