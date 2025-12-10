@@ -10,6 +10,7 @@ class LakesList {
     this.isLoading = false;       // Prevent duplicate loads
     this.totalLakes = 0;          // Total lakes in DB
     this.searchMode = false;      // Whether in search mode
+    this.filterActive = false;    // Whether filters are active
     this.map = null;
     this.markers = [];
     this.activeLakeId = null;
@@ -121,7 +122,7 @@ class LakesList {
     if (!lakesListContainer) return;
 
     lakesListContainer.addEventListener('scroll', () => {
-      if (this.isLoading || !this.hasMore || this.searchMode) return;
+      if (this.isLoading || !this.hasMore || this.searchMode || this.filterActive) return;
 
       // Check if scrolled to threshold (400th lake)
       const tiles = lakesListContainer.querySelectorAll('.lake-list-item');
@@ -476,17 +477,17 @@ class LakesList {
    * Initialize filter event listeners
    */
   initFilters() {
-    // Search input with debouncing for server-side search
+    // Search input with debouncing for server-side search + filters
     const searchInput = document.getElementById('lake-search');
     if (searchInput) {
       // Remove inline handler
       searchInput.setAttribute('onkeyup', '');
 
       let searchTimeout;
-      const handleSearch = (e) => {
+      const handleSearch = () => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
-          this.searchLakes(e.target.value);
+          this.applyFilters(); // Use unified filtering system
         }, 300); // 300ms debounce
       };
 
@@ -543,63 +544,151 @@ class LakesList {
   }
 
   /**
-   * Apply all active filters
+   * Build filter parameters for API call
+   * @returns {URLSearchParams|null} Filter parameters or null if no filters active
    */
-  applyFilters() {
-    const searchTerm = (document.getElementById('lake-search')?.value || '').toLowerCase();
+  buildFilterParams() {
+    const params = new URLSearchParams();
+    let hasAnyFilter = false;
+
+    // Search term
+    const searchTerm = document.getElementById('lake-search')?.value || '';
+    if (searchTerm.trim()) {
+      params.append('search', searchTerm.trim());
+      hasAnyFilter = true;
+    }
+
+    // Ice thickness filter
     const thicknessFilter = parseInt(document.getElementById('filter-condition')?.value || '0');
+    if (thicknessFilter > 0) {
+      params.append('minThickness', thicknessFilter);
+      hasAnyFilter = true;
+    }
+
+    // Bars count filter
     const barsFilter = parseInt(document.getElementById('bars-counter')?.value || '0');
+    if (barsFilter > 0) {
+      params.append('minBars', barsFilter);
+      hasAnyFilter = true;
+    }
 
-    const filteredLakes = this.lakes.filter(lake => {
-      // Search filter
-      if (searchTerm && !lake.name.toLowerCase().includes(searchTerm)) {
-        return false;
+    // Amenity filters
+    const amenityFilters = {
+      'filter-casino': 'hasCasino',
+      'filter-baitshop': 'hasBaitShop',
+      'filter-icehouse': 'hasIceHouseRental',
+      'filter-lodging': 'hasLodging',
+      'filter-restaurant': 'hasRestaurant',
+      'filter-boatlaunch': 'hasBoatLaunch',
+      'filter-gasstation': 'hasGasStation',
+      'filter-grocery': 'hasGrocery',
+      'filter-guideservice': 'hasGuideService'
+    };
+
+    const selectedAmenities = [];
+    for (const [checkboxId, amenityKey] of Object.entries(amenityFilters)) {
+      const checkbox = document.getElementById(checkboxId);
+      if (checkbox?.checked) {
+        selectedAmenities.push(amenityKey);
+        hasAnyFilter = true;
       }
+    }
 
-      // Thickness filter
-      const thickness = lake.officialIce?.thickness;
-      if (thicknessFilter > 0 && (!thickness || thickness < thicknessFilter)) {
-        return false;
+    if (selectedAmenities.length > 0) {
+      params.append('amenities', selectedAmenities.join(','));
+    }
+
+    return hasAnyFilter ? params : null;
+  }
+
+  /**
+   * Apply all active filters (server-side)
+   */
+  async applyFilters() {
+    const filterParams = this.buildFilterParams();
+
+    // If no filters, reload initial 500 lakes with pagination
+    if (!filterParams) {
+      this.filterActive = false;
+      this.searchMode = false;
+      this.currentOffset = 0;
+      this.hasMore = true;
+      this.lakes = [];
+
+      try {
+        await this.loadLakes(0, false);
+        this.renderLakeTiles();
+        this.renderMapMarkers();
+      } catch (error) {
+        console.error('Error reloading lakes:', error);
+        this.showError('Failed to load lakes. Please refresh the page.');
       }
+      return;
+    }
 
-      // Bars filter
-      const barsCount = lake.amenities?.barsCount || 0;
-      if (barsFilter > 0 && barsCount < barsFilter) {
-        return false;
-      }
+    // Filters are active - fetch ALL matching lakes from API
+    this.filterActive = true;
+    this.isLoading = true;
+    this.showLoading();
 
-      // Amenity filters
-      const amenityFilters = {
-        'filter-casino': 'hasCasino',
-        'filter-baitshop': 'hasBaitShop',
-        'filter-icehouse': 'hasIceHouseRental',
-        'filter-lodging': 'hasLodging',
-        'filter-restaurant': 'hasRestaurant',
-        'filter-boatlaunch': 'hasBoatLaunch',
-        'filter-gasstation': 'hasGasStation',
-        'filter-grocery': 'hasGrocery',
-        'filter-guideservice': 'hasGuideService'
-      };
+    try {
+      const response = await fetch(`/api/lakes?${filterParams.toString()}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      for (const [checkboxId, amenityKey] of Object.entries(amenityFilters)) {
-        const checkbox = document.getElementById(checkboxId);
-        if (checkbox?.checked && !lake.amenities?.[amenityKey]) {
-          return false;
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || 'API error');
+
+      this.lakes = data.lakes || [];
+      this.hasMore = false; // No pagination when filters active
+
+      console.log(`Filters applied: ${data.count} lakes match criteria`);
+
+      // Update UI
+      this.renderLakeTiles();
+      this.renderMapMarkers();
+
+      // Update filter count badge
+      const filterCount = document.getElementById('filter-count');
+      if (filterCount) {
+        const numFilters = this.countActiveFilters();
+        if (numFilters > 0) {
+          filterCount.textContent = numFilters;
+          filterCount.classList.remove('hidden');
+        } else {
+          filterCount.classList.add('hidden');
         }
       }
 
-      return true;
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      this.showError('Failed to apply filters. Please try again.');
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  /**
+   * Count number of active filters
+   * @returns {number} Number of active filters
+   */
+  countActiveFilters() {
+    let count = 0;
+
+    // Ice thickness
+    const thickness = parseInt(document.getElementById('filter-condition')?.value || '0');
+    if (thickness > 0) count++;
+
+    // Bars
+    const bars = parseInt(document.getElementById('bars-counter')?.value || '0');
+    if (bars > 0) count++;
+
+    // Amenity checkboxes
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="filter-"]');
+    checkboxes.forEach(cb => {
+      if (cb.checked) count++;
     });
 
-    // Update results count
-    const resultCount = document.getElementById('result-count');
-    if (resultCount) {
-      resultCount.textContent = filteredLakes.length;
-    }
-
-    // Re-render tiles and markers
-    this.renderLakeTiles(filteredLakes);
-    this.renderMapMarkers(filteredLakes);
+    return count;
   }
 
   /**
@@ -607,11 +696,34 @@ class LakesList {
    */
   adjustBarCounter(delta) {
     const counter = document.getElementById('bars-counter');
+    const display = document.getElementById('bars-count');
+    const label = document.getElementById('bars-label');
+    const minusBtn = document.getElementById('bars-minus');
+    const plusBtn = document.getElementById('bars-plus');
+
     if (!counter) return;
 
     let value = parseInt(counter.value) + delta;
     value = Math.max(0, Math.min(10, value));
+
+    // Update hidden input
     counter.value = value;
+
+    // Update display
+    if (display) display.textContent = value;
+
+    // Show/hide "or more" label
+    if (label) {
+      if (value > 0) {
+        label.classList.remove('hidden');
+      } else {
+        label.classList.add('hidden');
+      }
+    }
+
+    // Update button states
+    if (minusBtn) minusBtn.disabled = (value === 0);
+    if (plusBtn) plusBtn.disabled = (value === 10);
 
     this.applyFilters();
   }
@@ -644,23 +756,31 @@ class LakesList {
     const searchInput = document.getElementById('lake-search');
     if (searchInput) searchInput.value = '';
 
-    // Reset thickness slider
-    const thicknessSlider = document.getElementById('thickness-filter');
-    const thicknessValue = document.getElementById('thickness-value');
-    if (thicknessSlider) {
-      thicknessSlider.value = '0';
-      if (thicknessValue) thicknessValue.textContent = '0';
-    }
+    // Reset ice thickness dropdown (FIXED ID)
+    const thicknessSelect = document.getElementById('filter-condition');
+    if (thicknessSelect) thicknessSelect.value = '';
 
-    // Reset bar counter
+    // Reset bar counter (hidden input + display + label)
     const barsCounter = document.getElementById('bars-counter');
+    const barsDisplay = document.getElementById('bars-count');
+    const barsLabel = document.getElementById('bars-label');
     if (barsCounter) barsCounter.value = '0';
+    if (barsDisplay) barsDisplay.textContent = '0';
+    if (barsLabel) barsLabel.classList.add('hidden');
+
+    // Update button states
+    const minusBtn = document.getElementById('bars-minus');
+    const plusBtn = document.getElementById('bars-plus');
+    if (minusBtn) minusBtn.disabled = true;
+    if (plusBtn) plusBtn.disabled = false;
 
     // Uncheck all amenity checkboxes
     document.querySelectorAll('input[type="checkbox"][id^="filter-"]').forEach(checkbox => {
       checkbox.checked = false;
     });
 
+    // Reset filter state and reload initial data
+    this.filterActive = false;
     this.applyFilters();
   }
 

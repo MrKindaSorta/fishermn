@@ -28,73 +28,111 @@ export async function onRequestGet(context) {
     const west = parseFloat(url.searchParams.get('west'));
     const hasViewport = !isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west);
 
-    let query;
+    // Filter parameters (optional)
+    const minThickness = parseInt(url.searchParams.get('minThickness')) || 0;
+    const minBars = parseInt(url.searchParams.get('minBars')) || 0;
+    const amenities = url.searchParams.get('amenities') || '';
+    const amenityList = amenities ? amenities.split(',').filter(Boolean) : [];
+
+    // Check if any filters are active
+    const hasFilters = minThickness > 0 || minBars > 0 || amenityList.length > 0;
+
+    // Build base query with ice reports join (for filtering by ice thickness)
+    let query = '';
     let params = [];
 
-    if (search && hasViewport) {
-      // Mode 1: Search within viewport bounds
-      query = `
-        SELECT * FROM lakes
-        WHERE LOWER(name) LIKE ?
-          AND latitude BETWEEN ? AND ?
-          AND longitude BETWEEN ? AND ?
-        ORDER BY
-          CASE
-            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
-              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
-            ELSE 1
-          END,
-          name ASC
-        LIMIT ? OFFSET ?
-      `;
-      params = [`%${search.toLowerCase()}%`, south, north, west, east, limit, offset];
+    // Determine if we need ice reports join
+    const needsIceJoin = minThickness > 0;
 
-    } else if (search) {
-      // Mode 2: Search all lakes (no pagination)
+    // Build SELECT clause with optional ice join
+    if (needsIceJoin) {
       query = `
-        SELECT * FROM lakes
-        WHERE LOWER(name) LIKE ?
-        ORDER BY
-          CASE
-            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
-              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
-            ELSE 1
-          END,
-          name ASC
+        SELECT lakes.* FROM lakes
+        LEFT JOIN (
+          SELECT
+            lake_id,
+            thickness_inches as thickness
+          FROM ice_reports ir1
+          WHERE reported_at = (
+            SELECT MAX(reported_at)
+            FROM ice_reports ir2
+            WHERE ir2.lake_id = ir1.lake_id
+              AND ir2.reported_at > datetime('now', '-24 hours')
+          )
+        ) AS ice ON ice.lake_id = lakes.id
       `;
-      params = [`%${search.toLowerCase()}%`];
-
-    } else if (hasViewport) {
-      // Mode 3: Viewport query - fetch ALL lakes in bounds
-      query = `
-        SELECT * FROM lakes
-        WHERE latitude BETWEEN ? AND ?
-          AND longitude BETWEEN ? AND ?
-        ORDER BY
-          CASE
-            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
-              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
-            ELSE 1
-          END,
-          name ASC
-        LIMIT ? OFFSET ?
-      `;
-      params = [south, north, west, east, limit, offset];
-
     } else {
-      // Mode 4: Default pagination
-      query = `
-        SELECT * FROM lakes
-        ORDER BY
-          CASE
-            WHEN SUBSTR(name, 1, 1) BETWEEN 'A' AND 'Z'
-              OR SUBSTR(name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
-            ELSE 1
-          END,
-          name ASC
-        LIMIT ? OFFSET ?
-      `;
-      params = [limit, offset];
+      query = 'SELECT * FROM lakes';
+    }
+
+    // Build WHERE clauses
+    const whereConditions = [];
+
+    // Search filter
+    if (search) {
+      whereConditions.push('LOWER(lakes.name) LIKE ?');
+      params.push(`%${search.toLowerCase()}%`);
+    }
+
+    // Viewport filter
+    if (hasViewport) {
+      whereConditions.push('lakes.latitude BETWEEN ? AND ?');
+      whereConditions.push('lakes.longitude BETWEEN ? AND ?');
+      params.push(south, north, west, east);
+    }
+
+    // Ice thickness filter
+    if (minThickness > 0) {
+      whereConditions.push('ice.thickness >= ?');
+      params.push(minThickness);
+    }
+
+    // Bars count filter
+    if (minBars > 0) {
+      whereConditions.push('lakes.bars_count >= ?');
+      params.push(minBars);
+    }
+
+    // Amenity filters
+    const amenityMap = {
+      'hasCasino': 'has_casino',
+      'hasBaitShop': 'has_bait_shop',
+      'hasIceHouseRental': 'has_ice_house_rental',
+      'hasLodging': 'has_lodging',
+      'hasRestaurant': 'has_restaurant',
+      'hasBoatLaunch': 'has_boat_launch',
+      'hasGasStation': 'has_gas_station',
+      'hasGrocery': 'has_grocery',
+      'hasGuideService': 'has_guide_service'
+    };
+
+    for (const amenity of amenityList) {
+      const dbColumn = amenityMap[amenity];
+      if (dbColumn) {
+        whereConditions.push(`lakes.${dbColumn} = 1`);
+      }
+    }
+
+    // Add WHERE clause if conditions exist
+    if (whereConditions.length > 0) {
+      query += ' WHERE ' + whereConditions.join(' AND ');
+    }
+
+    // Add ORDER BY (consistent alphabetical sorting)
+    query += `
+      ORDER BY
+        CASE
+          WHEN SUBSTR(lakes.name, 1, 1) BETWEEN 'A' AND 'Z'
+            OR SUBSTR(lakes.name, 1, 1) BETWEEN 'a' AND 'z' THEN 0
+          ELSE 1
+        END,
+        lakes.name ASC
+    `;
+
+    // Add pagination ONLY if no filters are active (user wants ALL filtered results)
+    if (!hasFilters) {
+      query += ' LIMIT ? OFFSET ?';
+      params.push(limit, offset);
     }
 
     // Execute query
@@ -121,8 +159,8 @@ export async function onRequestGet(context) {
       lakes: formattedLakes,
       count: formattedLakes.length,
       total,
-      hasMore: !search && !hasViewport && (offset + formattedLakes.length < total),
-      offset: search ? 0 : offset
+      hasMore: !hasFilters && !search && !hasViewport && (offset + formattedLakes.length < total),
+      offset: (search || hasFilters) ? 0 : offset
     });
 
   } catch (error) {
