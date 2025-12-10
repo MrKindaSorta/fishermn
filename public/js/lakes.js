@@ -479,23 +479,25 @@ class LakesList {
     // Search input with debouncing for server-side search
     const searchInput = document.getElementById('lake-search');
     if (searchInput) {
+      // Remove inline handler
+      searchInput.setAttribute('onkeyup', '');
+
       let searchTimeout;
-      searchInput.addEventListener('input', (e) => {
+      const handleSearch = (e) => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
           this.searchLakes(e.target.value);
         }, 300); // 300ms debounce
-      });
+      };
+
+      searchInput.addEventListener('input', handleSearch);
+      searchInput.addEventListener('keyup', handleSearch);
     }
 
-    // Thickness slider
-    const thicknessSlider = document.getElementById('thickness-filter');
-    const thicknessValue = document.getElementById('thickness-value');
-    if (thicknessSlider) {
-      thicknessSlider.addEventListener('input', (e) => {
-        if (thicknessValue) {
-          thicknessValue.textContent = e.target.value;
-        }
+    // Ice thickness select dropdown
+    const thicknessSelect = document.getElementById('filter-condition');
+    if (thicknessSelect) {
+      thicknessSelect.addEventListener('change', () => {
         this.applyFilters();
       });
     }
@@ -518,21 +520,24 @@ class LakesList {
       checkbox.addEventListener('change', () => this.applyFilters());
     });
 
-    // Filter toggle button
-    const filterToggle = document.getElementById('filter-toggle');
-    if (filterToggle) {
-      filterToggle.addEventListener('click', () => this.toggleFilters());
+    // Filter toggle - attach to the clickable div
+    const filterToggleDiv = document.querySelector('.cursor-pointer[onclick*="toggleFilters"]');
+    if (filterToggleDiv) {
+      filterToggleDiv.setAttribute('onclick', '');
+      filterToggleDiv.addEventListener('click', () => this.toggleFilters());
     }
 
     // Clear filters button
-    const clearBtn = document.getElementById('clear-filters');
+    const clearBtn = document.querySelector('button[onclick*="clearFilters"]');
     if (clearBtn) {
+      clearBtn.setAttribute('onclick', '');
       clearBtn.addEventListener('click', () => this.clearFilters());
     }
 
     // Sort button
-    const sortBtn = document.getElementById('sort-alpha');
+    const sortBtn = document.querySelector('button[onclick*="sortLakesAlphabetically"]');
     if (sortBtn) {
+      sortBtn.setAttribute('onclick', '');
       sortBtn.addEventListener('click', () => this.sortLakesAlphabetically());
     }
   }
