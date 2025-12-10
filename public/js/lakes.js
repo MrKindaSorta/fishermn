@@ -411,9 +411,31 @@ class LakesList {
 
   /**
    * Update list and markers to show only lakes visible on map
-   * Fetches from API (server-side filtering)
+   * Fetches from API (server-side filtering) OR filters loaded data client-side if filters active
    */
   async updateViewportFilteredList() {
+    // If filters are active, filter the already-loaded data by viewport (client-side)
+    // This prevents re-fetching ALL lakes and ignoring the active filters
+    if (this.filterActive) {
+      const bounds = this.map.getBounds();
+      const viewportLakes = this.lakes.filter(lake => {
+        return lake.latitude >= bounds.getSouth() &&
+               lake.latitude <= bounds.getNorth() &&
+               lake.longitude >= bounds.getWest() &&
+               lake.longitude <= bounds.getEast();
+      });
+
+      // Update list tiles
+      requestAnimationFrame(() => {
+        this.renderLakeTiles(viewportLakes);
+      });
+
+      // Update markers with priority mode
+      this.renderMapMarkers(viewportLakes, true);
+      return;
+    }
+
+    // No filters active - fetch from API with viewport bounds
     this.viewportFilterActive = true;
 
     // Fetch lakes in viewport from API
