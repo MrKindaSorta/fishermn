@@ -14,6 +14,8 @@ class LakesList {
     this.markers = [];
     this.activeLakeId = null;
     this.scrollThreshold = 400;   // Load more at 400th lake
+    this.viewportFilterActive = false; // Track if filtering by viewport
+    this.updateListDebounced = null; // Debounced list update function
   }
 
   async init() {
@@ -82,6 +84,20 @@ class LakesList {
       maxZoom: 18,
       minZoom: 6
     }).addTo(this.map);
+
+    // Create debounced update function (300ms delay)
+    this.updateListDebounced = this.debounce(() => {
+      this.updateViewportFilteredList();
+    }, 300);
+
+    // Add viewport sync listeners
+    this.map.on('moveend', () => {
+      this.updateListDebounced();
+    });
+
+    this.map.on('zoomend', () => {
+      this.updateListDebounced();
+    });
   }
 
   /**
@@ -192,11 +208,29 @@ class LakesList {
     const container = document.getElementById('lakes-list');
 
     if (lakes.length === 0) {
-      this.showEmptyFilterState();
+      if (this.viewportFilterActive) {
+        // Show viewport-specific empty state
+        container.innerHTML = `
+          <div class="p-6 text-center text-secondary">
+            <p>No lakes in current map view</p>
+            <p class="text-xs mt-2">Zoom out or pan to see more lakes</p>
+          </div>
+        `;
+      } else {
+        this.showEmptyFilterState();
+      }
       return;
     }
 
     container.innerHTML = lakes.map(lake => this.createLakeTileHTML(lake)).join('');
+
+    // Show count indicator when viewport filter is active
+    if (this.viewportFilterActive) {
+      const countIndicator = document.getElementById('lake-count-indicator');
+      if (countIndicator) {
+        countIndicator.textContent = `Showing ${lakes.length} of ${this.lakes.length} lakes`;
+      }
+    }
   }
 
   /**
@@ -272,9 +306,9 @@ class LakesList {
 
       const customIcon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;"></div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
       });
 
       const marker = L.marker([lake.latitude, lake.longitude], { icon: customIcon })
@@ -303,6 +337,57 @@ class LakesList {
     if (thickness < 6) return '#FF8C00'; // Orange
     if (thickness < 12) return '#D4AF37'; // Gold
     return '#22C55E'; // Green
+  }
+
+  /**
+   * Get lakes within current map viewport
+   * @returns {Array} Filtered array of lakes
+   */
+  getVisibleLakes() {
+    if (!this.map) return this.lakes;
+
+    const bounds = this.map.getBounds();
+
+    return this.lakes.filter(lake =>
+      bounds.contains([lake.latitude, lake.longitude])
+    );
+  }
+
+  /**
+   * Update list to show only lakes visible on map
+   * Called on map moveend/zoomend events
+   */
+  updateViewportFilteredList() {
+    const visibleLakes = this.getVisibleLakes();
+
+    // Mark that we're using viewport filter
+    this.viewportFilterActive = true;
+
+    // Update list tiles (async, non-blocking)
+    requestAnimationFrame(() => {
+      this.renderLakeTiles(visibleLakes);
+    });
+
+    // Also update markers
+    this.renderMapMarkers(visibleLakes);
+  }
+
+  /**
+   * Debounce utility to prevent excessive updates
+   * @param {Function} func - Function to debounce
+   * @param {number} wait - Delay in milliseconds
+   * @returns {Function} Debounced function
+   */
+  debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   }
 
   /**
