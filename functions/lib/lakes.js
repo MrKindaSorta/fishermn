@@ -343,12 +343,99 @@ export async function getLakeReportCounts(db, lakeId) {
 }
 
 /**
+ * Get current ice status from most recent report (single lake)
+ * @param {D1Database} db - Database instance
+ * @param {string} lakeId - Lake ID
+ * @returns {Promise<Object|null>} Current ice status or null
+ */
+export async function getCurrentIceStatus(db, lakeId) {
+  try {
+    const result = await db
+      .prepare(`
+        SELECT
+          thickness_inches as thickness,
+          condition,
+          reported_at as updatedAt
+        FROM ice_reports
+        WHERE lake_id = ?
+          AND reported_at > datetime('now', '-24 hours')
+        ORDER BY reported_at DESC
+        LIMIT 1
+      `)
+      .bind(lakeId)
+      .first();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting current ice status:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current ice status from most recent reports (batch version)
+ * @param {D1Database} db - Database instance
+ * @param {Array<string>} lakeIds - Array of lake IDs
+ * @returns {Promise<Object>} Map of lakeId -> ice status
+ */
+export async function getAllCurrentIceStatus(db, lakeIds) {
+  if (!lakeIds || lakeIds.length === 0) return {};
+
+  try {
+    const placeholders = lakeIds.map(() => '?').join(',');
+
+    // Get most recent ice report per lake from last 24 hours
+    const query = `
+      SELECT
+        lake_id,
+        thickness_inches as thickness,
+        condition,
+        reported_at as updatedAt
+      FROM ice_reports ir1
+      WHERE lake_id IN (${placeholders})
+        AND reported_at > datetime('now', '-24 hours')
+        AND reported_at = (
+          SELECT MAX(reported_at)
+          FROM ice_reports ir2
+          WHERE ir2.lake_id = ir1.lake_id
+            AND ir2.reported_at > datetime('now', '-24 hours')
+        )
+    `;
+
+    const result = await db.prepare(query).bind(...lakeIds).all();
+
+    // Convert to map: lakeId -> iceStatus
+    const statusMap = {};
+    (result.results || []).forEach(row => {
+      statusMap[row.lake_id] = {
+        thickness: row.thickness,
+        condition: row.condition,
+        updatedAt: row.updatedAt
+      };
+    });
+
+    return statusMap;
+  } catch (error) {
+    console.error('Error getting batch ice status:', error);
+    return {};
+  }
+}
+
+/**
  * Format lake object for API response
  * @param {Object} lake - Lake object from database
+ * @param {Object|null} computedIce - Computed ice status (optional)
  * @returns {Object} Formatted lake object
  */
-export function formatLakeForResponse(lake) {
+export function formatLakeForResponse(lake, computedIce = null) {
   if (!lake) return null;
+
+  // Use computed ice status (from reports) if provided, otherwise fall back to DB fields
+  const officialIce = computedIce || {
+    thickness: lake.official_ice_thickness,
+    condition: lake.official_ice_condition,
+    updatedAt: lake.official_ice_updated_at
+  };
 
   return {
     id: lake.id,
@@ -369,11 +456,7 @@ export function formatLakeForResponse(lake) {
       hasGuideService: !!lake.has_guide_service,
       barsCount: lake.bars_count || 0
     },
-    officialIce: {
-      thickness: lake.official_ice_thickness,
-      condition: lake.official_ice_condition,
-      updatedAt: lake.official_ice_updated_at
-    },
+    officialIce,  // Now uses computed ice status from reports!
     createdAt: lake.created_at,
     updatedAt: lake.updated_at
   };

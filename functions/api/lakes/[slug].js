@@ -7,6 +7,7 @@ import { createErrorResponse, createSuccessResponse } from '../../lib/validation
 import {
   findLakeBySlug,
   formatLakeForResponse,
+  getCurrentIceStatus,
   getLakeReportCounts,
   getIceReportsForLake,
   getCatchReportsForLake,
@@ -32,8 +33,11 @@ export async function onRequestGet(context) {
       return createErrorResponse('NOT_FOUND', 'Lake not found', 404);
     }
 
-    // Format lake data
-    const formattedLake = formatLakeForResponse(lake);
+    // Get current ice status from real reports
+    const currentIce = await getCurrentIceStatus(env.DB, lake.id);
+
+    // Format lake data with computed ice status
+    const formattedLake = formatLakeForResponse(lake, currentIce);
 
     // Get report counts
     const reportCounts = await getLakeReportCounts(env.DB, lake.id);

@@ -8,7 +8,7 @@
  */
 
 import { createErrorResponse, createSuccessResponse } from '../../lib/validation.js';
-import { formatLakeForResponse } from '../../lib/lakes.js';
+import { formatLakeForResponse, getAllCurrentIceStatus } from '../../lib/lakes.js';
 
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -83,8 +83,15 @@ export async function onRequestGet(context) {
       .first();
     const total = countResult?.total || 0;
 
-    // Format lakes (report counts removed - not displayed on list page)
-    const formattedLakes = lakes.map(lake => formatLakeForResponse(lake));
+    // Get current ice status from reports (batch query to avoid N+1)
+    const lakeIds = lakes.map(l => l.id);
+    const iceStatusMap = await getAllCurrentIceStatus(env.DB, lakeIds);
+
+    // Format lakes with computed ice status from real reports
+    const formattedLakes = lakes.map(lake => {
+      const computedIce = iceStatusMap[lake.id] || null;
+      return formatLakeForResponse(lake, computedIce);
+    });
 
     return createSuccessResponse({
       lakes: formattedLakes,
