@@ -542,7 +542,7 @@ class LakesList {
    */
   applyFilters() {
     const searchTerm = (document.getElementById('lake-search')?.value || '').toLowerCase();
-    const thicknessFilter = parseInt(document.getElementById('thickness-filter')?.value || '0');
+    const thicknessFilter = parseInt(document.getElementById('filter-condition')?.value || '0');
     const barsFilter = parseInt(document.getElementById('bars-counter')?.value || '0');
 
     const filteredLakes = this.lakes.filter(lake => {
@@ -571,9 +571,9 @@ class LakesList {
         'filter-lodging': 'hasLodging',
         'filter-restaurant': 'hasRestaurant',
         'filter-boatlaunch': 'hasBoatLaunch',
-        'filter-gas': 'hasGasStation',
+        'filter-gasstation': 'hasGasStation',
         'filter-grocery': 'hasGrocery',
-        'filter-guide': 'hasGuideService'
+        'filter-guideservice': 'hasGuideService'
       };
 
       for (const [checkboxId, amenityKey] of Object.entries(amenityFilters)) {
@@ -615,17 +615,18 @@ class LakesList {
    * Toggle filter panel visibility
    */
   toggleFilters() {
-    const panel = document.getElementById('filter-panel');
-    const btn = document.getElementById('filter-toggle');
+    const content = document.getElementById('filter-content');
+    const chevron = document.getElementById('filter-chevron');
 
-    if (panel && btn) {
-      const isHidden = panel.classList.contains('hidden');
+    if (content && chevron) {
+      const isHidden = content.classList.contains('hidden');
+
       if (isHidden) {
-        panel.classList.remove('hidden');
-        btn.textContent = 'Hide Filters ▲';
+        content.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
       } else {
-        panel.classList.add('hidden');
-        btn.textContent = 'Show Filters ▼';
+        content.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
       }
     }
   }
@@ -656,6 +657,16 @@ class LakesList {
     });
 
     this.applyFilters();
+  }
+
+  /**
+   * Wrapper function for inline HTML event handler
+   */
+  filterLakes() {
+    const input = document.getElementById('lake-search');
+    if (input) {
+      this.searchLakes(input.value.trim());
+    }
   }
 
   /**
