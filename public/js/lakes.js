@@ -226,10 +226,19 @@ class LakesList {
            data-grocery="${lake.amenities?.hasGrocery || false}"
            data-guideservice="${lake.amenities?.hasGuideService || false}">
         <div class="flex items-center justify-between">
-          <h3 class="font-bold text-base">${this.escapeHtml(lake.name)}</h3>
-          <span class="badge ${thicknessClass} text-white text-xs px-3 py-1">${thicknessValue}"</span>
+          <div class="flex-1">
+            <h3 class="font-bold text-base">${this.escapeHtml(lake.name)}</h3>
+            <p class="text-xs text-secondary">${this.escapeHtml(lake.region || 'Minnesota')}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="badge ${thicknessClass} text-white text-xs px-3 py-1">${thicknessValue}"</span>
+            <a href="/lake.html?id=${encodeURIComponent(lake.slug)}"
+               class="text-xs px-3 py-1 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition-colors"
+               onclick="event.stopPropagation()">
+              View Details
+            </a>
+          </div>
         </div>
-        <p class="text-xs text-secondary">${this.escapeHtml(lake.region || 'Minnesota')}</p>
       </div>
     `;
   }
