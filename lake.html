@@ -14,6 +14,12 @@
   <script src="/public/js/auth-modal.js"></script>
   <script src="/public/js/add-report-modal.js"></script>
   <script src="/public/js/ice-safety-modal.js"></script>
+  <script src="/public/js/bite-forecast/weather-interpolator.js"></script>
+  <script src="/public/js/bite-forecast/weather-analyzer.js"></script>
+  <script src="/public/js/bite-forecast/species-profiles.js"></script>
+  <script src="/public/js/bite-forecast/scoring-engine.js"></script>
+  <script src="/public/js/bite-forecast/chart-renderer.js"></script>
+  <script src="/public/js/bite-forecast/bite-forecast.js"></script>
   <script src="/public/js/lake-detail.js"></script>
   <style>
     #lake-map {
@@ -124,6 +130,7 @@
       <button class="tab-btn active" data-tab="overview">Overview</button>
       <button class="tab-btn" data-tab="activity">Recent Activity</button>
       <button class="tab-btn" data-tab="discussions">Discussions</button>
+      <button class="tab-btn" data-tab="bite-forecast">Bite Forecast</button>
       <button class="tab-btn" data-tab="about">About</button>
     </div>
 
@@ -464,6 +471,86 @@
           </div>
         </div>
       </div><!-- End Tab: About -->
+
+      <!-- Tab: Bite Forecast -->
+      <div id="tab-bite-forecast" class="tab-content">
+        <!-- Loading State -->
+        <div id="bite-forecast-loading" class="card text-center py-12">
+          <div class="animate-pulse space-y-4">
+            <div class="text-5xl">🎣</div>
+            <p class="text-lg font-semibold text-primary">Analyzing Weather Patterns</p>
+            <p class="text-sm text-secondary">Calculating bite scores for 20 species...</p>
+            <div class="flex justify-center gap-2 mt-4">
+              <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+              <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+              <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content (hidden until loaded) -->
+        <div id="bite-forecast-content" class="hidden space-y-6">
+          <!-- Main Graph Card -->
+          <div class="card">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-xl">24-Hour Bite Forecast</h3>
+                <p class="text-xs text-secondary mt-1">Top species by current conditions</p>
+              </div>
+              <div id="species-selector" class="flex gap-2 flex-wrap">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+
+            <!-- Main Graph Canvas -->
+            <div class="relative bg-frost rounded-lg p-6" style="height: 400px;">
+              <canvas id="bite-forecast-chart" style="width: 100%; height: 100%;"></canvas>
+            </div>
+
+            <!-- Graph Legend -->
+            <div class="flex items-center justify-center gap-6 mt-4 text-xs flex-wrap">
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-2 rounded" style="background: #22c55e;"></div>
+                <span>Excellent (80-100)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-2 rounded" style="background: #D4AF37;"></div>
+                <span>Good (60-79)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-2 rounded" style="background: #FFA500;"></div>
+                <span>Fair (40-59)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-2 rounded" style="background: #FF8C00;"></div>
+                <span>Poor (20-39)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-2 rounded" style="background: #D9534F;"></div>
+                <span>Very Poor (0-19)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Species Cards Grid -->
+          <div>
+            <h3 class="font-bold text-lg mb-4">All Species Forecasts</h3>
+            <div id="species-cards-grid" class="grid grid-cols-4 gap-4">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="bite-forecast-error" class="hidden card text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-danger mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <p class="text-secondary mb-2 text-lg font-semibold">Unable to Generate Bite Forecast</p>
+          <p class="text-xs text-muted">Weather data unavailable. Please try again later.</p>
+        </div>
+      </div><!-- End Tab: Bite Forecast -->
 
     </div>
   </main>

@@ -142,6 +142,15 @@ const LakeDetail = {
         if (tabId === 'overview' && this.map) {
           setTimeout(() => this.map.invalidateSize(), 100);
         }
+
+        // Initialize bite forecast on first activation
+        if (tabId === 'bite-forecast' && typeof BiteForecast !== 'undefined' && !BiteForecast.initialized) {
+          if (this.lake && this.weatherRaw) {
+            BiteForecast.init(this.lake, this.weatherRaw);
+          } else {
+            console.warn('[LakeDetail] Cannot initialize bite forecast - missing lake or weather data');
+          }
+        }
       });
     });
   },
@@ -253,6 +262,12 @@ const LakeDetail = {
 
       const currentWeather = await currentRes.json();
       const forecastData = await forecastRes.json();
+
+      // Store raw weather data for BiteForecast module
+      this.weatherRaw = {
+        current: currentWeather,
+        forecast: forecastData
+      };
 
       // Transform the data
       this.weather = {
