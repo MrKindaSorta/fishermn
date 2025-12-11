@@ -251,11 +251,15 @@ const BiteForecast = (() => {
    * Render main graph (shows 2-3 selected species)
    */
   function renderMainGraph() {
+    console.log('[BiteForecast] renderMainGraph called');
+
     const canvas = document.getElementById('bite-forecast-chart');
     if (!canvas) {
       console.warn('[BiteForecast] Main graph canvas not found');
       return;
     }
+
+    console.log('[BiteForecast] Canvas found:', canvas);
 
     // Prepare data for selected species
     const selectedScores = {};
@@ -263,16 +267,24 @@ const BiteForecast = (() => {
       selectedScores[speciesId] = state.forecastScores[speciesId];
     });
 
-    // Use ChartRenderer to draw (will be implemented next)
+    console.log('[BiteForecast] Selected scores prepared for species:', Object.keys(selectedScores));
+    console.log('[BiteForecast] ChartRenderer available:', typeof ChartRenderer !== 'undefined');
+
+    // Use ChartRenderer to draw
     if (typeof ChartRenderer !== 'undefined') {
+      console.log('[BiteForecast] Calling ChartRenderer.renderMainChart...');
       ChartRenderer.renderMainChart(canvas, selectedScores, state.currentHour);
+      console.log('[BiteForecast] ChartRenderer.renderMainChart completed');
     } else {
+      console.error('[BiteForecast] ChartRenderer not loaded!');
       // Placeholder until ChartRenderer is implemented
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#0A3A60';
-      ctx.font = '16px Inter';
-      ctx.textAlign = 'center';
-      ctx.fillText('Chart Renderer Not Loaded', canvas.width / 2, canvas.height / 2);
+      if (ctx) {
+        ctx.fillStyle = '#0A3A60';
+        ctx.font = '16px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Chart Renderer Not Loaded', canvas.width / 2, canvas.height / 2);
+      }
     }
   }
 

@@ -20,6 +20,8 @@ const ChartRenderer = (() => {
    * @param {number} currentHour - Hour index for NOW marker (0-23)
    */
   function renderMainChart(canvas, speciesScores, currentHour) {
+    console.log('[ChartRenderer] renderMainChart called', { canvas, speciesScores, currentHour });
+
     if (!canvas) {
       console.error('[ChartRenderer] Canvas element not found');
       return;
@@ -37,6 +39,8 @@ const ChartRenderer = (() => {
     const parent = canvas.parentElement;
     const width = parent.clientWidth;
     const height = parent.clientHeight;
+
+    console.log('[ChartRenderer] Canvas dimensions:', { width, height, dpr });
 
     // Set canvas size for retina displays
     canvas.width = width * dpr;
@@ -274,10 +278,18 @@ const ChartRenderer = (() => {
    * @param {number} currentHour - Hour index for NOW marker
    */
   function renderSparkline(canvas, scores, currentHour) {
-    if (!canvas || !scores) return;
+    if (!canvas || !scores) {
+      console.warn('[ChartRenderer] renderSparkline: missing canvas or scores');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('[ChartRenderer] renderSparkline: could not get context');
+      return;
+    }
+
+    console.log('[ChartRenderer] renderSparkline called for species:', canvas.dataset.species);
 
     const dpr = window.devicePixelRatio || 1;
 
