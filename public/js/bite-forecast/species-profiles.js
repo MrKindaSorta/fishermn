@@ -394,7 +394,7 @@ const SpeciesProfiles = (() => {
 
       education: {
         habits: 'Lake trout remain relatively active in winter, patrolling for ciscoes or smelt. They can be caught all day long.',
-        bestConditions: 'Late morning through afternoon can be strong bite windows. Lakers aren't as light-shy as walleye.',
+        bestConditions: 'Late morning through afternoon can be strong bite windows. Lakers are not as light-shy as walleye.',
         winterBehavior: 'Found in deep, cold lakes (depths of 40-100+ feet). They cruise rocky points and humps looking for baitfish.',
         tipOfTheDay: 'Heavy jigging spoons or tube jigs. Lakers hit hard - use stout rods and 10-12lb line. Electronics are key to find them.'
       }
@@ -673,7 +673,7 @@ const SpeciesProfiles = (() => {
       education: {
         habits: 'Ciscoes (tullibee) are open-water plankton feeders. They roam in the water column and feed during daylight when plankton are active.',
         bestConditions: 'Late morning through afternoon when plankton move. On sunny days they may feed more mid-day.',
-        winterBehavior: 'Cisco suspend at various depths (20-60 feet) in lake basins. They're often caught while targeting lake trout.',
+        winterBehavior: 'Cisco suspend at various depths (20-60 feet) in lake basins. They are often caught while targeting lake trout.',
         tipOfTheDay: 'Small spoons, Swedish pimples, or tiny jigs. They school densely - find the depth and you can catch many.'
       }
     },
@@ -708,7 +708,7 @@ const SpeciesProfiles = (() => {
       education: {
         habits: 'Burbot are unique: they spawn in mid-late winter under ice at night and are very active after dark. The ultimate night-bite fish.',
         bestConditions: 'Evening into midnight (6 PM to 12 AM) is prime time. Falling barometer at night is ideal. Pre-spawn period (late Jan/Feb) is best.',
-        winterBehavior: 'Burbot move shallow at night to feed, often in 5-20 feet. They're bottom-oriented and feed on fish and crayfish.',
+        winterBehavior: 'Burbot move shallow at night to feed, often in 5-20 feet. They are bottom-oriented and feed on fish and crayfish.',
         tipOfTheDay: 'Fish after dark with glow jigs and dead or live bait. Burbot hit hard and fight well. Delicious when cooked!'
       }
     }
