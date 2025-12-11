@@ -919,33 +919,31 @@ class LakesList {
 
     this.showLoading();
 
-    // Filter lakes to only favorites
-    const favoriteLakes = this.lakes.filter(lake =>
-      this.favoriteLakeIds.includes(lake.id)
-    );
-
-    if (favoriteLakes.length === 0) {
-      // No favorites in current loaded lakes, fetch all lakes
-      try {
-        const response = await fetch('/api/lakes?limit=10000');
-        const data = await response.json();
-
-        if (data.success) {
-          const allFavorites = (data.lakes || []).filter(lake =>
-            this.favoriteLakeIds.includes(lake.id)
-          );
-          this.lakes = allFavorites;
+    // Fetch full favorite lake data from API (already includes ice data)
+    try {
+      const token = localStorage.getItem('fishermn_auth_token');
+      const response = await fetch('/api/user/favorites', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      } catch (error) {
-        console.error('Error loading all lakes:', error);
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      if (data.success && data.favoriteLakes) {
+        this.lakes = data.favoriteLakes;
       }
-    } else {
-      this.lakes = favoriteLakes;
+    } catch (error) {
+      console.error('Error fetching favorite lakes:', error);
+      this.showError('Failed to load favorites');
+      return;
     }
 
     this.hasMore = false; // No pagination for favorites
     this.renderLakeTiles();
-    this.renderMapMarkers();
+    this.renderMapMarkers(this.lakes, true);
   }
 
   /**
