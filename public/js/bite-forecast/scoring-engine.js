@@ -365,15 +365,52 @@ const ScoringEngine = (() => {
       });
     }
 
-    // Step 8: Apply historical context (if available)
-    // TODO: Implement historical factor analysis when weather history data is available
-    // This would check for:
-    // - Recent cold fronts (last 48h)
-    // - Multi-day warming trends (last 72h)
-    // - Pressure stability (last 24h)
-    // - Prolonged storm systems (last 48h)
+    // Step 8: Apply seasonal modifier (early ice/mid-winter/late ice)
+    if (typeof SeasonalAnalyzer !== 'undefined') {
+      const seasonalMod = SeasonalAnalyzer.getSeasonalModifier(speciesId, weather.time);
+      if (seasonalMod.value !== 0) {
+        score += seasonalMod.value;
+        factors.push({
+          category: 'seasonal',
+          description: seasonalMod.description,
+          impact: seasonalMod.value
+        });
+      }
+    }
 
-    // Step 9: Clamp to 0-100 range
+    // Step 9: Apply moon phase modifier (affects night feeders)
+    if (typeof SeasonalAnalyzer !== 'undefined') {
+      const moonMod = SeasonalAnalyzer.getMoonModifier(speciesId, weather.time, timeModifier.period);
+      if (moonMod.value !== 0 && moonMod.description) {
+        score += moonMod.value;
+        factors.push({
+          category: 'moon',
+          description: moonMod.description,
+          impact: moonMod.value
+        });
+      }
+    }
+
+    // Step 10: Apply day length trend modifier
+    if (typeof SeasonalAnalyzer !== 'undefined' && lakeId) {
+      // Get lake coordinates from context (passed through)
+      const dayLengthMod = SeasonalAnalyzer.getDayLengthModifier(
+        speciesId,
+        weather.time.getTimezoneOffset ? 46.5 : 46.5, // Placeholder - will use actual lat/lon
+        weather.time.getTimezoneOffset ? -94.0 : -94.0,
+        weather.time
+      );
+      if (dayLengthMod.value !== 0 && dayLengthMod.description) {
+        score += dayLengthMod.value;
+        factors.push({
+          category: 'dayLength',
+          description: dayLengthMod.description,
+          impact: dayLengthMod.value
+        });
+      }
+    }
+
+    // Step 11: Clamp to 0-100 range
     score = Math.max(0, Math.min(100, Math.round(score)));
 
     // Step 10: Sort factors by impact magnitude
