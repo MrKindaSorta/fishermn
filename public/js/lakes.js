@@ -319,36 +319,26 @@ class LakesList {
 
     const lakes = lakesToRender || this.lakes;
 
-    if (priorityMode) {
-      // Viewport mode: ALL ice data lakes + others (up to 300 total)
-      const lakesWithIce = lakes.filter(l => l.officialIce?.thickness);
-      const lakesWithoutIce = lakes.filter(l => !l.officialIce?.thickness);
+    // Always prioritize ice lakes - single pass partition
+    const withIce = [];
+    const withoutIce = [];
 
-      // Show ALL ice data lakes (no limit - always visible!)
-      let lakesToShow = [...lakesWithIce];
-
-      // Fill remaining up to 300 with others
-      if (lakesToShow.length < 300) {
-        const remaining = 300 - lakesToShow.length;
-        lakesToShow = [...lakesToShow, ...lakesWithoutIce.slice(0, remaining)];
+    for (const lake of lakes) {
+      if (lake.officialIce?.thickness) {
+        withIce.push(lake);
+      } else {
+        withoutIce.push(lake);
       }
-
-      console.log(`Rendering ${lakesToShow.length} markers (${lakesWithIce.length} with ice data)`);
-      lakesToShow.forEach(lake => this.createMarker(lake));
-
-    } else {
-      // Normal mode: still prioritize ice lakes (up to 300 total)
-      const lakesWithIce = lakes.filter(l => l.officialIce?.thickness);
-      const lakesWithoutIce = lakes.filter(l => !l.officialIce?.thickness);
-
-      let lakesToShow = [...lakesWithIce];
-      if (lakesToShow.length < 300) {
-        const remaining = 300 - lakesToShow.length;
-        lakesToShow = [...lakesToShow, ...lakesWithoutIce.slice(0, remaining)];
-      }
-
-      lakesToShow.forEach(lake => this.createMarker(lake));
     }
+
+    // Show all ice lakes + fill to 300
+    const lakesToShow = [
+      ...withIce,
+      ...withoutIce.slice(0, Math.max(0, 300 - withIce.length))
+    ];
+
+    console.log(`Rendering ${lakesToShow.length} markers (${withIce.length} with ice data)`);
+    lakesToShow.forEach(lake => this.createMarker(lake));
   }
 
   /**
@@ -412,27 +402,35 @@ class LakesList {
     };
 
     try {
-      // First fetch ice lakes in viewport
+      // Fetch ice and general lakes in parallel
       const iceParams = new URLSearchParams({
         ...baseParams,
         minThickness: 1,
         limit: 300
       });
-      const iceResponse = await fetch(`/api/lakes?${iceParams}`);
-      const iceData = await iceResponse.json();
-      const lakesWithIce = iceData.success ? (iceData.lakes || []) : [];
-
-      // Then fetch general lakes to fill up
       const generalParams = new URLSearchParams({
         ...baseParams,
-        limit: Math.max(200 - lakesWithIce.length, 0)
+        limit: 200
       });
-      const generalResponse = await fetch(`/api/lakes?${generalParams}`);
-      const generalData = await generalResponse.json();
+
+      const [iceResponse, generalResponse] = await Promise.all([
+        fetch(`/api/lakes?${iceParams}`),
+        fetch(`/api/lakes?${generalParams}`)
+      ]);
+
+      const [iceData, generalData] = await Promise.all([
+        iceResponse.json(),
+        generalResponse.json()
+      ]);
+
+      const lakesWithIce = iceData.success ? (iceData.lakes || []) : [];
       const generalLakes = generalData.success ? (generalData.lakes || []) : [];
 
-      // Combine: ice lakes first
-      return [...lakesWithIce, ...generalLakes];
+      // Combine: ice lakes first, filter out duplicates from general
+      const iceIds = new Set(lakesWithIce.map(l => l.id));
+      const uniqueGeneral = generalLakes.filter(l => !iceIds.has(l.id));
+
+      return [...lakesWithIce, ...uniqueGeneral];
     } catch (error) {
       console.error('Error fetching viewport lakes:', error);
       return [];
@@ -502,18 +500,16 @@ class LakesList {
    * Fly to lake on map and highlight tile
    */
   flyToLake(lakeId, lat, lon) {
-    // Remove active class from all tiles
-    document.querySelectorAll('.lake-list-item').forEach(item => {
-      item.classList.remove('active');
-    });
+    // Find lake name once
+    const clickedLake = this.lakes.find(l => l.id === lakeId);
+    const clickedName = clickedLake?.name;
 
-    // Add active class to clicked tile
-    const tiles = document.querySelectorAll('.lake-list-item');
-    tiles.forEach(tile => {
-      const tileName = tile.getAttribute('data-lake-name');
-      const clickedLake = this.lakes.find(l => l.id === lakeId);
-      if (tileName === clickedLake?.name) {
+    // Single pass: remove active from all, add to match
+    document.querySelectorAll('.lake-list-item').forEach(tile => {
+      if (tile.getAttribute('data-lake-name') === clickedName) {
         tile.classList.add('active');
+      } else {
+        tile.classList.remove('active');
       }
     });
 
@@ -902,7 +898,9 @@ class LakesList {
   async applyFavoritesFilter() {
     if (this.favoriteLakeIds.length === 0) {
       this.showEmptyFavoritesState();
-      this.clearMapMarkers();
+      // Clear map markers
+      this.markers.forEach(marker => this.map.removeLayer(marker));
+      this.markers = [];
       return;
     }
 
