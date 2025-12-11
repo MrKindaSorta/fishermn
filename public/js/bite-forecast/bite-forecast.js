@@ -24,10 +24,97 @@ const BiteForecast = (() => {
     sunTimes: null,
     stormEvents: null,
     forecastScores: {},      // { species: [24 hourly scores] }
-    selectedSpecies: [],      // Species shown on main graph (max 3)
+    selectedSpecies: [],      // Species shown on main graph
+    favoriteSpecies: [],      // User's favorite species (saved to localStorage)
     currentHour: 0,           // 0-23 index for NOW
     cacheKey: null
   };
+
+  /**
+   * Load favorite species from localStorage
+   */
+  function loadFavorites() {
+    try {
+      const saved = localStorage.getItem('fishermn_favorite_species');
+      if (saved) {
+        state.favoriteSpecies = JSON.parse(saved);
+        console.log('[BiteForecast] Loaded favorites:', state.favoriteSpecies);
+      } else {
+        // Default favorites if none saved
+        state.favoriteSpecies = ['yellowPerch', 'walleye', 'blackCrappie'];
+      }
+    } catch (error) {
+      console.warn('[BiteForecast] Could not load favorites:', error);
+      state.favoriteSpecies = ['yellowPerch', 'walleye', 'blackCrappie'];
+    }
+  }
+
+  /**
+   * Save favorite species to localStorage
+   */
+  function saveFavorites() {
+    try {
+      localStorage.setItem('fishermn_favorite_species', JSON.stringify(state.favoriteSpecies));
+      console.log('[BiteForecast] Saved favorites:', state.favoriteSpecies);
+    } catch (error) {
+      console.warn('[BiteForecast] Could not save favorites:', error);
+    }
+  }
+
+  /**
+   * Toggle species as favorite
+   */
+  function toggleFavorite(speciesId) {
+    const index = state.favoriteSpecies.indexOf(speciesId);
+
+    if (index > -1) {
+      // Remove from favorites
+      state.favoriteSpecies.splice(index, 1);
+    } else {
+      // Add to favorites
+      state.favoriteSpecies.push(speciesId);
+    }
+
+    saveFavorites();
+    renderSpeciesCards(); // Re-render to update star icons
+    console.log('[BiteForecast] Toggled favorite:', speciesId, 'Favorites:', state.favoriteSpecies);
+  }
+
+  /**
+   * Check if species is favorite
+   */
+  function isFavorite(speciesId) {
+    return state.favoriteSpecies.includes(speciesId);
+  }
+
+  /**
+   * Toggle species on main graph
+   */
+  function toggleSpeciesOnGraph(speciesId) {
+    const index = state.selectedSpecies.indexOf(speciesId);
+
+    if (index > -1) {
+      // Remove from graph
+      state.selectedSpecies.splice(index, 1);
+    } else {
+      // Add to graph
+      state.selectedSpecies.push(speciesId);
+    }
+
+    console.log('[BiteForecast] Selected species:', state.selectedSpecies);
+
+    // Re-render main graph and species selector
+    renderSpeciesSelector();
+    renderMainGraph();
+    renderSpeciesCards(); // Update button states
+  }
+
+  /**
+   * Check if species is on main graph
+   */
+  function isOnGraph(speciesId) {
+    return state.selectedSpecies.includes(speciesId);
+  }
 
   /**
    * Generate cache key from weather data
@@ -186,8 +273,9 @@ const BiteForecast = (() => {
 
       console.log('[BiteForecast] Calculated 480 scores (20 species × 24 hours)');
 
-      // Step 6: Select default species for main graph (Perch, Walleye, Black Crappie)
-      state.selectedSpecies = ['yellowPerch', 'walleye', 'blackCrappie'];
+      // Step 6: Load favorites and use as default selected species
+      loadFavorites();
+      state.selectedSpecies = [...state.favoriteSpecies]; // Use favorites as default
 
       console.log('[BiteForecast] Top 3 species:', state.selectedSpecies.map(id => {
         const profile = SpeciesProfiles.getProfile(id);
@@ -303,8 +391,11 @@ const BiteForecast = (() => {
       const currentScore = forecast24h[0];
       const bestTimes = ScoringEngine.findBestBiteTimes(forecast24h);
 
+      const isGraphed = isOnGraph(speciesId);
+      const isFav = isFavorite(speciesId);
+
       return `
-        <div class="card p-4 cursor-pointer hover:shadow-lg transition-all species-card"
+        <div class="card p-4 hover:shadow-lg transition-all species-card"
              data-species="${speciesId}">
 
           <!-- Card Header -->
@@ -317,16 +408,38 @@ const BiteForecast = (() => {
               </div>
             </div>
 
-            <!-- Current Score Badge -->
-            <div class="text-center">
-              <div class="text-3xl font-bold" style="color: ${currentScore.quality.color}">
-                ${currentScore.score}
-              </div>
-              <div class="text-xs font-semibold" style="color: ${currentScore.quality.color}">
-                ${currentScore.quality.label}
+            <!-- Right: Score + Favorite Star -->
+            <div class="flex items-center gap-2">
+              <!-- Favorite Button -->
+              <button
+                class="favorite-btn p-1 rounded hover:bg-frost transition-colors"
+                onclick="BiteForecast.toggleFavorite('${speciesId}'); event.stopPropagation();"
+                title="${isFav ? 'Remove from favorites' : 'Add to favorites'}">
+                <svg class="w-5 h-5 ${isFav ? 'fill-gold stroke-gold' : 'fill-none stroke-secondary'}"
+                     viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+              </button>
+
+              <!-- Current Score Badge -->
+              <div class="text-center">
+                <div class="text-3xl font-bold" style="color: ${currentScore.quality.color}">
+                  ${currentScore.score}
+                </div>
+                <div class="text-xs font-semibold" style="color: ${currentScore.quality.color}">
+                  ${currentScore.quality.label}
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Add/Remove from Graph Button -->
+          <button
+            class="w-full mb-3 py-2 px-3 rounded-lg border-2 transition-all text-sm font-medium ${isGraphed ? 'border-primary bg-primary text-white' : 'border-grayPanel text-secondary hover:border-primary'}"
+            onclick="BiteForecast.toggleSpeciesOnGraph('${speciesId}'); event.stopPropagation();">
+            ${isGraphed ? '✓ On Main Graph' : '+ Add to Main Graph'}
+          </button>
 
           <!-- Mini Sparkline Placeholder -->
           <div class="h-16 mb-3 bg-frost rounded relative">
@@ -478,6 +591,26 @@ const BiteForecast = (() => {
     refresh,
 
     /**
+     * Toggle species on main graph
+     */
+    toggleSpeciesOnGraph,
+
+    /**
+     * Toggle species as favorite
+     */
+    toggleFavorite,
+
+    /**
+     * Check if species is on graph
+     */
+    isOnGraph,
+
+    /**
+     * Check if species is favorite
+     */
+    isFavorite,
+
+    /**
      * Get current state (for debugging)
      */
     getState: () => state,
@@ -493,7 +626,8 @@ const BiteForecast = (() => {
      * Expose for external access
      */
     forecastScores: state.forecastScores,
-    selectedSpecies: state.selectedSpecies
+    selectedSpecies: state.selectedSpecies,
+    favoriteSpecies: state.favoriteSpecies
   };
 })();
 

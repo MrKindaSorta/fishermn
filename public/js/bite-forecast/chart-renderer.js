@@ -201,20 +201,20 @@ const ChartRenderer = (() => {
             },
             ticks: {
               callback: function(value, index) {
-                if (index % 3 === 0) {
-                  const time = new Date(labels[index]);
-                  return time.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    hour12: true
-                  });
-                }
-                return '';
+                // Show all 24 hours
+                const time = new Date(labels[index]);
+                return time.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  hour12: true
+                });
               },
               font: {
                 family: 'Inter, sans-serif',
-                size: 11
+                size: 10
               },
-              color: '#4B5563'
+              color: '#4B5563',
+              maxRotation: 45,
+              minRotation: 45
             },
             grid: {
               color: '#E5E7EB',
