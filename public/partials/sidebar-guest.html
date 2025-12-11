@@ -1,4 +1,4 @@
-<aside class="fixed left-0 top-0 h-screen w-64 bg-primary text-white flex flex-col">
+<aside id="mobile-sidebar" class="fixed left-0 top-0 h-screen w-64 bg-primary text-white flex flex-col z-40 -translate-x-full transition-transform duration-300 lg:translate-x-0">
   <!-- Logo -->
   <div class="p-6 border-b border-white/10">
     <h1 class="text-2xl font-bold">🎣 FisherMN</h1>
@@ -46,3 +46,6 @@
     </button>
   </div>
 </aside>
+
+<!-- Mobile backdrop overlay (mobile only) -->
+<div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/50 z-30 lg:hidden"></div>

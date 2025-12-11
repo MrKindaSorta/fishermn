@@ -12,6 +12,7 @@
   <script src="/public/js/auth-modal.js"></script>
   <script src="/public/js/add-report-modal.js"></script>
   <script src="/public/js/dashboard.js"></script>
+  <script src="/public/js/mobile-nav.js" defer></script>
 </head>
 <body class="bg-frost">
   <!-- Anti-FOUC Script -->
@@ -58,11 +59,11 @@
   <div hx-get="/public/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
   <!-- Main Content Area -->
-  <main class="ml-64 mt-16 p-6 min-h-screen">
+  <main class="ml-0 lg:ml-64 mt-16 p-4 lg:p-6 min-h-screen bg-frost">
     <!-- Top Stats Row -->
-    <div class="grid grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
       <!-- Rank Card - Dynamic Data -->
-      <div class="card bg-gradient-to-br from-primary to-evergreen text-white col-span-2">
+      <div class="card bg-gradient-to-br from-primary to-evergreen text-white col-span-1 sm:col-span-2 lg:col-span-2">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <svg class="w-12 h-12 text-gold" fill="currentColor" viewBox="0 0 20 20">
@@ -115,7 +116,7 @@
     </div>
 
     <!-- Three Column Layout -->
-    <div class="grid grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
       <!-- Left Column: Empty States -->
       <div class="space-y-4">
         <div class="flex items-center justify-between mb-2">

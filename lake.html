@@ -24,6 +24,7 @@
   <script src="/public/js/bite-forecast/chart-renderer.js"></script>
   <script src="/public/js/bite-forecast/bite-forecast.js"></script>
   <script src="/public/js/lake-detail.js"></script>
+  <script src="/public/js/mobile-nav.js" defer></script>
   <style>
     #lake-map {
       height: 100%;
@@ -70,6 +71,14 @@
     }
     .tab-content.active {
       display: block;
+    }
+    /* Hide scrollbar but keep functionality */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
     /* Activity post styles */
     .activity-post {
@@ -121,20 +130,21 @@
   <div hx-get="/public/partials/top-bar.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
   <!-- Main Content Area -->
-  <main class="ml-64 mt-16 h-[calc(100vh-64px)] overflow-y-auto">
+  <main class="ml-0 lg:ml-64 mt-16 bg-frost min-h-screen">
     <!-- Navigation Bar - Full Width -->
-    <div class="flex border-b border-grayPanel bg-white">
-      <a href="/lakes.html" class="tab-btn flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="flex border-b border-grayPanel bg-white overflow-x-auto snap-x snap-mandatory lg:overflow-x-visible scrollbar-hide">
+      <a href="/lakes.html" class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6 flex items-center gap-2">
+        <span class="lg:hidden">←</span>
+        <svg class="hidden lg:block w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
         </svg>
-        Back to Lakes
+        <span class="hidden lg:inline">Back to Lakes</span>
       </a>
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="activity">Recent Activity</button>
-      <button class="tab-btn" data-tab="discussions">Discussions</button>
-      <button class="tab-btn" data-tab="bite-forecast">Bite Forecast</button>
-      <button class="tab-btn" data-tab="about">About</button>
+      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6 active" data-tab="overview">Overview</button>
+      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="activity">Activity</button>
+      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="discussions">Discuss</button>
+      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="bite-forecast">Forecast</button>
+      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="about">About</button>
     </div>
 
     <!-- Weather Bar -->
@@ -159,9 +169,9 @@
       <!-- Tab: Overview -->
       <div id="tab-overview" class="tab-content active">
         <!-- Main Grid: Left (Lake Info) + Right (Map) -->
-        <div class="grid grid-cols-5 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
           <!-- Left Column: Lake Data (60%) -->
-          <div class="col-span-3 space-y-6">
+          <div class="col-span-1 lg:col-span-3 space-y-4 lg:space-y-6">
             <!-- Lake Header Card -->
             <div class="card">
               <div class="flex items-start justify-between mb-4">

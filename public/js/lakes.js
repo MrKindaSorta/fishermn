@@ -1112,4 +1112,31 @@ class LakesList {
 document.addEventListener('DOMContentLoaded', () => {
   window.lakesList = new LakesList();
   window.lakesList.init();
+
+  // Initialize mobile map toggle
+  initMobileMapToggle();
 });
+
+/**
+ * Mobile Map Toggle
+ * Handles showing/hiding the map on mobile devices
+ */
+function initMobileMapToggle() {
+  const toggleBtn = document.getElementById('mobile-map-toggle');
+  const closeBtn = document.getElementById('mobile-map-close');
+  const mapContainer = document.getElementById('map-container');
+
+  toggleBtn?.addEventListener('click', () => {
+    mapContainer?.classList.remove('hidden');
+    // Force Leaflet to recalculate size
+    setTimeout(() => {
+      if (window.lakesMap?.map) {
+        window.lakesMap.map.invalidateSize();
+      }
+    }, 100);
+  });
+
+  closeBtn?.addEventListener('click', () => {
+    mapContainer?.classList.add('hidden');
+  });
+}
