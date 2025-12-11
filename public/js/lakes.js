@@ -27,18 +27,8 @@ class LakesList {
       this.initMap();
       this.renderLakeTiles();
 
-      // Split lakes into priority groups
-      const lakesWithIce = this.lakes.filter(l => l.officialIce?.thickness);
-      const lakesWithoutIce = this.lakes.filter(l => !l.officialIce?.thickness);
-
-      // Initial markers: ice data lakes first, then others (up to 100 total)
-      let initialMarkers = lakesWithIce.slice(0, 100);
-      if (initialMarkers.length < 100) {
-        const remaining = 100 - initialMarkers.length;
-        initialMarkers = [...initialMarkers, ...lakesWithoutIce.slice(0, remaining)];
-      }
-
-      this.renderMapMarkers(initialMarkers);
+      // Initial markers: Use priority mode to show ALL ice lakes + others (up to 300)
+      this.renderMapMarkers(this.lakes, true);
 
       this.initFilters();
       this.initInfiniteScroll(); // Set up scroll detection
@@ -169,8 +159,8 @@ class LakesList {
       this.removeLoadingMore();
       container.insertAdjacentHTML('beforeend', newTilesHTML);
 
-      // Update map markers with all loaded lakes
-      this.renderMapMarkers();
+      // Update map markers with all loaded lakes (priority mode)
+      this.renderMapMarkers(this.lakes, true);
     } catch (error) {
       console.error('Error loading more lakes:', error);
       this.removeLoadingMore();
@@ -207,7 +197,7 @@ class LakesList {
       console.log(`Search found ${data.count} lakes matching "${searchTerm}"`);
 
       this.renderLakeTiles();
-      this.renderMapMarkers();
+      this.renderMapMarkers(this.lakes, true); // Use priority mode
     } catch (error) {
       console.error('Error searching lakes:', error);
       this.showError('Search failed. Please try again.');
@@ -315,24 +305,34 @@ class LakesList {
     const lakes = lakesToRender || this.lakes;
 
     if (priorityMode) {
-      // Viewport mode: ALL ice data lakes + others (up to 500 total)
+      // Viewport mode: ALL ice data lakes + others (up to 300 total)
       const lakesWithIce = lakes.filter(l => l.officialIce?.thickness);
       const lakesWithoutIce = lakes.filter(l => !l.officialIce?.thickness);
 
       // Show ALL ice data lakes (no limit - always visible!)
       let lakesToShow = [...lakesWithIce];
 
-      // Fill remaining up to 500 with others
-      if (lakesToShow.length < 500) {
-        const remaining = 500 - lakesToShow.length;
+      // Fill remaining up to 300 with others
+      if (lakesToShow.length < 300) {
+        const remaining = 300 - lakesToShow.length;
+        lakesToShow = [...lakesToShow, ...lakesWithoutIce.slice(0, remaining)];
+      }
+
+      console.log(`Rendering ${lakesToShow.length} markers (${lakesWithIce.length} with ice data)`);
+      lakesToShow.forEach(lake => this.createMarker(lake));
+
+    } else {
+      // Normal mode: still prioritize ice lakes (up to 300 total)
+      const lakesWithIce = lakes.filter(l => l.officialIce?.thickness);
+      const lakesWithoutIce = lakes.filter(l => !l.officialIce?.thickness);
+
+      let lakesToShow = [...lakesWithIce];
+      if (lakesToShow.length < 300) {
+        const remaining = 300 - lakesToShow.length;
         lakesToShow = [...lakesToShow, ...lakesWithoutIce.slice(0, remaining)];
       }
 
       lakesToShow.forEach(lake => this.createMarker(lake));
-
-    } else {
-      // Normal mode: render all provided lakes
-      lakes.forEach(lake => this.createMarker(lake));
     }
   }
 
@@ -649,7 +649,7 @@ class LakesList {
       try {
         await this.loadLakes(0, false);
         this.renderLakeTiles();
-        this.renderMapMarkers();
+        this.renderMapMarkers(this.lakes, true); // Use priority mode
       } catch (error) {
         console.error('Error reloading lakes:', error);
         this.showError('Failed to load lakes. Please refresh the page.');
@@ -676,7 +676,7 @@ class LakesList {
 
       // Update UI
       this.renderLakeTiles();
-      this.renderMapMarkers();
+      this.renderMapMarkers(this.lakes, true); // Use priority mode
 
       // Update filter count badge
       const filterCount = document.getElementById('filter-count');
