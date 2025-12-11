@@ -240,15 +240,34 @@ const BiteForecast = (() => {
       state.stormEvents = WeatherAnalyzer.detectStormEvents(state.hourlyWeather);
       console.log(`[BiteForecast] Found ${state.stormEvents.length} storm events`);
 
-      // Step 4: Fetch weather history (optional, for enhanced scoring)
-      console.log('[BiteForecast] Fetching weather history...');
+      // Step 4: Find lake's weather region
+      console.log('[BiteForecast] Finding lake region...');
+      let region = null;
       try {
-        const historyRes = await fetch(`/api/weather-history?lake_id=${lakeData.id}&days=7`);
-        if (historyRes.ok) {
-          state.weatherHistory = await historyRes.json();
-          console.log(`[BiteForecast] Loaded ${state.weatherHistory?.length || 0} historical records`);
+        const regionRes = await fetch(`/api/regions/find?lat=${lakeData.latitude}&lon=${lakeData.longitude}`);
+        if (regionRes.ok) {
+          region = await regionRes.json();
+          console.log(`[BiteForecast] Lake is in region ${region.code} (${region.name})`);
         } else {
-          console.warn('[BiteForecast] Weather history not available (expected if database not set up yet)');
+          console.warn('[BiteForecast] Could not determine region');
+        }
+      } catch (err) {
+        console.warn('[BiteForecast] Region lookup failed:', err.message);
+      }
+
+      // Step 5: Fetch weather history for this region
+      console.log('[BiteForecast] Fetching regional weather history...');
+      try {
+        if (region) {
+          const historyRes = await fetch(`/api/weather-history?region_id=${region.region_id}&days=7`);
+          if (historyRes.ok) {
+            state.weatherHistory = await historyRes.json();
+            console.log(`[BiteForecast] Loaded ${state.weatherHistory?.length || 0} regional historical records`);
+          } else {
+            console.warn('[BiteForecast] Weather history not available');
+            state.weatherHistory = null;
+          }
+        } else {
           state.weatherHistory = null;
         }
       } catch (err) {

@@ -1,14 +1,14 @@
--- Migration: Add weather_history table for historical weather data tracking
--- Purpose: Store 4 daily weather snapshots (morning/midday/evening/night) per lake
+-- Migration: Add weather_history table for regional historical weather data
+-- Purpose: Store 4 daily weather snapshots (morning/midday/evening/night) per REGION
 --          to enable accurate bite forecasting based on multi-day weather patterns
 --
--- Retention: Last 7 days (28 records per lake)
--- Collection: Automated cron job every 6 hours
+-- Strategy: 20 Minnesota regions × 4 periods/day = 80 API calls/day (sustainable)
+-- Retention: Last 7 days (560 total records: 20 regions × 4 periods × 7 days)
 
--- Create weather history table
+-- Create weather history table (REGIONAL, not per-lake)
 CREATE TABLE IF NOT EXISTS weather_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  lake_id INTEGER NOT NULL,
+  region_id INTEGER NOT NULL,  -- References weather_regions table
   date DATE NOT NULL,
   time_period TEXT NOT NULL CHECK(time_period IN ('morning', 'midday', 'evening', 'night')),
 
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS weather_history (
   precip_type TEXT CHECK(precip_type IN ('none', 'rain', 'snow', 'mixed')),
   avg_pop INTEGER,            -- Average probability of precipitation %
 
-  -- Sun/Moon Times
+  -- Sun/Moon Times (from region centroid)
   sunrise_time TEXT,          -- ISO timestamp (only populated for morning period)
   sunset_time TEXT,           -- ISO timestamp (only populated for evening period)
 
@@ -42,24 +42,17 @@ CREATE TABLE IF NOT EXISTS weather_history (
   -- Timestamps
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-  -- Ensure one record per lake per date per time period
-  UNIQUE(lake_id, date, time_period),
+  -- Ensure one record per region per date per time period
+  UNIQUE(region_id, date, time_period),
 
-  -- Foreign key to lakes table
-  FOREIGN KEY (lake_id) REFERENCES lakes(id) ON DELETE CASCADE
+  -- Foreign key to weather_regions table (must run migration 009 first!)
+  FOREIGN KEY (region_id) REFERENCES weather_regions(region_id) ON DELETE CASCADE
 );
 
--- Index for efficient lookups by lake and date (descending for recent first)
+-- Index for efficient lookups by region and date (descending for recent first)
 CREATE INDEX IF NOT EXISTS idx_weather_history_lookup
-  ON weather_history(lake_id, date DESC);
+  ON weather_history(region_id, date DESC);
 
 -- Index for efficient cleanup of old records
 CREATE INDEX IF NOT EXISTS idx_weather_history_cleanup
   ON weather_history(date);
-
--- Add last_activity column to lakes table for cron optimization
--- (Only collect weather for lakes visited in last 30 days)
-ALTER TABLE lakes ADD COLUMN last_activity DATETIME DEFAULT CURRENT_TIMESTAMP;
-
--- Initialize last_activity with current timestamp for existing lakes
-UPDATE lakes SET last_activity = CURRENT_TIMESTAMP WHERE last_activity IS NULL;
