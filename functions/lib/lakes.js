@@ -426,37 +426,43 @@ export async function getAllCurrentIceStatus(db, lakeIds) {
   if (!lakeIds || lakeIds.length === 0) return {};
 
   try {
-    const placeholders = lakeIds.map(() => '?').join(',');
-
-    // Get most recent ice report per lake from last 7 days
-    const query = `
-      SELECT
-        lake_id,
-        thickness_inches as thickness,
-        condition,
-        reported_at as updatedAt
-      FROM ice_reports ir1
-      WHERE lake_id IN (${placeholders})
-        AND reported_at > datetime('now', '-7 days')
-        AND reported_at = (
-          SELECT MAX(reported_at)
-          FROM ice_reports ir2
-          WHERE ir2.lake_id = ir1.lake_id
-            AND ir2.reported_at > datetime('now', '-7 days')
-        )
-    `;
-
-    const result = await db.prepare(query).bind(...lakeIds).all();
-
-    // Convert to map: lakeId -> iceStatus
+    // Batch queries to avoid SQLite parameter limit (max ~999 parameters)
+    const batchSize = 100;
     const statusMap = {};
-    (result.results || []).forEach(row => {
-      statusMap[row.lake_id] = {
-        thickness: row.thickness,
-        condition: row.condition,
-        updatedAt: row.updatedAt
-      };
-    });
+
+    for (let i = 0; i < lakeIds.length; i += batchSize) {
+      const batch = lakeIds.slice(i, i + batchSize);
+      const placeholders = batch.map(() => '?').join(',');
+
+      // Get most recent ice report per lake from last 7 days
+      const query = `
+        SELECT
+          lake_id,
+          thickness_inches as thickness,
+          condition,
+          reported_at as updatedAt
+        FROM ice_reports ir1
+        WHERE lake_id IN (${placeholders})
+          AND reported_at > datetime('now', '-7 days')
+          AND reported_at = (
+            SELECT MAX(reported_at)
+            FROM ice_reports ir2
+            WHERE ir2.lake_id = ir1.lake_id
+              AND ir2.reported_at > datetime('now', '-7 days')
+          )
+      `;
+
+      const result = await db.prepare(query).bind(...batch).all();
+
+      // Add to status map
+      (result.results || []).forEach(row => {
+        statusMap[row.lake_id] = {
+          thickness: row.thickness,
+          condition: row.condition,
+          updatedAt: row.updatedAt
+        };
+      });
+    }
 
     return statusMap;
   } catch (error) {
