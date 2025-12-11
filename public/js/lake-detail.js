@@ -32,6 +32,7 @@ const LakeDetail = {
   ACTIVITY_TYPES: {
     catch: { icon: '🎣', label: 'CATCH REPORT', color: '#1D4D3C' },
     ice: { icon: '⚠️', label: 'ICE CONDITION', color: '#DC2626' },
+    snow: { icon: '❄️', label: 'SNOW REPORT', color: '#3B82F6' },
     hotspot: { icon: '📍', label: 'HOTSPOT', color: '#D4AF37' },
     photo: { icon: '📸', label: 'PHOTO', color: '#0A3A60' },
     general: { icon: '💬', label: 'UPDATE', color: '#4B5563' }
@@ -699,6 +700,17 @@ const LakeDetail = {
         user: report.user.displayName,
         timestamp: this.formatDate(report.caughtAt),
         content: `Caught ${report.fishCount > 1 ? report.fishCount + ' ' : ''}${report.fishSpecies}${report.largestSizeInches ? ' (' + report.largestSizeInches + '")' : ''}${report.baitUsed ? ' using ' + report.baitUsed : ''}`,
+        likes: 0,
+        comments: 0
+      });
+    });
+
+    this.snowReports.forEach(report => {
+      activity.push({
+        type: 'snow',
+        user: report.user.displayName,
+        timestamp: this.formatDate(report.reportedAt),
+        content: `Reported ${report.thicknessInches}" of snow (${report.snowType}, ${report.coverage} coverage)${report.locationNotes ? '. ' + report.locationNotes : ''}`,
         likes: 0,
         comments: 0
       });
