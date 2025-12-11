@@ -1,10 +1,10 @@
 /**
- * Chart Renderer Module
+ * Chart Renderer Module (Chart.js Implementation)
  *
- * Handles all Canvas-based visualization for the Bite Forecast:
- * - Main multi-species graph (400px height)
- * - Mini sparklines (64px height) for species cards
- * - NOW markers, gridlines, axes, labels
+ * Handles all interactive chart visualization using Chart.js:
+ * - Main multi-species graph with hover tooltips
+ * - Mini sparklines for species cards
+ * - Interactive features: hover, click, zoom
  *
  * @module ChartRenderer
  */
@@ -12,264 +12,252 @@
 const ChartRenderer = (() => {
   'use strict';
 
+  // Store chart instances for updates/destruction
+  const chartInstances = {
+    main: null,
+    sparklines: {}
+  };
+
   /**
-   * Render main forecast chart showing 2-3 species
+   * Get quality color for a score
+   */
+  function getQualityColor(score) {
+    if (score >= 80) return '#22c55e'; // Excellent - Green
+    if (score >= 60) return '#D4AF37'; // Good - Gold
+    if (score >= 40) return '#FFA500'; // Fair - Orange
+    if (score >= 20) return '#FF8C00'; // Poor - Dark Orange
+    return '#D9534F'; // Very Poor - Red
+  }
+
+  /**
+   * Get quality label for a score
+   */
+  function getQualityLabel(score) {
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 40) return 'Fair';
+    if (score >= 20) return 'Poor';
+    return 'Very Poor';
+  }
+
+  /**
+   * Render main forecast chart with Chart.js (interactive)
    *
    * @param {HTMLCanvasElement} canvas - Canvas element
    * @param {object} speciesScores - { speciesId: [24 scores], ... }
    * @param {number} currentHour - Hour index for NOW marker (0-23)
    */
   function renderMainChart(canvas, speciesScores, currentHour) {
-    console.log('[ChartRenderer] renderMainChart called', { canvas, speciesScores, currentHour });
+    console.log('[ChartRenderer] renderMainChart called with Chart.js', { speciesScores, currentHour });
 
     if (!canvas) {
       console.error('[ChartRenderer] Canvas element not found');
       return;
     }
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('[ChartRenderer] Could not get 2D context');
-      return;
+    // Destroy existing chart if it exists
+    if (chartInstances.main) {
+      chartInstances.main.destroy();
     }
 
-    const dpr = window.devicePixelRatio || 1;
+    // Prepare datasets for each species
+    const datasets = [];
+    const now = new Date();
 
-    // Wait for canvas to have dimensions from CSS
-    const rect = canvas.getBoundingClientRect();
-    const width = rect.width || canvas.offsetWidth || 800;
-    const height = rect.height || canvas.offsetHeight || 400;
-
-    console.log('[ChartRenderer] Canvas dimensions:', { width, height, dpr, rect });
-
-    // Set canvas bitmap size for retina displays (don't override CSS styles)
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Padding
-    const padding = {
-      top: 30,
-      right: 120,  // Space for legend
-      bottom: 50,
-      left: 60
-    };
-
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-
-    // Draw grid and axes
-    drawGrid(ctx, padding, chartWidth, chartHeight);
-
-    // Draw Y-axis (0-100 score scale)
-    drawYAxis(ctx, padding, chartHeight);
-
-    // Draw X-axis (time labels)
-    drawXAxis(ctx, padding, chartWidth, chartHeight);
-
-    // Draw each species line
-    const speciesIds = Object.keys(speciesScores);
-    speciesIds.forEach((speciesId, index) => {
+    Object.keys(speciesScores).forEach(speciesId => {
       const profile = SpeciesProfiles.getProfile(speciesId);
       const scores = speciesScores[speciesId];
 
-      drawSpeciesLine(
-        ctx,
-        scores,
-        profile.color,
-        padding,
-        chartWidth,
-        chartHeight
-      );
-
-      // Draw legend entry
-      drawLegendEntry(
-        ctx,
-        profile,
-        index,
-        padding,
-        width,
-        chartHeight
-      );
+      datasets.push({
+        label: profile.name,
+        data: scores.map(s => s.score),
+        borderColor: profile.color,
+        backgroundColor: profile.color + '20', // 20 = 12% opacity
+        borderWidth: 3,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: profile.color,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+        tension: 0.4, // Smooth curves
+        fill: false
+      });
     });
 
-    // Draw NOW marker
-    drawNowMarker(ctx, currentHour, padding, chartWidth, chartHeight);
-  }
-
-  /**
-   * Draw grid lines
-   */
-  function drawGrid(ctx, padding, chartWidth, chartHeight) {
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.lineWidth = 1;
-
-    // Horizontal gridlines (every 20 points)
-    for (let score = 0; score <= 100; score += 20) {
-      const y = padding.top + chartHeight - (score / 100) * chartHeight;
-
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(padding.left + chartWidth, y);
-      ctx.stroke();
-    }
-
-    // Vertical gridlines (every 3 hours)
-    for (let hour = 0; hour <= 24; hour += 3) {
-      const x = padding.left + (hour / 23) * chartWidth;
-
-      ctx.beginPath();
-      ctx.moveTo(x, padding.top);
-      ctx.lineTo(x, padding.top + chartHeight);
-      ctx.stroke();
-    }
-  }
-
-  /**
-   * Draw Y-axis (score labels)
-   */
-  function drawYAxis(ctx, padding, chartHeight) {
-    ctx.fillStyle = '#4B5563';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-
-    for (let score = 0; score <= 100; score += 20) {
-      const y = padding.top + chartHeight - (score / 100) * chartHeight;
-
-      ctx.fillText(score.toString(), padding.left - 10, y);
-    }
-
-    // Y-axis label
-    ctx.save();
-    ctx.translate(15, padding.top + chartHeight / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 12px Inter, sans-serif';
-    ctx.fillStyle = '#0A3A60';
-    ctx.fillText('Bite Score', 0, 0);
-    ctx.restore();
-  }
-
-  /**
-   * Draw X-axis (time labels)
-   */
-  function drawXAxis(ctx, padding, chartWidth, chartHeight) {
-    ctx.fillStyle = '#4B5563';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    const now = new Date();
-
-    for (let hour = 0; hour <= 24; hour += 3) {
-      const x = padding.left + (hour / 23) * chartWidth;
-
-      // Calculate time for this hour
+    // Create time labels (24 hours)
+    const labels = [];
+    for (let hour = 0; hour < 24; hour++) {
       const time = new Date(now);
       time.setHours(now.getHours() + hour, 0, 0, 0);
-
-      const label = time.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        hour12: true
-      });
-
-      ctx.fillText(label, x, padding.top + chartHeight + 10);
-
-      // Tick mark
-      ctx.strokeStyle = '#9CA3AF';
-      ctx.beginPath();
-      ctx.moveTo(x, padding.top + chartHeight);
-      ctx.lineTo(x, padding.top + chartHeight + 5);
-      ctx.stroke();
+      labels.push(time);
     }
 
-    // X-axis label
-    ctx.font = 'bold 12px Inter, sans-serif';
-    ctx.fillStyle = '#0A3A60';
-    ctx.fillText('Time', padding.left + chartWidth / 2, padding.top + chartHeight + 35);
-  }
+    // Create Chart.js configuration
+    const config = {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              usePointStyle: true,
+              padding: 15,
+              font: {
+                family: 'Inter, sans-serif',
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: {
+              family: 'Inter, sans-serif',
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              family: 'Inter, sans-serif',
+              size: 13
+            },
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: true,
+            callbacks: {
+              title: function(tooltipItems) {
+                const time = tooltipItems[0].label;
+                const date = new Date(time);
+                return date.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                });
+              },
+              label: function(context) {
+                const score = context.parsed.y;
+                const quality = getQualityLabel(score);
+                return `${context.dataset.label}: ${score} (${quality})`;
+              },
+              afterLabel: function(context) {
+                const hour = context.dataIndex;
+                const speciesId = Object.keys(speciesScores)[context.datasetIndex];
+                const scoreData = speciesScores[speciesId][hour];
 
-  /**
-   * Draw species line on chart
-   */
-  function drawSpeciesLine(ctx, scores, color, padding, chartWidth, chartHeight) {
-    if (!scores || scores.length === 0) return;
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    ctx.beginPath();
-
-    scores.forEach((scoreData, hour) => {
-      const x = padding.left + (hour / 23) * chartWidth;
-      const y = padding.top + chartHeight - (scoreData.score / 100) * chartHeight;
-
-      if (hour === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
+                if (scoreData.factors && scoreData.factors.length > 0) {
+                  const topFactor = scoreData.factors[0];
+                  return `\n${topFactor.description}`;
+                }
+                return '';
+              }
+            }
+          },
+          annotation: {
+            annotations: {
+              nowLine: {
+                type: 'line',
+                xMin: currentHour,
+                xMax: currentHour,
+                borderColor: '#D9534F',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                label: {
+                  display: true,
+                  content: 'NOW',
+                  position: 'start',
+                  backgroundColor: '#D9534F',
+                  color: '#fff',
+                  font: {
+                    weight: 'bold',
+                    size: 11
+                  }
+                }
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'category',
+            title: {
+              display: true,
+              text: 'Time',
+              font: {
+                family: 'Inter, sans-serif',
+                size: 14,
+                weight: 'bold'
+              },
+              color: '#0A3A60'
+            },
+            ticks: {
+              callback: function(value, index) {
+                if (index % 3 === 0) {
+                  const time = new Date(labels[index]);
+                  return time.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    hour12: true
+                  });
+                }
+                return '';
+              },
+              font: {
+                family: 'Inter, sans-serif',
+                size: 11
+              },
+              color: '#4B5563'
+            },
+            grid: {
+              color: '#E5E7EB',
+              drawTicks: true
+            }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Bite Score',
+              font: {
+                family: 'Inter, sans-serif',
+                size: 14,
+                weight: 'bold'
+              },
+              color: '#0A3A60'
+            },
+            ticks: {
+              stepSize: 20,
+              font: {
+                family: 'Inter, sans-serif',
+                size: 11
+              },
+              color: '#4B5563'
+            },
+            grid: {
+              color: '#E5E7EB'
+            }
+          }
+        }
       }
-    });
+    };
 
-    ctx.stroke();
+    // Create chart
+    console.log('[ChartRenderer] Creating Chart.js instance...');
+    chartInstances.main = new Chart(canvas, config);
+    console.log('[ChartRenderer] Chart.js instance created');
   }
 
   /**
-   * Draw legend entry
-   */
-  function drawLegendEntry(ctx, profile, index, padding, width, chartHeight) {
-    const legendX = width - padding.right + 15;
-    const legendY = padding.top + index * 25;
-
-    // Color indicator line
-    ctx.strokeStyle = profile.color;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(legendX, legendY);
-    ctx.lineTo(legendX + 25, legendY);
-    ctx.stroke();
-
-    // Species name
-    ctx.fillStyle = '#0A3A60';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`${profile.icon} ${profile.name}`, legendX + 30, legendY);
-  }
-
-  /**
-   * Draw NOW marker (vertical line)
-   */
-  function drawNowMarker(ctx, currentHour, padding, chartWidth, chartHeight) {
-    const x = padding.left + (currentHour / 23) * chartWidth;
-
-    // Vertical dashed line
-    ctx.strokeStyle = '#D9534F';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-
-    ctx.beginPath();
-    ctx.moveTo(x, padding.top);
-    ctx.lineTo(x, padding.top + chartHeight);
-    ctx.stroke();
-
-    ctx.setLineDash([]); // Reset dash
-
-    // "NOW" label
-    ctx.fillStyle = '#D9534F';
-    ctx.font = 'bold 11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('NOW', x, padding.top - 10);
-  }
-
-  /**
-   * Render sparkline (mini 24h preview)
+   * Render sparkline with Chart.js (mini preview)
    *
    * @param {HTMLCanvasElement} canvas - Canvas element
    * @param {Array} scores - 24 hourly scores
@@ -281,83 +269,94 @@ const ChartRenderer = (() => {
       return;
     }
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('[ChartRenderer] renderSparkline: could not get context');
-      return;
+    const speciesId = canvas.dataset.species;
+    console.log('[ChartRenderer] renderSparkline for', speciesId);
+
+    // Destroy existing chart if it exists
+    if (chartInstances.sparklines[speciesId]) {
+      chartInstances.sparklines[speciesId].destroy();
     }
 
-    console.log('[ChartRenderer] renderSparkline called for species:', canvas.dataset.species);
+    const profile = SpeciesProfiles.getProfile(speciesId);
 
-    const dpr = window.devicePixelRatio || 1;
+    // Prepare data
+    const data = scores.map(s => s.score);
+    const labels = scores.map((s, i) => i);
 
-    // Get canvas size from CSS or use defaults
-    const rect = canvas.getBoundingClientRect();
-    const width = rect.width || canvas.offsetWidth || parseInt(canvas.getAttribute('width')) || 300;
-    const height = rect.height || canvas.offsetHeight || parseInt(canvas.getAttribute('height')) || 64;
-
-    console.log('[ChartRenderer] Sparkline dimensions:', { width, height, species: canvas.dataset.species });
-
-    // Set canvas bitmap size (don't override CSS display size)
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Clear
-    ctx.clearRect(0, 0, width, height);
-
-    // Extract scores
-    const scoreValues = scores.map(s => s.score);
-    const min = 0;
-    const max = 100;
-
-    // Draw line
-    ctx.strokeStyle = '#0A3A60';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    ctx.beginPath();
-
-    scoreValues.forEach((score, hour) => {
-      const x = (hour / 23) * width;
-      const y = height - ((score - min) / (max - min)) * height;
-
-      if (hour === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
+    // Create sparkline chart configuration
+    const config = {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          borderColor: profile.color,
+          backgroundColor: profile.color + '20',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 8,
+            cornerRadius: 6,
+            displayColors: false,
+            callbacks: {
+              title: function(tooltipItems) {
+                const now = new Date();
+                const time = new Date(now);
+                time.setHours(now.getHours() + tooltipItems[0].dataIndex, 0, 0, 0);
+                return time.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  hour12: true
+                });
+              },
+              label: function(context) {
+                const score = context.parsed.y;
+                const quality = getQualityLabel(score);
+                return `Score: ${score} (${quality})`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: false
+          },
+          y: {
+            display: false,
+            min: 0,
+            max: 100
+          }
+        },
+        elements: {
+          line: {
+            borderJoinStyle: 'round'
+          }
+        }
       }
-    });
+    };
 
-    ctx.stroke();
-
-    // Fill area under curve with gradient
-    ctx.lineTo(width, height);
-    ctx.lineTo(0, height);
-    ctx.closePath();
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(10, 58, 96, 0.2)');
-    gradient.addColorStop(1, 'rgba(10, 58, 96, 0.05)');
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // Draw NOW marker
-    const nowX = (currentHour / 23) * width;
-    ctx.strokeStyle = '#D9534F';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(nowX, 0);
-    ctx.lineTo(nowX, height);
-    ctx.stroke();
+    // Create sparkline chart
+    chartInstances.sparklines[speciesId] = new Chart(canvas, config);
   }
 
   /**
-   * Render detail chart (expanded view, taller than sparkline)
-   *
-   * @param {HTMLCanvasElement} canvas - Canvas element
-   * @param {Array} scores - 24 hourly scores
+   * Render detail chart (expanded view - same as sparkline but taller)
    */
   function renderDetailChart(canvas, scores) {
     if (!canvas || !scores) return;
@@ -365,100 +364,111 @@ const ChartRenderer = (() => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    const speciesId = canvas.dataset.species;
+    const profile = SpeciesProfiles.getProfile(speciesId);
 
-    // Get parent size
-    const parent = canvas.parentElement;
-    const width = parent.clientWidth;
-    const height = parent.clientHeight || 128;
-
-    // Set canvas dimensions
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    ctx.scale(dpr, dpr);
-
-    const padding = { top: 10, right: 10, bottom: 25, left: 40 };
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
-
-    // Clear
-    ctx.clearRect(0, 0, width, height);
-
-    // Draw Y-axis gridlines and labels
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.lineWidth = 1;
-    ctx.fillStyle = '#6B7280';
-    ctx.font = '9px Inter, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-
-    for (let score = 0; score <= 100; score += 25) {
-      const y = padding.top + chartHeight - (score / 100) * chartHeight;
-
-      // Gridline
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(padding.left + chartWidth, y);
-      ctx.stroke();
-
-      // Label
-      ctx.fillText(score.toString(), padding.left - 5, y);
-    }
-
-    // Draw X-axis time labels
+    // Similar to sparkline but with axes visible
+    const data = scores.map(s => s.score);
     const now = new Date();
-    ctx.fillStyle = '#6B7280';
-    ctx.font = '9px Inter, sans-serif';
-    ctx.textAlign = 'center';
-
-    [0, 6, 12, 18, 24].forEach(hour => {
-      const x = padding.left + (hour / 23) * chartWidth;
+    const labels = scores.map((s, i) => {
       const time = new Date(now);
-      time.setHours(now.getHours() + hour, 0, 0, 0);
-
-      const label = time.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        hour12: true
-      });
-
-      ctx.fillText(label, x, padding.top + chartHeight + 15);
+      time.setHours(now.getHours() + i, 0, 0, 0);
+      return time;
     });
 
-    // Draw score line
-    const scoreValues = scores.map(s => s.score);
+    const config = {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          borderColor: profile.color,
+          backgroundColor: profile.color + '15',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              title: function(tooltipItems) {
+                const time = tooltipItems[0].label;
+                return new Date(time).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                });
+              },
+              label: function(context) {
+                const score = context.parsed.y;
+                const quality = getQualityLabel(score);
+                return `Score: ${score} (${quality})`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'category',
+            ticks: {
+              callback: function(value, index) {
+                if (index % 6 === 0) {
+                  const time = new Date(labels[index]);
+                  return time.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    hour12: true
+                  });
+                }
+                return '';
+              },
+              font: { size: 9 }
+            },
+            grid: { display: false }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: {
+              stepSize: 25,
+              font: { size: 9 }
+            },
+            grid: {
+              color: '#E5E7EB'
+            }
+          }
+        }
+      }
+    };
 
-    ctx.strokeStyle = '#0A3A60';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    new Chart(canvas, config);
+  }
 
-    ctx.beginPath();
+  /**
+   * Destroy all chart instances (cleanup)
+   */
+  function destroyAll() {
+    if (chartInstances.main) {
+      chartInstances.main.destroy();
+      chartInstances.main = null;
+    }
 
-    scoreValues.forEach((score, hour) => {
-      const x = padding.left + (hour / 23) * chartWidth;
-      const y = padding.top + chartHeight - (score / 100) * chartHeight;
-
-      if (hour === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
+    Object.keys(chartInstances.sparklines).forEach(key => {
+      if (chartInstances.sparklines[key]) {
+        chartInstances.sparklines[key].destroy();
       }
     });
 
-    ctx.stroke();
-
-    // Fill area
-    ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
-    ctx.lineTo(padding.left, padding.top + chartHeight);
-    ctx.closePath();
-
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-    gradient.addColorStop(0, 'rgba(10, 58, 96, 0.15)');
-    gradient.addColorStop(1, 'rgba(10, 58, 96, 0.02)');
-    ctx.fillStyle = gradient;
-    ctx.fill();
+    chartInstances.sparklines = {};
   }
 
   /**
@@ -478,7 +488,17 @@ const ChartRenderer = (() => {
     /**
      * Render detail chart (expanded view)
      */
-    renderDetailChart
+    renderDetailChart,
+
+    /**
+     * Destroy all charts (cleanup)
+     */
+    destroyAll,
+
+    /**
+     * Get chart instances (for debugging)
+     */
+    getInstances: () => chartInstances
   };
 })();
 
