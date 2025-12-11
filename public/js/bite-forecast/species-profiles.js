@@ -153,7 +153,7 @@ const SpeciesProfiles = (() => {
         habits: 'Bass have much slower metabolism in winter. They still feed, but infrequently. They often choose times when water might be marginally warmer - typically afternoon.',
         bestConditions: 'Warm spells and sunny afternoons when shallow water gets slight solar warming. Midday (11am-3pm) can be best.',
         winterBehavior: 'Bass often hold tight to cover in 8-15 feet. They become more active during warming trends and will strike small jigs tipped with waxworms.',
-        tipOfTheDay': 'Downsize your presentation. Small jigs (1/16 oz) with finesse baits. Fish very slow with subtle twitches.'
+        tipOfTheDay: 'Downsize your presentation. Small jigs (1/16 oz) with finesse baits. Fish very slow with subtle twitches.'
       }
     },
 
