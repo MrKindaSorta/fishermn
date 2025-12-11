@@ -581,7 +581,7 @@ const LakeDetail = {
             <!-- Comments button -->
             <button
               class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-              onclick="LakeDetail.toggleComments('ice', '${report.id}')"
+              onclick="LakeDetail.toggleCommentsFromButton(event, 'ice', '${report.id}')"
             >
               <span>💬</span>
               <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
@@ -631,7 +631,7 @@ const LakeDetail = {
             <!-- Comments button -->
             <button
               class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-              onclick="LakeDetail.toggleComments('catch', '${report.id}')"
+              onclick="LakeDetail.toggleCommentsFromButton(event, 'catch', '${report.id}')"
             >
               <span>💬</span>
               <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
@@ -680,7 +680,7 @@ const LakeDetail = {
             <!-- Comments button -->
             <button
               class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-              onclick="LakeDetail.toggleComments('snow', '${report.id}')"
+              onclick="LakeDetail.toggleCommentsFromButton(event, 'snow', '${report.id}')"
             >
               <span>💬</span>
               <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
@@ -866,7 +866,7 @@ const LakeDetail = {
                 <!-- Comments button -->
                 <button
                   class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-                  onclick="LakeDetail.toggleComments('update', '${update.id}')"
+                  onclick="LakeDetail.toggleCommentsFromButton(event, 'update', '${update.id}')"
                 >
                   <span>💬</span>
                   <span class="comment-count-text">${update.commentCount || 0} comment${update.commentCount !== 1 ? 's' : ''}</span>
@@ -1490,24 +1490,31 @@ const LakeDetail = {
     const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
 
     return `
-      <!-- Sort Toggle -->
-      <div class="flex items-center justify-between mb-2">
+      <!-- Header with Sort Toggle and Close Button -->
+      <div class="flex items-center justify-between mb-2 border-t border-grayPanel pt-2">
         <div class="flex gap-2 text-xs">
           <button
             class="sort-btn active px-2 py-1 rounded bg-primary/10 text-primary font-medium transition-colors"
             data-sort="newest"
-            onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'newest')"
+            onclick="LakeDetail.changeCommentSortFromButton(event, '${contentType}', '${contentId}', 'newest')"
           >
             Newest
           </button>
           <button
             class="sort-btn px-2 py-1 rounded hover:bg-frost transition-colors"
             data-sort="liked"
-            onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'liked')"
+            onclick="LakeDetail.changeCommentSortFromButton(event, '${contentType}', '${contentId}', 'liked')"
           >
             Most Liked
           </button>
         </div>
+        <button
+          class="text-xs text-secondary hover:text-danger transition-colors"
+          onclick="LakeDetail.closeCommentsFromButton(event)"
+          title="Close comments"
+        >
+          ✕ Close
+        </button>
       </div>
 
       <!-- Comments List (scrollable) -->
@@ -1567,6 +1574,57 @@ const LakeDetail = {
       }
     } else {
       // Collapse
+      container.classList.add('hidden');
+    }
+  },
+
+  /**
+   * Toggle comment section from button click (uses event to find correct container)
+   * @param {Event} event - Click event
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   */
+  async toggleCommentsFromButton(event, contentType, contentId) {
+    event.preventDefault();
+
+    // Find the comment container within the same card
+    const card = event.target.closest('.bg-frost');
+    if (!card) return;
+
+    const container = card.querySelector(
+      `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!container) return;
+
+    const isHidden = container.classList.contains('hidden');
+
+    if (isHidden) {
+      // Expand - load comments
+      container.classList.remove('hidden');
+
+      // Render comment section UI if first time
+      if (!container.dataset.loaded) {
+        container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
+        await this.loadComments(contentType, contentId, 'newest');
+        container.dataset.loaded = 'true';
+      }
+    } else {
+      // Collapse
+      container.classList.add('hidden');
+    }
+  },
+
+  /**
+   * Close comment section from close button
+   * @param {Event} event - Click event
+   */
+  closeCommentsFromButton(event) {
+    event.preventDefault();
+
+    // Find the comment container
+    const container = event.target.closest('.comment-container');
+    if (container) {
       container.classList.add('hidden');
     }
   },
@@ -1844,6 +1902,39 @@ const LakeDetail = {
    */
   async changeCommentSort(contentType, contentId, sortBy) {
     const container = document.querySelector(
+      `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!container) return;
+
+    // Update sort button states
+    container.querySelectorAll('.sort-btn').forEach(btn => {
+      if (btn.dataset.sort === sortBy) {
+        btn.classList.add('active', 'bg-primary/10', 'text-primary', 'font-medium');
+      } else {
+        btn.classList.remove('active', 'bg-primary/10', 'text-primary', 'font-medium');
+      }
+    });
+
+    // Reload comments with new sort
+    await this.loadComments(contentType, contentId, sortBy);
+  },
+
+  /**
+   * Change comment sort from button click (uses event to find correct container)
+   * @param {Event} event - Click event
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   * @param {string} sortBy - 'newest' or 'liked'
+   */
+  async changeCommentSortFromButton(event, contentType, contentId, sortBy) {
+    event.preventDefault();
+
+    // Find the comment container within the same card
+    const card = event.target.closest('.bg-frost');
+    if (!card) return;
+
+    const container = card.querySelector(
       `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
     );
 
