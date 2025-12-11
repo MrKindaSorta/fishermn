@@ -1,0 +1,345 @@
+<!-- Add Report Modal -->
+<div id="add-report-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="AddReportModal.close()"></div>
+
+  <!-- Modal Content -->
+  <div class="flex min-h-screen items-center justify-center p-4">
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+
+      <!-- Close Button -->
+      <button
+        onclick="AddReportModal.close()"
+        class="absolute top-4 right-4 text-secondary hover:text-primary p-2 rounded-lg hover:bg-frost transition-colors z-10"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Header with Progress -->
+      <div class="px-6 pt-8 pb-4 border-b border-grayPanel">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-lg font-bold text-primary">Add Report</div>
+          <span class="text-xs text-secondary">Step <span id="current-step">1</span>/3</span>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full h-1 bg-grayPanel rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-primary transition-all duration-300" style="width: 33.33%"></div>
+        </div>
+      </div>
+
+      <!-- Error Message Area -->
+      <div id="error-message" class="hidden mx-6 mt-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm"></div>
+
+      <!-- Step 1: Lake Selection -->
+      <div id="step-1" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Select Lake *</label>
+          <div class="relative">
+            <input
+              type="text"
+              id="lake-search-input"
+              placeholder="Start typing lake name..."
+              autocomplete="off"
+              class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+
+            <!-- Dropdown Results -->
+            <div id="lake-dropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-grayPanel rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+              <!-- Results inserted here dynamically -->
+            </div>
+
+            <!-- Selected Lake Display -->
+            <div id="selected-lake-display" class="hidden mt-2 p-3 bg-frost rounded-lg border border-primary/20 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+                <span id="selected-lake-name" class="text-sm font-medium text-primary"></span>
+              </div>
+              <button onclick="AddReportModal.clearLakeSelection()" class="text-xs text-secondary hover:text-primary transition-colors">
+                Change
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-secondary mt-1">Search by lake name to select</p>
+        </div>
+      </div>
+
+      <!-- Step 2: Report Type Selection -->
+      <div id="step-2" class="p-6 space-y-3 hidden">
+        <div class="text-sm font-medium mb-3">Select Report Type *</div>
+
+        <!-- Ice Report Card -->
+        <div class="report-type-card card cursor-pointer p-4 border-2 border-grayPanel hover:border-primary/50 hover:bg-frost transition-all"
+             data-type="ice" onclick="AddReportModal.selectReportType('ice')">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">❄️</div>
+            <div>
+              <div class="font-bold text-sm">Ice Report</div>
+              <div class="text-xs text-secondary">Report ice thickness & condition</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Catch Report Card -->
+        <div class="report-type-card card cursor-pointer p-4 border-2 border-grayPanel hover:border-primary/50 hover:bg-frost transition-all"
+             data-type="catch" onclick="AddReportModal.selectReportType('catch')">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">🐟</div>
+            <div>
+              <div class="font-bold text-sm">Catch Report</div>
+              <div class="text-xs text-secondary">Share your recent catches</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snow Report Card -->
+        <div class="report-type-card card cursor-pointer p-4 border-2 border-grayPanel hover:border-primary/50 hover:bg-frost transition-all"
+             data-type="snow" onclick="AddReportModal.selectReportType('snow')">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">❅</div>
+            <div>
+              <div class="font-bold text-sm">Snow Report</div>
+              <div class="text-xs text-secondary">Report snow depth & conditions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Ice Report Form -->
+      <div id="step-3-ice" class="p-6 space-y-4 hidden">
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">Ice Thickness *</label>
+          <div class="flex items-center gap-4">
+            <input
+              type="range"
+              id="ice-thickness-slider"
+              min="3"
+              max="48"
+              step="0.5"
+              value="12"
+              class="flex-1 h-2 bg-grayPanel rounded-lg appearance-none cursor-pointer accent-primary"
+              oninput="AddReportModal.updateIceDisplay(this.value)"
+            >
+            <div class="w-16 text-center">
+              <span id="ice-value" class="text-lg font-bold text-primary">12"</span>
+            </div>
+          </div>
+          <div class="flex justify-between text-xs text-secondary px-1">
+            <span>3"</span>
+            <span>12"</span>
+            <span>24"</span>
+            <span>48"</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Ice Condition</label>
+          <select id="ice-condition" class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Not specified</option>
+            <option value="excellent">Excellent</option>
+            <option value="good">Good</option>
+            <option value="fair">Fair</option>
+            <option value="poor">Poor</option>
+            <option value="dangerous">Dangerous</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Location Notes (Optional)</label>
+          <textarea
+            id="ice-notes"
+            placeholder="e.g., North shore near boat launch..."
+            rows="3"
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Step 3: Catch Report Form -->
+      <div id="step-3-catch" class="p-6 space-y-4 hidden">
+        <div>
+          <label class="block text-sm font-medium mb-2">Fish Species *</label>
+          <select id="fish-species" class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">-- Select a species --</option>
+            <!-- Populated dynamically from API -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium mb-2">Count</label>
+            <input
+              type="number"
+              id="fish-count"
+              placeholder="1"
+              min="1"
+              max="999"
+              value="1"
+              class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Size (inches)</label>
+            <input
+              type="number"
+              id="fish-size"
+              placeholder="--"
+              min="0"
+              max="100"
+              step="0.1"
+              class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium mb-2">Weight (lbs)</label>
+            <input
+              type="number"
+              id="fish-weight"
+              placeholder="--"
+              min="0"
+              max="200"
+              step="0.1"
+              class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Depth (ft)</label>
+            <input
+              type="number"
+              id="fish-depth"
+              placeholder="--"
+              min="0"
+              max="500"
+              class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Bait Used</label>
+          <input
+            type="text"
+            id="bait-used"
+            placeholder="e.g., Minnow, jig..."
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Location Notes (Optional)</label>
+          <textarea
+            id="catch-notes"
+            placeholder="e.g., Deep water near island..."
+            rows="3"
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Step 3: Snow Report Form -->
+      <div id="step-3-snow" class="p-6 space-y-4 hidden">
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">Snow Depth *</label>
+          <div class="flex items-center gap-4">
+            <input
+              type="range"
+              id="snow-depth-slider"
+              min="1"
+              max="50"
+              step="1"
+              value="6"
+              class="flex-1 h-2 bg-grayPanel rounded-lg appearance-none cursor-pointer accent-primary"
+              oninput="AddReportModal.updateSnowDisplay(this.value)"
+            >
+            <div class="w-16 text-center">
+              <span id="snow-value" class="text-lg font-bold text-primary">6"</span>
+            </div>
+          </div>
+          <div class="flex justify-between text-xs text-secondary px-1">
+            <span>1"</span>
+            <span>12"</span>
+            <span>24"</span>
+            <span>48+"</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Snow Type *</label>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" class="snow-type-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-type="Fluffy" onclick="AddReportModal.toggleSnowType('Fluffy')">
+              Fluffy
+            </button>
+            <button type="button" class="snow-type-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-type="Light" onclick="AddReportModal.toggleSnowType('Light')">
+              Light
+            </button>
+            <button type="button" class="snow-type-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-type="Heavy" onclick="AddReportModal.toggleSnowType('Heavy')">
+              Heavy
+            </button>
+            <button type="button" class="snow-type-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-type="Slushy" onclick="AddReportModal.toggleSnowType('Slushy')">
+              Slushy
+            </button>
+          </div>
+          <p class="text-xs text-secondary mt-1">Select one or more</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Coverage *</label>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" class="snow-coverage-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-coverage="Even" onclick="AddReportModal.toggleSnowCoverage('Even')">
+              Even
+            </button>
+            <button type="button" class="snow-coverage-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-coverage="Patchy" onclick="AddReportModal.toggleSnowCoverage('Patchy')">
+              Patchy
+            </button>
+            <button type="button" class="snow-coverage-btn px-3 py-2 rounded-lg border border-grayPanel text-sm hover:border-primary hover:bg-frost transition-colors cursor-pointer"
+                    data-coverage="Drifted" onclick="AddReportModal.toggleSnowCoverage('Drifted')">
+              Drifted
+            </button>
+          </div>
+          <p class="text-xs text-secondary mt-1">Select one or more</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Location Notes (Optional)</label>
+          <textarea
+            id="snow-notes"
+            placeholder="e.g., Heavy drifting on east side..."
+            rows="3"
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="px-6 pb-6 flex gap-3">
+        <button
+          id="btn-back"
+          onclick="AddReportModal.prevStep()"
+          class="hidden flex-1 py-3 border-2 border-grayPanel text-primary font-bold rounded-lg hover:bg-frost transition-colors"
+        >
+          Back
+        </button>
+        <button
+          id="btn-next-submit"
+          onclick="AddReportModal.nextStep()"
+          class="flex-1 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

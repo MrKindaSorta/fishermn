@@ -168,11 +168,21 @@ export async function updateUserRank(db, userId, updates) {
  * Increment user report count
  * @param {D1Database} db - D1 database instance
  * @param {string} userId - User ID
- * @param {string} reportType - Type of report ('ice' or 'catch')
+ * @param {string} reportType - Type of report ('ice', 'catch', or 'snow')
  * @returns {Promise<void>}
  */
 export async function incrementReportCount(db, userId, reportType) {
-  const column = reportType === 'ice' ? 'ice_reports' : 'catch_reports';
+  let column;
+  if (reportType === 'ice') {
+    column = 'ice_reports';
+  } else if (reportType === 'catch') {
+    column = 'catch_reports';
+  } else if (reportType === 'snow') {
+    column = 'snow_reports';
+  } else {
+    throw new Error('Invalid report type');
+  }
+
   const now = new Date().toISOString();
 
   try {

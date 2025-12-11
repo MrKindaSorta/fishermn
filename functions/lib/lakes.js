@@ -515,3 +515,109 @@ export function formatCatchReportForResponse(report) {
     }
   };
 }
+
+/**
+ * Get snow reports for a lake
+ * @param {D1Database} db - D1 database instance
+ * @param {string} lakeId - Lake ID
+ * @param {number} limit - Maximum number of reports to return
+ * @returns {Promise<Array>} Array of snow report objects with user info
+ */
+export async function getSnowReportsForLake(db, lakeId, limit = 20) {
+  try {
+    const result = await db
+      .prepare(`
+        SELECT
+          sr.*,
+          u.display_name as user_display_name,
+          u.rank_tier as user_rank_tier,
+          u.reliability_score as user_reliability
+        FROM snow_reports sr
+        JOIN users u ON sr.user_id = u.id
+        WHERE sr.lake_id = ?
+        ORDER BY sr.reported_at DESC
+        LIMIT ?
+      `)
+      .bind(lakeId, limit)
+      .all();
+
+    return result.results || [];
+  } catch (error) {
+    console.error('Error getting snow reports:', error);
+    throw new Error('Database query failed');
+  }
+}
+
+/**
+ * Create a snow report
+ * @param {D1Database} db - D1 database instance
+ * @param {Object} reportData - Snow report data
+ * @returns {Promise<Object>} Created snow report
+ */
+export async function createSnowReport(db, reportData) {
+  const {
+    id,
+    lakeId,
+    userId,
+    thicknessInches,
+    snowType,
+    coverage,
+    locationNotes = null,
+    reportedAt
+  } = reportData;
+
+  const now = new Date().toISOString();
+
+  try {
+    await db
+      .prepare(`
+        INSERT INTO snow_reports (
+          id, lake_id, user_id,
+          thickness_inches, snow_type, coverage, location_notes,
+          reported_at, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        id, lakeId, userId,
+        thicknessInches, snowType, coverage, locationNotes,
+        reportedAt, now
+      )
+      .run();
+
+    // Return the created report
+    return await db
+      .prepare('SELECT * FROM snow_reports WHERE id = ?')
+      .bind(id)
+      .first();
+  } catch (error) {
+    console.error('Error creating snow report:', error);
+    throw new Error('Failed to create snow report');
+  }
+}
+
+/**
+ * Format snow report for API response
+ * @param {Object} report - Snow report from database
+ * @returns {Object} Formatted snow report
+ */
+export function formatSnowReportForResponse(report) {
+  if (!report) return null;
+
+  return {
+    id: report.id,
+    lakeId: report.lake_id,
+    thicknessInches: report.thickness_inches,
+    snowType: report.snow_type,
+    coverage: report.coverage,
+    locationNotes: report.location_notes,
+    reportedAt: report.reported_at,
+    createdAt: report.created_at,
+    upvotes: report.upvotes,
+    downvotes: report.downvotes,
+    user: {
+      displayName: report.user_display_name,
+      rankTier: report.user_rank_tier,
+      reliabilityScore: report.user_reliability
+    }
+  };
+}

@@ -960,7 +960,9 @@ const LakeDetail = {
       if (typeof AuthModal !== 'undefined') AuthModal.open();
       return;
     }
-    alert('Ice report form coming soon!');
+    if (typeof AddReportModal !== 'undefined') {
+      AddReportModal.open('ice');
+    }
   },
 
   /**
@@ -971,7 +973,9 @@ const LakeDetail = {
       if (typeof AuthModal !== 'undefined') AuthModal.open();
       return;
     }
-    alert('Catch report form coming soon!');
+    if (typeof AddReportModal !== 'undefined') {
+      AddReportModal.open('catch');
+    }
   },
 
   /**

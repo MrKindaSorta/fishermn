@@ -12,6 +12,7 @@
   <script src="/public/js/auth.js"></script>
   <script src="/public/js/ui-controller.js"></script>
   <script src="/public/js/auth-modal.js"></script>
+  <script src="/public/js/add-report-modal.js"></script>
   <script src="/public/js/lake-detail.js"></script>
   <style>
     #lake-map {
@@ -84,6 +85,9 @@
 <body class="bg-frost overflow-hidden">
   <!-- Auth Modal Loader -->
   <div hx-get="/public/partials/auth-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
+
+  <!-- Add Report Modal Loader -->
+  <div hx-get="/public/partials/add-report-modal.html" hx-trigger="load" hx-swap="beforeend"></div>
 
   <!-- Left Sidebar - Auth-aware loading -->
   <div id="sidebar-container">
