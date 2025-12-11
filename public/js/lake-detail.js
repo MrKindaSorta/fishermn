@@ -558,7 +558,7 @@ const LakeDetail = {
   renderIceReportCard(report) {
     const thicknessClass = this.getThicknessClass(report.thicknessInches);
     return `
-      <div class="bg-frost rounded-lg p-3">
+      <div class="bg-frost rounded-lg p-3 border border-white">
         <div class="flex items-start gap-3">
           <!-- Left: Content -->
           <div class="flex-1 min-w-0">
@@ -607,7 +607,7 @@ const LakeDetail = {
   renderCatchReportCard(report) {
     const details = this.renderCatchDetails(report);
     return `
-      <div class="bg-frost rounded-lg p-3">
+      <div class="bg-frost rounded-lg p-3 border border-white">
         <div class="flex items-start gap-3">
           <!-- Left: Content -->
           <div class="flex-1 min-w-0">
@@ -656,7 +656,7 @@ const LakeDetail = {
    */
   renderSnowReportCard(report) {
     return `
-      <div class="bg-frost rounded-lg p-3">
+      <div class="bg-frost rounded-lg p-3 border border-white">
         <div class="flex items-start gap-3">
           <!-- Left: Content -->
           <div class="flex-1 min-w-0">
@@ -846,7 +846,7 @@ const LakeDetail = {
         // Render general update card with votes/comments
         const update = item.data;
         return `
-          <div class="bg-frost rounded-lg p-3">
+          <div class="bg-frost rounded-lg p-3 border border-white">
             <div class="flex items-start gap-3">
               <!-- Left: Content -->
               <div class="flex-1 min-w-0">
