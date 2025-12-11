@@ -19,7 +19,7 @@ const AddReportModal = {
   /**
    * Open modal
    */
-  async open(reportType = null) {
+  async open(reportType = null, lakeData = null) {
     // Check authentication
     if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
       if (typeof AuthModal !== 'undefined') AuthModal.open();
@@ -35,19 +35,24 @@ const AddReportModal = {
     // Pre-select report type if provided
     this.selectedReportType = reportType;
 
-    // Reset to step 1
-    this.goToStep(1);
-    this.initLakeSearch();
-
     // Load fish species for catch reports
     if (!this.fishSpecies) {
       await this.loadFishSpecies();
     }
 
-    // Focus the lake search input
-    setTimeout(() => {
-      document.getElementById('lake-search-input')?.focus();
-    }, 100);
+    // Pre-select lake if provided (skip step 1)
+    if (lakeData) {
+      this.selectedLake = lakeData;
+      this.goToStep(2); // Skip lake selection, go to report type
+      this.showLakeContext(lakeData);
+    } else {
+      this.goToStep(1); // Start with lake selection
+      this.initLakeSearch();
+      // Focus the lake search input
+      setTimeout(() => {
+        document.getElementById('lake-search-input')?.focus();
+      }, 100);
+    }
   },
 
   /**
@@ -60,6 +65,17 @@ const AddReportModal = {
     }
     document.body.style.overflow = '';
     this.resetState();
+  },
+
+  /**
+   * Show lake context when pre-selected
+   */
+  showLakeContext(lakeData) {
+    // Update step 2 header to show the lake name
+    const headerText = document.querySelector('#step-2 .text-sm.font-medium');
+    if (headerText) {
+      headerText.textContent = `Select Report Type for ${lakeData.name}`;
+    }
   },
 
   /**

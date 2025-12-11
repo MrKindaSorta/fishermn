@@ -8,6 +8,7 @@ const LakeDetail = {
   lake: null,
   iceReports: [],
   catchReports: [],
+  snowReports: [],
   businesses: [],
   discussions: [],
   weather: null,
@@ -118,15 +119,10 @@ const LakeDetail = {
       favoriteBtn.addEventListener('click', () => this.toggleFavorite());
     }
 
-    // Add report buttons
-    const addIceBtn = document.getElementById('add-ice-report-btn');
-    if (addIceBtn) {
-      addIceBtn.addEventListener('click', () => this.showIceReportForm());
-    }
-
-    const addCatchBtn = document.getElementById('add-catch-report-btn');
-    if (addCatchBtn) {
-      addCatchBtn.addEventListener('click', () => this.showCatchReportForm());
+    // Add report button
+    const addReportBtn = document.getElementById('add-report-btn');
+    if (addReportBtn) {
+      addReportBtn.addEventListener('click', () => this.showAddReportForm());
     }
   },
 
@@ -162,6 +158,7 @@ const LakeDetail = {
       this.lake = lakeData.lake;
       this.iceReports = lakeData.iceReports || [];
       this.catchReports = lakeData.catchReports || [];
+      this.snowReports = lakeData.snowReports || [];
 
       // Load businesses
       if (businessesResponse.ok) {
@@ -306,8 +303,7 @@ const LakeDetail = {
     this.renderHeader();
     this.renderStats();
     this.renderPOIs();
-    this.renderIceReports();
-    this.renderCatchReports();
+    this.renderRecentReports();
     this.renderWeatherLoading(); // Show loading state until weather loads
     this.renderActivity();
     this.renderDiscussions();
@@ -468,71 +464,138 @@ const LakeDetail = {
   },
 
   /**
-   * Render ice reports
+   * Render recent reports (Ice, Catch, Snow combined)
    */
-  renderIceReports() {
-    const container = document.getElementById('ice-reports-list');
+  renderRecentReports() {
+    const container = document.getElementById('reports-list');
     if (!container) return;
 
-    if (this.iceReports.length === 0) {
-      container.innerHTML = '<div class="text-center py-4 text-secondary"><p>No ice reports yet. Be the first to report!</p></div>';
+    // Combine all reports with type metadata
+    const allReports = [
+      ...this.iceReports.map(r => ({ ...r, type: 'ice', timestamp: r.reportedAt })),
+      ...this.catchReports.map(r => ({ ...r, type: 'catch', timestamp: r.caughtAt })),
+      ...this.snowReports.map(r => ({ ...r, type: 'snow', timestamp: r.reportedAt }))
+    ];
+
+    // Sort by timestamp descending (most recent first)
+    allReports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Render empty state if no reports
+    if (allReports.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-8 text-secondary">
+          <p>No reports yet. Be the first to share conditions!</p>
+        </div>
+      `;
       return;
     }
 
-    container.innerHTML = this.iceReports.map(report => `
-      <div class="bg-frost rounded-lg p-4">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">❄️</span>
-            <span class="font-bold">${report.thicknessInches}"</span>
-            <span class="badge ${this.getConditionBadgeClass(report.condition)} text-xs">${report.condition || 'Unknown'}</span>
-          </div>
-          <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
-        </div>
-        ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs text-secondary">
-          <span>Reported by ${report.user.displayName}</span>
-          <span class="badge bg-primary/10 text-primary">${report.user.rankTier}</span>
-        </div>
-      </div>
-    `).join('');
+    // Render reports
+    container.innerHTML = allReports.map(report => {
+      if (report.type === 'ice') {
+        return this.renderIceReportCard(report);
+      } else if (report.type === 'catch') {
+        return this.renderCatchReportCard(report);
+      } else if (report.type === 'snow') {
+        return this.renderSnowReportCard(report);
+      }
+    }).join('');
   },
 
   /**
-   * Render catch reports
+   * Render individual ice report card
    */
-  renderCatchReports() {
-    const container = document.getElementById('catch-reports-list');
-    if (!container) return;
-
-    if (this.catchReports.length === 0) {
-      container.innerHTML = '<div class="text-center py-4 text-secondary"><p>No catch reports yet. Share your catches!</p></div>';
-      return;
-    }
-
-    container.innerHTML = this.catchReports.map(report => `
+  renderIceReportCard(report) {
+    const thicknessClass = this.getThicknessClass(report.thicknessInches);
+    return `
       <div class="bg-frost rounded-lg p-4">
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2">
-            <span class="text-lg">🐟</span>
-            <span class="font-bold">${report.fishSpecies}</span>
-            ${report.fishCount > 1 ? `<span class="text-secondary">x${report.fishCount}</span>` : ''}
+            <span class="text-xl">❄️</span>
+            <span class="badge bg-primary text-white text-xs">ICE CONDITION</span>
+          </div>
+          <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge ${thicknessClass} text-white">${report.thicknessInches}"</span>
+          ${report.condition ? `<span class="text-sm text-secondary capitalize">${report.condition}</span>` : ''}
+        </div>
+        ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-medium">${report.user.displayName}</span>
+          <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render individual catch report card
+   */
+  renderCatchReportCard(report) {
+    return `
+      <div class="bg-frost rounded-lg p-4">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🐟</span>
+            <span class="badge bg-evergreen text-white text-xs">CATCH REPORT</span>
           </div>
           <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
         </div>
-        <div class="flex flex-wrap gap-3 text-sm mb-2">
-          ${report.largestSizeInches ? `<span>${report.largestSizeInches}" length</span>` : ''}
-          ${report.largestWeightLbs ? `<span>${report.largestWeightLbs} lbs</span>` : ''}
-          ${report.depthFeet ? `<span>${report.depthFeet}ft deep</span>` : ''}
-          ${report.baitUsed ? `<span>Bait: ${report.baitUsed}</span>` : ''}
+        <div class="mb-2">
+          <span class="font-bold text-sm">${report.fishSpecies}</span>
+          ${report.fishCount > 1 ? `<span class="text-sm text-secondary"> (${report.fishCount})</span>` : ''}
         </div>
+        ${this.renderCatchDetails(report)}
         ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs text-secondary">
-          <span>Caught by ${report.user.displayName}</span>
-          <span class="badge bg-primary/10 text-primary">${report.user.rankTier}</span>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-medium">${report.user.displayName}</span>
+          <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
         </div>
       </div>
-    `).join('');
+    `;
+  },
+
+  /**
+   * Render individual snow report card
+   */
+  renderSnowReportCard(report) {
+    return `
+      <div class="bg-frost rounded-lg p-4">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">❅</span>
+            <span class="badge bg-ice text-white text-xs">SNOW REPORT</span>
+          </div>
+          <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge bg-primary text-white">${report.thicknessInches}" snow</span>
+          <span class="text-sm text-secondary capitalize">${report.snowType}</span>
+          <span class="text-sm text-secondary capitalize">${report.coverage}</span>
+        </div>
+        ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-medium">${report.user.displayName}</span>
+          <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Helper: Extract catch report details
+   */
+  renderCatchDetails(report) {
+    const details = [];
+    if (report.largestSizeInches) details.push(`${report.largestSizeInches}"`);
+    if (report.largestWeightLbs) details.push(`${report.largestWeightLbs} lbs`);
+    if (report.depthFeet) details.push(`${report.depthFeet}ft deep`);
+    if (report.baitUsed) details.push(`Bait: ${report.baitUsed}`);
+
+    return details.length > 0
+      ? `<p class="text-sm text-secondary mb-2">${details.join(' • ')}</p>`
+      : '';
   },
 
   /**
@@ -953,28 +1016,22 @@ const LakeDetail = {
   },
 
   /**
-   * Show ice report form
+   * Show add report form with current lake pre-selected
    */
-  showIceReportForm() {
+  showAddReportForm() {
     if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
       if (typeof AuthModal !== 'undefined') AuthModal.open();
       return;
     }
-    if (typeof AddReportModal !== 'undefined') {
-      AddReportModal.open('ice');
-    }
-  },
 
-  /**
-   * Show catch report form
-   */
-  showCatchReportForm() {
-    if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
-      if (typeof AuthModal !== 'undefined') AuthModal.open();
-      return;
-    }
     if (typeof AddReportModal !== 'undefined') {
-      AddReportModal.open('catch');
+      // Pass current lake data to auto-select and skip step 1
+      const lakeData = {
+        id: this.lake.id,
+        name: this.lake.name,
+        slug: this.lake.slug
+      };
+      AddReportModal.open(null, lakeData);
     }
   },
 

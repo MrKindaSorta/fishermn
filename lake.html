@@ -215,34 +215,21 @@
               </div>
             </div>
 
-            <!-- Recent Ice Reports -->
+            <!-- Recent Reports (Combined) -->
             <div class="card">
               <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-lg">Recent Ice Reports</h3>
+                <h3 class="font-bold text-lg">Recent Reports</h3>
                 <button
-                  id="add-ice-report-btn"
-                  class="btn-primary text-sm py-2 px-4"
+                  id="add-report-btn"
+                  class="flex items-center gap-2 btn-primary text-sm py-2 px-4"
                 >
-                  + Add Report
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                  Add Report
                 </button>
               </div>
-              <div id="ice-reports-list" class="space-y-3">
-                <p class="text-secondary text-sm">Loading...</p>
-              </div>
-            </div>
-
-            <!-- Recent Catch Reports -->
-            <div class="card">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-lg">Recent Catches</h3>
-                <button
-                  id="add-catch-report-btn"
-                  class="btn-primary text-sm py-2 px-4"
-                >
-                  + Add Catch
-                </button>
-              </div>
-              <div id="catch-reports-list" class="space-y-3">
+              <div id="reports-list" class="space-y-3">
                 <p class="text-secondary text-sm">Loading...</p>
               </div>
             </div>
