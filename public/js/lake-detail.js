@@ -17,6 +17,7 @@ const LakeDetail = {
   markers: {},
   currentThread: null,
   currentActivityFilter: 'all',
+  currentOpenCommentContainer: null,
 
   // Weather API base URL
   WEATHER_API_URL: 'https://weather-api-proxy.joshua-r-klimek.workers.dev',
@@ -79,6 +80,15 @@ const LakeDetail = {
 
     // Initialize button handlers
     this.initButtons();
+
+    // Add global click listener to close comments when clicking outside
+    document.addEventListener('click', (event) => {
+      // Close comment section if clicking outside any card
+      if (this.currentOpenCommentContainer && !event.target.closest('.bg-frost')) {
+        this.currentOpenCommentContainer.classList.add('hidden');
+        this.currentOpenCommentContainer = null;
+      }
+    });
 
     // Load all data
     await this.loadLakeData(slug);
@@ -558,7 +568,7 @@ const LakeDetail = {
   renderIceReportCard(report) {
     const thicknessClass = this.getThicknessClass(report.thicknessInches);
     return `
-      <div class="bg-frost rounded-lg p-3 border" style="border-color: rgba(59, 130, 246, .5);">
+      <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'ice', '${report.id}')">
         <div class="flex items-start gap-3">
           <!-- Left: Content -->
           <div class="flex-1 min-w-0">
@@ -573,29 +583,25 @@ const LakeDetail = {
               <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs text-secondary flex items-center gap-1">
+                <span>💬</span>
+                <span class="comment-count-text">${report.commentCount || 0}</span>
+              </span>
             </div>
 
             <!-- Location notes -->
-            ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-
-            <!-- Comments button -->
-            <button
-              class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-              onclick="LakeDetail.toggleCommentsFromButton(event, 'ice', '${report.id}')"
-            >
-              <span>💬</span>
-              <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
-            </button>
+            ${report.locationNotes ? `<p class="text-sm text-secondary">${report.locationNotes}</p>` : ''}
           </div>
 
           <!-- Right: Vote buttons -->
-          <div class="flex-shrink-0">
+          <div class="flex-shrink-0" onclick="event.stopPropagation()">
             ${this.renderVoteButtons(report, 'ice')}
           </div>
         </div>
 
         <!-- Comment section (collapsible) -->
-        <div class="comment-container hidden mt-3 pl-7" data-content-type="ice" data-content-id="${report.id}">
+        <div class="comment-container hidden mt-3 pl-7" data-content-type="ice" data-content-id="${report.id}" onclick="event.stopPropagation()">
         </div>
       </div>
     `;
@@ -607,7 +613,7 @@ const LakeDetail = {
   renderCatchReportCard(report) {
     const details = this.renderCatchDetails(report);
     return `
-      <div class="bg-frost rounded-lg p-3 border" style="border-color: rgba(59, 130, 246, .5);">
+      <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'catch', '${report.id}')">
         <div class="flex items-start gap-3">
           <!-- Left: Content -->
           <div class="flex-1 min-w-0">
@@ -623,29 +629,25 @@ const LakeDetail = {
               <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs text-secondary flex items-center gap-1">
+                <span>💬</span>
+                <span class="comment-count-text">${report.commentCount || 0}</span>
+              </span>
             </div>
 
             <!-- Location notes -->
-            ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-
-            <!-- Comments button -->
-            <button
-              class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-              onclick="LakeDetail.toggleCommentsFromButton(event, 'catch', '${report.id}')"
-            >
-              <span>💬</span>
-              <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
-            </button>
+            ${report.locationNotes ? `<p class="text-sm text-secondary">${report.locationNotes}</p>` : ''}
           </div>
 
           <!-- Right: Vote buttons -->
-          <div class="flex-shrink-0">
+          <div class="flex-shrink-0" onclick="event.stopPropagation()">
             ${this.renderVoteButtons(report, 'catch')}
           </div>
         </div>
 
         <!-- Comment section (collapsible) -->
-        <div class="comment-container hidden mt-3 pl-7" data-content-type="catch" data-content-id="${report.id}">
+        <div class="comment-container hidden mt-3 pl-7" data-content-type="catch" data-content-id="${report.id}" onclick="event.stopPropagation()">
         </div>
       </div>
     `;
@@ -656,7 +658,7 @@ const LakeDetail = {
    */
   renderSnowReportCard(report) {
     return `
-      <div class="bg-frost rounded-lg p-3 border" style="border-color: rgba(59, 130, 246, .5);">
+      <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'snow', '${report.id}')">
         <div class="flex items-start gap-3">
           <!-- Left: Content -->
           <div class="flex-1 min-w-0">
@@ -672,29 +674,25 @@ const LakeDetail = {
               <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs text-secondary flex items-center gap-1">
+                <span>💬</span>
+                <span class="comment-count-text">${report.commentCount || 0}</span>
+              </span>
             </div>
 
             <!-- Location notes -->
-            ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-
-            <!-- Comments button -->
-            <button
-              class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-              onclick="LakeDetail.toggleCommentsFromButton(event, 'snow', '${report.id}')"
-            >
-              <span>💬</span>
-              <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
-            </button>
+            ${report.locationNotes ? `<p class="text-sm text-secondary">${report.locationNotes}</p>` : ''}
           </div>
 
           <!-- Right: Vote buttons -->
-          <div class="flex-shrink-0">
+          <div class="flex-shrink-0" onclick="event.stopPropagation()">
             ${this.renderVoteButtons(report, 'snow')}
           </div>
         </div>
 
         <!-- Comment section (collapsible) -->
-        <div class="comment-container hidden mt-3 pl-7" data-content-type="snow" data-content-id="${report.id}">
+        <div class="comment-container hidden mt-3 pl-7" data-content-type="snow" data-content-id="${report.id}" onclick="event.stopPropagation()">
         </div>
       </div>
     `;
@@ -846,7 +844,7 @@ const LakeDetail = {
         // Render general update card with votes/comments
         const update = item.data;
         return `
-          <div class="bg-frost rounded-lg p-3 border" style="border-color: rgba(59, 130, 246, .5);">
+          <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'update', '${update.id}')">
             <div class="flex items-start gap-3">
               <!-- Left: Content -->
               <div class="flex-1 min-w-0">
@@ -858,29 +856,25 @@ const LakeDetail = {
                   <span class="badge bg-secondary text-white text-xs">${update.user.rankTier}</span>
                   <span class="text-xs text-secondary">•</span>
                   <span class="text-xs text-secondary">${this.formatDate(update.createdAt)}</span>
+                  <span class="text-xs text-secondary">•</span>
+                  <span class="text-xs text-secondary flex items-center gap-1">
+                    <span>💬</span>
+                    <span class="comment-count-text">${update.commentCount || 0}</span>
+                  </span>
                 </div>
 
                 <!-- Content -->
-                <p class="text-sm mb-2">${update.content}</p>
-
-                <!-- Comments button -->
-                <button
-                  class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
-                  onclick="LakeDetail.toggleCommentsFromButton(event, 'update', '${update.id}')"
-                >
-                  <span>💬</span>
-                  <span class="comment-count-text">${update.commentCount || 0} comment${update.commentCount !== 1 ? 's' : ''}</span>
-                </button>
+                <p class="text-sm">${update.content}</p>
               </div>
 
               <!-- Right: Vote buttons -->
-              <div class="flex-shrink-0">
+              <div class="flex-shrink-0" onclick="event.stopPropagation()">
                 ${this.renderVoteButtons(update, 'update')}
               </div>
             </div>
 
             <!-- Comment section (collapsible) -->
-            <div class="comment-container hidden mt-3 pl-7" data-content-type="update" data-content-id="${update.id}">
+            <div class="comment-container hidden mt-3 pl-7" data-content-type="update" data-content-id="${update.id}" onclick="event.stopPropagation()">
             </div>
           </div>
         `;
@@ -1490,7 +1484,7 @@ const LakeDetail = {
     const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
 
     return `
-      <!-- Header with Sort Toggle and Close Button -->
+      <!-- Header with Sort Toggle -->
       <div class="flex items-center justify-between mb-2 border-t border-grayPanel pt-2">
         <div class="flex gap-2 text-xs">
           <button
@@ -1508,13 +1502,6 @@ const LakeDetail = {
             Most Liked
           </button>
         </div>
-        <button
-          class="text-xs text-secondary hover:text-danger transition-colors"
-          onclick="LakeDetail.closeCommentsFromButton(event)"
-          title="Close comments"
-        >
-          ✕ Close
-        </button>
       </div>
 
       <!-- Comments List (scrollable) -->
@@ -1534,8 +1521,14 @@ const LakeDetail = {
             data-content-id="${contentId}"
             oninput="LakeDetail.updateCharCount(this)"
           ></textarea>
-          <div class="flex items-center justify-between mt-2">
+          <div class="flex items-center justify-end gap-2 mt-2">
             <span class="text-xs text-secondary char-count">0/144</span>
+            <button
+              class="btn-sm btn-secondary"
+              onclick="LakeDetail.closeCommentsFromButton(event)"
+            >
+              Close
+            </button>
             <button
               class="btn-sm btn-primary"
               onclick="LakeDetail.postComment('${contentType}', '${contentId}')"
@@ -1544,7 +1537,17 @@ const LakeDetail = {
             </button>
           </div>
         </div>
-      ` : ''}
+      ` : `
+        <!-- Close button for non-authenticated users -->
+        <div class="mt-3 pt-2 border-t border-grayPanel text-right">
+          <button
+            class="btn-sm btn-secondary"
+            onclick="LakeDetail.closeCommentsFromButton(event)"
+          >
+            Close
+          </button>
+        </div>
+      `}
     `;
   },
 
@@ -1621,11 +1624,54 @@ const LakeDetail = {
    */
   closeCommentsFromButton(event) {
     event.preventDefault();
+    event.stopPropagation();
 
     // Find the comment container
     const container = event.target.closest('.comment-container');
     if (container) {
       container.classList.add('hidden');
+      this.currentOpenCommentContainer = null;
+    }
+  },
+
+  /**
+   * Open comments from clicking on a card
+   * @param {Event} event - Click event
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   */
+  async openCommentsFromCard(event, contentType, contentId) {
+    event.stopPropagation();
+
+    // Find the comment container within the clicked card
+    const card = event.currentTarget;
+    const container = card.querySelector(
+      `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!container) return;
+
+    // If this container is already open, close it
+    if (container === this.currentOpenCommentContainer) {
+      container.classList.add('hidden');
+      this.currentOpenCommentContainer = null;
+      return;
+    }
+
+    // Close any currently open comment section
+    if (this.currentOpenCommentContainer) {
+      this.currentOpenCommentContainer.classList.add('hidden');
+    }
+
+    // Open this comment section
+    container.classList.remove('hidden');
+    this.currentOpenCommentContainer = container;
+
+    // Render comment section UI if first time
+    if (!container.dataset.loaded) {
+      container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
+      await this.loadComments(contentType, contentId, 'newest');
+      container.dataset.loaded = 'true';
     }
   },
 
