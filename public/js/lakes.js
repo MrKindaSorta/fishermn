@@ -124,7 +124,7 @@ class LakesList {
     if (!lakesListContainer) return;
 
     lakesListContainer.addEventListener('scroll', () => {
-      if (this.isLoading || !this.hasMore || this.searchMode || this.filterActive) return;
+      if (this.isLoading || !this.hasMore || this.searchMode || this.filterActive || this.favoritesFilterActive) return;
 
       // Check if scrolled to threshold (400th lake)
       const tiles = lakesListContainer.querySelectorAll('.lake-list-item');
@@ -416,9 +416,9 @@ class LakesList {
    * Fetches from API (server-side filtering) OR filters loaded data client-side if filters active
    */
   async updateViewportFilteredList() {
-    // If filters are active, filter the already-loaded data by viewport (client-side)
-    // This prevents re-fetching ALL lakes and ignoring the active filters
-    if (this.filterActive) {
+    // If filters or favorites are active, filter the already-loaded data by viewport (client-side)
+    // This prevents re-fetching ALL lakes and ignoring the active filters/favorites
+    if (this.filterActive || this.favoritesFilterActive) {
       const bounds = this.map.getBounds();
       const viewportLakes = this.lakes.filter(lake => {
         return lake.latitude >= bounds.getSouth() &&
