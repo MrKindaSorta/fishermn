@@ -110,27 +110,57 @@ const ChartRenderer = (() => {
         const chartArea = chart.chartArea;
         if (!chartArea) return;
 
-        const totalHours = labels.length;
-        const hoursPerDay = 24;
-        const days = Math.ceil(totalHours / hoursPerDay);
+        // Group hours by actual calendar date (rolling 120 hours)
+        const dayGroups = [];
+        let currentDateStr = null;
+        let currentGroup = { start: 0, end: 0, date: null };
+
+        labels.forEach((time, index) => {
+          const date = new Date(time);
+          const dateStr = date.toDateString(); // "Mon Dec 11 2025"
+
+          if (dateStr !== currentDateStr) {
+            // New day started
+            if (currentDateStr !== null) {
+              // Save previous day group
+              currentGroup.end = index - 1;
+              dayGroups.push(currentGroup);
+            }
+
+            // Start new day group
+            currentDateStr = dateStr;
+            currentGroup = {
+              start: index,
+              end: index,
+              date: date
+            };
+          } else {
+            // Same day, extend end
+            currentGroup.end = index;
+          }
+        });
+
+        // Add final group
+        if (currentGroup.date) {
+          dayGroups.push(currentGroup);
+        }
+
+        console.log('[ChartRenderer] Day groups:', dayGroups.length, dayGroups.map(d => d.date.toDateString()));
 
         // Draw alternating day backgrounds
-        for (let day = 0; day < days; day++) {
-          const startHour = day * hoursPerDay;
-          const endHour = Math.min((day + 1) * hoursPerDay, totalHours);
+        dayGroups.forEach((group, dayIndex) => {
+          const xStart = chart.scales.x.getPixelForValue(group.start);
+          const xEnd = chart.scales.x.getPixelForValue(group.end);
 
-          const xStart = chart.scales.x.getPixelForValue(startHour);
-          const xEnd = chart.scales.x.getPixelForValue(endHour - 1);
-
-          // Alternate between light and lighter backgrounds
-          ctx.fillStyle = day % 2 === 0 ? 'rgba(10, 58, 96, 0.03)' : 'rgba(212, 175, 55, 0.03)';
+          // Alternate between light blue and light gold
+          ctx.fillStyle = dayIndex % 2 === 0 ? 'rgba(10, 58, 96, 0.04)' : 'rgba(212, 175, 55, 0.04)';
           ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
 
-          // Draw day separator line
-          if (day > 0) {
+          // Draw day separator line (except before first day)
+          if (dayIndex > 0) {
             ctx.strokeStyle = '#D4AF37';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([3, 3]);
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
             ctx.beginPath();
             ctx.moveTo(xStart, chartArea.top);
             ctx.lineTo(xStart, chartArea.bottom);
@@ -139,13 +169,16 @@ const ChartRenderer = (() => {
           }
 
           // Draw day label at top
-          const dayStart = new Date(labels[startHour]);
-          const dayLabel = dayStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          const dayLabel = group.date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+          });
           ctx.fillStyle = '#0A3A60';
-          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.font = 'bold 12px Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(dayLabel, (xStart + xEnd) / 2, chartArea.top - 10);
-        }
+        });
       }
     } : null;
 
@@ -198,11 +231,25 @@ const ChartRenderer = (() => {
               title: function(tooltipItems) {
                 const time = tooltipItems[0].label;
                 const date = new Date(time);
-                return date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true
-                });
+
+                if (view === '5day') {
+                  // Show full date and time for 5-day view
+                  return date.toLocaleString('en-US', {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                } else {
+                  // Just time for 24h view
+                  return date.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                }
               },
               label: function(context) {
                 const score = context.parsed.y;
