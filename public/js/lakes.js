@@ -662,7 +662,7 @@ class LakesList {
   async applyFilters() {
     const filterParams = this.buildFilterParams();
 
-    // If no filters, reload initial 500 lakes with pagination
+    // If no filters, reload initial 500 lakes with ice priority
     if (!filterParams) {
       this.filterActive = false;
       this.searchMode = false;
@@ -671,9 +671,22 @@ class LakesList {
       this.lakes = [];
 
       try {
-        await this.loadLakes(0, false);
+        // Use same prioritization as init()
+        const iceResponse = await fetch('/api/lakes?minThickness=1&limit=500');
+        const iceData = await iceResponse.json();
+        const lakesWithIce = iceData.success ? (iceData.lakes || []) : [];
+
+        const generalResponse = await fetch(`/api/lakes?limit=${500 - lakesWithIce.length}&offset=0`);
+        const generalData = await generalResponse.json();
+        const generalLakes = generalData.success ? (generalData.lakes || []) : [];
+
+        this.lakes = [...lakesWithIce, ...generalLakes];
+        this.totalLakes = generalData.total || 0;
+        this.currentOffset = this.lakes.length;
+        this.hasMore = this.lakes.length < this.totalLakes;
+
         this.renderLakeTiles();
-        this.renderMapMarkers(this.lakes, true); // Use priority mode
+        this.renderMapMarkers(this.lakes, true);
       } catch (error) {
         console.error('Error reloading lakes:', error);
         this.showError('Failed to load lakes. Please refresh the page.');
