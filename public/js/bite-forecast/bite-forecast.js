@@ -597,64 +597,96 @@ const BiteForecast = (() => {
   }
 
   /**
-   * Calculate 5-day scores using 3-hour intervals (no interpolation)
-   * Returns 40 data points (8 per day × 5 days)
+   * Calculate 5-day scores properly using full hourly interpolation
+   * Returns sampled data points (every 3rd hour) from 120-hour calculation
    */
   function calculate5DayScores(speciesId) {
     console.log(`[BiteForecast] Calculating 5-day forecast for ${speciesId}...`);
 
     const forecast3h = state.weatherData.forecast.list;
-    const scores = [];
 
-    // Use up to 40 forecast points (5 days × 8 points/day)
-    const pointsToUse = Math.min(40, forecast3h.length);
+    // Step 1: Interpolate full 5 days into hourly data (up to 120 hours)
+    const hourlyData = [];
+    const startTime = Date.now();
 
-    for (let i = 0; i < pointsToUse; i++) {
-      const weather = forecast3h[i];
-      const time = new Date(weather.dt * 1000);
+    // We can get up to 40 3-hour points, which gives us ~5 days
+    const pointsAvailable = Math.min(40, forecast3h.length);
+
+    for (let i = 0; i < pointsAvailable - 1; i++) {
+      const current = forecast3h[i];
+      const next = forecast3h[i + 1];
+
+      // Interpolate between current and next (3 hours apart)
+      for (let h = 0; h < 3; h++) {
+        const ratio = h / 3;
+        const time = new Date((current.dt + h * 3600) * 1000);
+
+        hourlyData.push({
+          dt: current.dt + h * 3600,
+          time: time,
+          temp: current.main.temp + ratio * (next.main.temp - current.main.temp),
+          pressure: current.main.pressure + ratio * (next.main.pressure - current.main.pressure),
+          humidity: Math.round(current.main.humidity + ratio * (next.main.humidity - current.main.humidity)),
+          clouds: Math.round(current.clouds.all + ratio * (next.clouds.all - current.clouds.all)),
+          windSpeed: current.wind.speed + ratio * (next.wind.speed - current.wind.speed),
+          windDir: current.wind.deg + ratio * (next.wind.deg - current.wind.deg),
+          pop: (current.pop || 0) + ratio * ((next.pop || 0) - (current.pop || 0)),
+          weather: h < 1.5 ? current.weather[0] : next.weather[0],
+          rain: (current.rain?.['3h'] || 0) / 3,
+          snow: (current.snow?.['3h'] || 0) / 3
+        });
+      }
+    }
+
+    console.log(`[BiteForecast] Interpolated ${hourlyData.length} hours for 5-day view`);
+
+    // Step 2: Calculate scores for ALL hours (same as 24h view method)
+    const allScores = [];
+
+    // Process in daily chunks for proper sun time calculation
+    const hoursToProcess = Math.min(120, hourlyData.length);
+
+    for (let hour = 0; hour < hoursToProcess; hour++) {
+      // Determine which day this hour belongs to
+      const dayIndex = Math.floor(hour / 24);
+      const baseTime = new Date(startTime + dayIndex * 86400000);
 
       // Calculate sun times for this day
       const sunTimes = WeatherAnalyzer.calculateSunTimes(
         state.lake.latitude,
         state.lake.longitude,
-        time
+        baseTime
       );
 
-      // Create hourly-like weather object for scoring engine
-      const weatherPoint = {
-        dt: weather.dt,
-        time: time,
-        temp: weather.main.temp,
-        pressure: weather.main.pressure,
-        humidity: weather.main.humidity,
-        clouds: weather.clouds.all,
-        windSpeed: weather.wind.speed,
-        windDir: weather.wind.deg,
-        pop: weather.pop || 0,
-        weather: weather.weather[0],
-        rain: weather.rain?.['3h'] || 0,
-        snow: weather.snow?.['3h'] || 0
-      };
+      // Get the relevant 24-hour window for this hour
+      const dayStart = dayIndex * 24;
+      const dayEnd = Math.min(dayStart + 24, hourlyData.length);
+      const dailyWeather = hourlyData.slice(dayStart, dayEnd);
 
-      // Calculate bite score for this 3-hour interval
-      // We'll treat this as a mini hourly array for the scoring engine
-      const miniHourly = [weatherPoint];
-      const score = ScoringEngine.calculateBiteScore(
-        speciesId,
-        0,
-        miniHourly,
-        sunTimes,
-        [],  // Storm events calculated separately if needed
-        state.lake.id,
-        state.weatherHistory
-      );
-
-      score.time = time; // Override with actual forecast time
-      scores.push(score);
+      // Calculate score for this hour within its daily context
+      const hourInDay = hour % 24;
+      if (hourInDay < dailyWeather.length) {
+        const score = ScoringEngine.calculateBiteScore(
+          speciesId,
+          hourInDay,
+          dailyWeather,
+          sunTimes,
+          WeatherAnalyzer.detectStormEvents(dailyWeather),
+          state.lake.id,
+          state.weatherHistory
+        );
+        allScores.push(score);
+      }
     }
 
-    console.log(`[BiteForecast] Calculated ${scores.length} 3-hour scores for ${speciesId}`);
-    return scores;
+    // Step 3: Sample every 3rd hour for display (40 points)
+    const sampledScores = [];
+    for (let i = 0; i < allScores.length; i += 3) {
+      sampledScores.push(allScores[i]);
+    }
+
+    console.log(`[BiteForecast] Calculated ${allScores.length} total hours, sampled ${sampledScores.length} 3-hour points`);
+    return sampledScores;
   }
 
   /**
