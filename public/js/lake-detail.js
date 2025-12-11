@@ -1071,6 +1071,15 @@ const LakeDetail = {
   },
 
   /**
+   * Get badge class for ice thickness
+   */
+  getThicknessClass(thickness) {
+    if (!thickness || thickness < 6) return 'bg-danger';
+    if (thickness < 12) return 'bg-gold';
+    return 'bg-evergreen';
+  },
+
+  /**
    * Format date for display
    */
   formatDate(dateString) {
