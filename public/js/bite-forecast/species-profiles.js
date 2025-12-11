@@ -452,16 +452,17 @@ const SpeciesProfiles = (() => {
         bestConditions: 'Late morning through afternoon can be strong bite windows. Lakers are not as light-shy as walleye.',
         winterBehavior: 'Found in deep, cold lakes (depths of 40-100+ feet). They cruise rocky points and humps looking for baitfish.',
         tipOfTheDay: 'Heavy jigging spoons or tube jigs. Lakers hit hard - use stout rods and 10-12lb line. Electronics are key to find them.'
-      }
+      },
+
+      seasonalModifiers: { early_ice: +6, mid_winter: -3, late_ice: +6 },
+      nightFeeder: true,
+      moonSensitivity: 1.0,
+      dayLengthSensitivity: 0.6
     },
 
     rainbowTrout: {
       id: 'rainbowTrout',
       name: 'Rainbow Trout',
-      seasonalModifiers: { early_ice: +6, mid_winter: -3, late_ice: +6 },
-      nightFeeder: true,
-      moonSensitivity: 1.0,
-      dayLengthSensitivity: 0.6
       icon: '🌈',
       color: '#FF69B4', // Hot pink
 
