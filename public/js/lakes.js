@@ -23,7 +23,22 @@ class LakesList {
 
   async init() {
     try {
-      await this.loadLakes(0, false); // Load first 500 (for list)
+      // First, load lakes with ice reports (prioritize)
+      const iceResponse = await fetch('/api/lakes?minThickness=1&limit=500');
+      const iceData = await iceResponse.json();
+      const lakesWithIce = iceData.success ? (iceData.lakes || []) : [];
+
+      // Then load general lakes to fill up to 500 total
+      const generalResponse = await fetch(`/api/lakes?limit=${500 - lakesWithIce.length}&offset=0`);
+      const generalData = await generalResponse.json();
+      const generalLakes = generalData.success ? (generalData.lakes || []) : [];
+
+      // Combine: ice lakes first, then general lakes
+      this.lakes = [...lakesWithIce, ...generalLakes];
+      this.totalLakes = generalData.total || 0;
+      this.currentOffset = this.lakes.length;
+      this.hasMore = this.lakes.length < this.totalLakes;
+
       this.initMap();
       this.renderLakeTiles();
 
@@ -33,8 +48,7 @@ class LakesList {
       this.initFilters();
       this.initInfiniteScroll(); // Set up scroll detection
 
-      const lakesWithIce = this.lakes.filter(l => l.officialIce?.thickness);
-      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, ${lakesWithIce.length} with ice data`);
+      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, ${lakesWithIce.length} with ice data at top`);
     } catch (error) {
       console.error('Failed to initialize lakes page:', error);
       this.showError('Failed to load lakes. Please refresh the page.');
