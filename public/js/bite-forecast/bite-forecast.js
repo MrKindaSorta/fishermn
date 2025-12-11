@@ -679,14 +679,9 @@ const BiteForecast = (() => {
       }
     }
 
-    // Step 3: Sample every 3rd hour for display (40 points)
-    const sampledScores = [];
-    for (let i = 0; i < allScores.length; i += 3) {
-      sampledScores.push(allScores[i]);
-    }
-
-    console.log(`[BiteForecast] Calculated ${allScores.length} total hours, sampled ${sampledScores.length} 3-hour points`);
-    return sampledScores;
+    // Step 3: Return all hourly scores (no sampling for better detail)
+    console.log(`[BiteForecast] Calculated ${allScores.length} hourly scores for 5-day view`);
+    return allScores;
   }
 
   /**

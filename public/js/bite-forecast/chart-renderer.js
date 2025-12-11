@@ -102,6 +102,55 @@ const ChartRenderer = (() => {
       }
     }
 
+    // Add day separation plugin for 5-day view
+    const daySeparationPlugin = view === '5day' ? {
+      id: 'daySeparation',
+      beforeDraw: (chart) => {
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        if (!chartArea) return;
+
+        const totalHours = labels.length;
+        const hoursPerDay = 24;
+        const days = Math.ceil(totalHours / hoursPerDay);
+
+        // Draw alternating day backgrounds
+        for (let day = 0; day < days; day++) {
+          const startHour = day * hoursPerDay;
+          const endHour = Math.min((day + 1) * hoursPerDay, totalHours);
+
+          const xStart = chart.scales.x.getPixelForValue(startHour);
+          const xEnd = chart.scales.x.getPixelForValue(endHour - 1);
+
+          // Alternate between light and lighter backgrounds
+          ctx.fillStyle = day % 2 === 0 ? 'rgba(10, 58, 96, 0.03)' : 'rgba(212, 175, 55, 0.03)';
+          ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
+
+          // Draw day separator line
+          if (day > 0) {
+            ctx.strokeStyle = '#D4AF37';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(xStart, chartArea.top);
+            ctx.lineTo(xStart, chartArea.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+
+          // Draw day label at top
+          const dayStart = new Date(labels[startHour]);
+          const dayLabel = dayStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          ctx.fillStyle = '#0A3A60';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(dayLabel, (xStart + xEnd) / 2, chartArea.top - 10);
+        }
+      }
+    } : null;
+
+    const plugins = view === '5day' && daySeparationPlugin ? [daySeparationPlugin] : [];
+
     // Create Chart.js configuration
     const config = {
       type: 'line',
@@ -109,6 +158,7 @@ const ChartRenderer = (() => {
         labels: labels,
         datasets: datasets
       },
+      plugins: plugins,
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -220,26 +270,23 @@ const ChartRenderer = (() => {
                     hour12: true
                   });
                 } else {
-                  // 5day view: show date + time every 8th point (once per day)
-                  if (index % 8 === 0) {
-                    return time.toLocaleDateString('en-US', { weekday: 'short' }) + ' ' +
-                           time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-                  }
-                  // Show time for noon and midnight
-                  const hours = time.getHours();
-                  if (hours === 0 || hours === 12) {
-                    return time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-                  }
-                  return '';
+                  // 5day view: show every hour (very detailed)
+                  // Only show hour number (day labels are at top)
+                  return time.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    hour12: true
+                  });
                 }
               },
               font: {
                 family: 'Inter, sans-serif',
-                size: view === '24h' ? 10 : 9
+                size: view === '24h' ? 10 : 7  // Smaller font for 120 labels
               },
               color: '#4B5563',
-              maxRotation: view === '24h' ? 45 : 45,
-              minRotation: view === '24h' ? 45 : 0
+              maxRotation: 90,  // Vertical labels for 5-day to fit all hours
+              minRotation: 90,
+              autoSkip: false,  // Don't auto-skip labels
+              maxTicksLimit: view === '24h' ? 24 : 120
             },
             grid: {
               color: '#E5E7EB',
