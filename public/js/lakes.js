@@ -11,6 +11,8 @@ class LakesList {
     this.totalLakes = 0;          // Total lakes in DB
     this.searchMode = false;      // Whether in search mode
     this.filterActive = false;    // Whether filters are active
+    this.favoritesFilterActive = false; // Whether favorites filter is active
+    this.favoriteLakeIds = [];    // IDs of user's favorite lakes
     this.map = null;
     this.markers = [];
     this.activeLakeId = null;
@@ -563,6 +565,13 @@ class LakesList {
       sortBtn.setAttribute('onclick', '');
       sortBtn.addEventListener('click', () => this.sortLakesAlphabetically());
     }
+
+    // Favorites filter button
+    const favoritesBtn = document.getElementById('favorites-filter-btn');
+    if (favoritesBtn) {
+      favoritesBtn.setAttribute('onclick', '');
+      favoritesBtn.addEventListener('click', () => this.toggleFavoritesFilter());
+    }
   }
 
   /**
@@ -803,7 +812,138 @@ class LakesList {
 
     // Reset filter state and reload initial data
     this.filterActive = false;
+    this.favoritesFilterActive = false;
+    this.updateFavoritesButton();
     this.applyFilters();
+  }
+
+  /**
+   * Toggle favorites filter
+   */
+  async toggleFavoritesFilter() {
+    // Check if user is authenticated
+    if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
+      if (typeof AuthModal !== 'undefined') AuthModal.open();
+      return;
+    }
+
+    this.favoritesFilterActive = !this.favoritesFilterActive;
+    this.updateFavoritesButton();
+
+    if (this.favoritesFilterActive) {
+      // Fetch user's favorites and filter
+      await this.loadFavorites();
+      await this.applyFavoritesFilter();
+    } else {
+      // Clear favorites filter and reload
+      this.applyFilters();
+    }
+  }
+
+  /**
+   * Load user's favorite lakes
+   */
+  async loadFavorites() {
+    try {
+      const token = Auth.getToken();
+      const response = await fetch('/api/user/favorites', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      if (data.success && data.favoriteLakes) {
+        this.favoriteLakeIds = data.favoriteLakes.map(lake => lake.id);
+        console.log(`Loaded ${this.favoriteLakeIds.length} favorite lakes`);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      alert('Failed to load favorites. Please try again.');
+      this.favoritesFilterActive = false;
+      this.updateFavoritesButton();
+    }
+  }
+
+  /**
+   * Apply favorites filter to lakes list and map
+   */
+  async applyFavoritesFilter() {
+    if (this.favoriteLakeIds.length === 0) {
+      this.showEmptyFavoritesState();
+      this.clearMapMarkers();
+      return;
+    }
+
+    this.showLoading();
+
+    // Filter lakes to only favorites
+    const favoriteLakes = this.lakes.filter(lake =>
+      this.favoriteLakeIds.includes(lake.id)
+    );
+
+    if (favoriteLakes.length === 0) {
+      // No favorites in current loaded lakes, fetch all lakes
+      try {
+        const response = await fetch('/api/lakes?limit=10000');
+        const data = await response.json();
+
+        if (data.success) {
+          const allFavorites = (data.lakes || []).filter(lake =>
+            this.favoriteLakeIds.includes(lake.id)
+          );
+          this.lakes = allFavorites;
+        }
+      } catch (error) {
+        console.error('Error loading all lakes:', error);
+      }
+    } else {
+      this.lakes = favoriteLakes;
+    }
+
+    this.hasMore = false; // No pagination for favorites
+    this.renderLakeTiles();
+    this.renderMapMarkers();
+  }
+
+  /**
+   * Update favorites button UI
+   */
+  updateFavoritesButton() {
+    const btn = document.getElementById('favorites-filter-btn');
+    if (!btn) return;
+
+    const svg = btn.querySelector('svg');
+    if (this.favoritesFilterActive) {
+      btn.classList.add('bg-gold', 'border-gold', 'text-white');
+      btn.classList.remove('text-secondary', 'hover:border-gold', 'hover:text-gold');
+      if (svg) svg.setAttribute('fill', 'currentColor');
+    } else {
+      btn.classList.remove('bg-gold', 'border-gold', 'text-white');
+      btn.classList.add('text-secondary', 'hover:border-gold', 'hover:text-gold');
+      if (svg) svg.setAttribute('fill', 'none');
+    }
+  }
+
+  /**
+   * Show empty favorites state
+   */
+  showEmptyFavoritesState() {
+    const container = document.getElementById('lakes-list');
+    if (container) {
+      container.innerHTML = `
+        <div class="card text-center py-8 text-secondary">
+          <svg class="w-16 h-16 mx-auto text-grayPanel mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+          </svg>
+          <p class="mb-2">No favorite lakes yet.</p>
+          <p class="text-sm">Visit lake pages and click the heart to add favorites!</p>
+        </div>
+      `;
+    }
   }
 
   /**
