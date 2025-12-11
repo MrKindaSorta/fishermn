@@ -317,7 +317,7 @@
           </div>
 
           <!-- Right Column: Map (40%) -->
-          <div class="col-span-2">
+          <div class="col-span-1 lg:col-span-2">
             <div class="card p-0 overflow-hidden sticky top-6">
               <div class="p-4 border-b border-grayPanel bg-white">
                 <div class="flex items-center gap-2 mb-1">
@@ -343,7 +343,7 @@
 
       <!-- Tab: Recent Activity -->
       <div id="tab-activity" class="tab-content">
-        <div class="grid grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
           <!-- Left Sidebar: Activity Filters -->
           <div class="col-span-1">
             <div class="card p-4">
@@ -389,7 +389,7 @@
           </div>
 
           <!-- Right Content: Post Input + Feed -->
-          <div class="col-span-3">
+          <div class="col-span-1 lg:col-span-3">
             <!-- Post Input -->
             <div class="card mb-6">
               <div class="flex items-center gap-3">
@@ -426,7 +426,7 @@
 
       <!-- Tab: Discussions -->
       <div id="tab-discussions" class="tab-content">
-        <div class="grid grid-cols-3 gap-6" style="height: calc(100vh - 280px);">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" style="min-height: 400px; lg:height: calc(100vh - 280px);">
           <!-- Left Panel: Thread List (~35%) -->
           <div class="col-span-1 card p-0 overflow-hidden flex flex-col">
             <div class="p-4 border-b border-grayPanel bg-white">
@@ -443,7 +443,7 @@
           </div>
 
           <!-- Right Panel: Thread Content (~65%) -->
-          <div class="col-span-2 card p-0 overflow-hidden flex flex-col">
+          <div class="col-span-1 lg:col-span-2 card p-0 overflow-hidden flex flex-col">
             <div id="thread-header" class="p-4 border-b border-grayPanel bg-white">
               <h3 id="thread-title" class="font-bold text-lg">Select a discussion</h3>
               <p id="thread-meta" class="text-xs text-secondary">Click a thread on the left to view</p>
@@ -559,7 +559,7 @@
           <!-- Species Cards Grid -->
           <div>
             <h3 class="font-bold text-lg mb-4">All Species Forecasts</h3>
-            <div id="species-cards-grid" class="grid grid-cols-4 gap-4">
+            <div id="species-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
               <!-- Populated by JavaScript -->
             </div>
           </div>
