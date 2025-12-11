@@ -558,27 +558,45 @@ const LakeDetail = {
   renderIceReportCard(report) {
     const thicknessClass = this.getThicknessClass(report.thicknessInches);
     return `
-      <div class="bg-frost rounded-lg p-4">
-        <div class="flex items-start justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">❄️</span>
-            <span class="badge bg-primary text-white text-xs">ICE CONDITION</span>
+      <div class="bg-frost rounded-lg p-3">
+        <div class="flex items-start gap-3">
+          <!-- Left: Content -->
+          <div class="flex-1 min-w-0">
+            <!-- Header -->
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-lg">❄️</span>
+              <span class="badge bg-primary text-white text-xs">ICE</span>
+              <span class="badge ${thicknessClass} text-white text-xs">${report.thicknessInches}"</span>
+              ${report.condition ? `<span class="text-xs text-secondary capitalize">${report.condition}</span>` : ''}
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs font-medium">${report.user.displayName}</span>
+              <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+            </div>
+
+            <!-- Location notes -->
+            ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
+
+            <!-- Comments button -->
+            <button
+              class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
+              onclick="LakeDetail.toggleComments('ice', '${report.id}')"
+            >
+              <span>💬</span>
+              <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
+            </button>
           </div>
-          <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+
+          <!-- Right: Vote buttons -->
+          <div class="flex-shrink-0">
+            ${this.renderVoteButtons(report, 'ice')}
+          </div>
         </div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="badge ${thicknessClass} text-white">${report.thicknessInches}"</span>
-          ${report.condition ? `<span class="text-sm text-secondary capitalize">${report.condition}</span>` : ''}
+
+        <!-- Comment section (collapsible) -->
+        <div class="comment-container hidden mt-3 pl-7" data-content-type="ice" data-content-id="${report.id}">
         </div>
-        ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs mb-2">
-          <span class="font-medium">${report.user.displayName}</span>
-          <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
-        </div>
-        <div class="flex items-center justify-between border-t border-grayPanel pt-2">
-          ${this.renderVoteButtons(report, 'ice')}
-        </div>
-        ${this.renderCommentSection('ice', report.id, report.commentCount || 0)}
       </div>
     `;
   },
@@ -587,29 +605,48 @@ const LakeDetail = {
    * Render individual catch report card
    */
   renderCatchReportCard(report) {
+    const details = this.renderCatchDetails(report);
     return `
-      <div class="bg-frost rounded-lg p-4">
-        <div class="flex items-start justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🐟</span>
-            <span class="badge bg-evergreen text-white text-xs">CATCH REPORT</span>
+      <div class="bg-frost rounded-lg p-3">
+        <div class="flex items-start gap-3">
+          <!-- Left: Content -->
+          <div class="flex-1 min-w-0">
+            <!-- Header -->
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-lg">🐟</span>
+              <span class="badge bg-evergreen text-white text-xs">CATCH</span>
+              <span class="font-bold text-sm">${report.fishSpecies}</span>
+              ${report.fishCount > 1 ? `<span class="text-xs text-secondary">(${report.fishCount})</span>` : ''}
+              ${details ? `<span class="text-xs text-secondary">•</span>${details}` : ''}
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs font-medium">${report.user.displayName}</span>
+              <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
+            </div>
+
+            <!-- Location notes -->
+            ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
+
+            <!-- Comments button -->
+            <button
+              class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
+              onclick="LakeDetail.toggleComments('catch', '${report.id}')"
+            >
+              <span>💬</span>
+              <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
+            </button>
           </div>
-          <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
+
+          <!-- Right: Vote buttons -->
+          <div class="flex-shrink-0">
+            ${this.renderVoteButtons(report, 'catch')}
+          </div>
         </div>
-        <div class="mb-2">
-          <span class="font-bold text-sm">${report.fishSpecies}</span>
-          ${report.fishCount > 1 ? `<span class="text-sm text-secondary"> (${report.fishCount})</span>` : ''}
+
+        <!-- Comment section (collapsible) -->
+        <div class="comment-container hidden mt-3 pl-7" data-content-type="catch" data-content-id="${report.id}">
         </div>
-        ${this.renderCatchDetails(report)}
-        ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs mb-2">
-          <span class="font-medium">${report.user.displayName}</span>
-          <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
-        </div>
-        <div class="flex items-center justify-between border-t border-grayPanel pt-2">
-          ${this.renderVoteButtons(report, 'catch')}
-        </div>
-        ${this.renderCommentSection('catch', report.id, report.commentCount || 0)}
       </div>
     `;
   },
@@ -619,28 +656,46 @@ const LakeDetail = {
    */
   renderSnowReportCard(report) {
     return `
-      <div class="bg-frost rounded-lg p-4">
-        <div class="flex items-start justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">❅</span>
-            <span class="badge bg-ice text-white text-xs">SNOW REPORT</span>
+      <div class="bg-frost rounded-lg p-3">
+        <div class="flex items-start gap-3">
+          <!-- Left: Content -->
+          <div class="flex-1 min-w-0">
+            <!-- Header -->
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-lg">❅</span>
+              <span class="badge bg-ice text-white text-xs">SNOW</span>
+              <span class="badge bg-primary text-white text-xs">${report.thicknessInches}"</span>
+              <span class="text-xs text-secondary capitalize">${report.snowType}</span>
+              <span class="text-xs text-secondary capitalize">${report.coverage}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs font-medium">${report.user.displayName}</span>
+              <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
+              <span class="text-xs text-secondary">•</span>
+              <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+            </div>
+
+            <!-- Location notes -->
+            ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
+
+            <!-- Comments button -->
+            <button
+              class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
+              onclick="LakeDetail.toggleComments('snow', '${report.id}')"
+            >
+              <span>💬</span>
+              <span class="comment-count-text">${report.commentCount || 0} comment${report.commentCount !== 1 ? 's' : ''}</span>
+            </button>
           </div>
-          <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+
+          <!-- Right: Vote buttons -->
+          <div class="flex-shrink-0">
+            ${this.renderVoteButtons(report, 'snow')}
+          </div>
         </div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="badge bg-primary text-white">${report.thicknessInches}" snow</span>
-          <span class="text-sm text-secondary capitalize">${report.snowType}</span>
-          <span class="text-sm text-secondary capitalize">${report.coverage}</span>
+
+        <!-- Comment section (collapsible) -->
+        <div class="comment-container hidden mt-3 pl-7" data-content-type="snow" data-content-id="${report.id}">
         </div>
-        ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs mb-2">
-          <span class="font-medium">${report.user.displayName}</span>
-          <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
-        </div>
-        <div class="flex items-center justify-between border-t border-grayPanel pt-2">
-          ${this.renderVoteButtons(report, 'snow')}
-        </div>
-        ${this.renderCommentSection('snow', report.id, report.commentCount || 0)}
       </div>
     `;
   },
@@ -652,11 +707,11 @@ const LakeDetail = {
     const details = [];
     if (report.largestSizeInches) details.push(`${report.largestSizeInches}"`);
     if (report.largestWeightLbs) details.push(`${report.largestWeightLbs} lbs`);
-    if (report.depthFeet) details.push(`${report.depthFeet}ft deep`);
-    if (report.baitUsed) details.push(`Bait: ${report.baitUsed}`);
+    if (report.depthFeet) details.push(`${report.depthFeet}ft`);
+    if (report.baitUsed) details.push(`${report.baitUsed}`);
 
     return details.length > 0
-      ? `<p class="text-sm text-secondary mb-2">${details.join(' • ')}</p>`
+      ? `<span class="text-xs text-secondary">${details.join(' • ')}</span>`
       : '';
   },
 
@@ -790,24 +845,42 @@ const LakeDetail = {
       } else if (item.type === 'general') {
         // Render general update card with votes/comments
         const update = item.data;
-        const initials = update.user.displayName.substring(0, 2).toUpperCase();
         return `
-          <div class="bg-frost rounded-lg p-4">
+          <div class="bg-frost rounded-lg p-3">
             <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs flex-shrink-0">
-                ${initials}
-              </div>
+              <!-- Left: Content -->
               <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="font-semibold text-sm">${update.user.displayName}</span>
+                <!-- Header -->
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <span class="text-lg">💬</span>
+                  <span class="badge bg-gold text-white text-xs">UPDATE</span>
+                  <span class="text-xs font-medium">${update.user.displayName}</span>
+                  <span class="badge bg-secondary text-white text-xs">${update.user.rankTier}</span>
+                  <span class="text-xs text-secondary">•</span>
                   <span class="text-xs text-secondary">${this.formatDate(update.createdAt)}</span>
                 </div>
+
+                <!-- Content -->
                 <p class="text-sm mb-2">${update.content}</p>
-                <div class="flex items-center justify-between border-t border-grayPanel pt-2">
-                  ${this.renderVoteButtons(update, 'update')}
-                </div>
-                ${this.renderCommentSection('update', update.id, update.commentCount || 0)}
+
+                <!-- Comments button -->
+                <button
+                  class="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1"
+                  onclick="LakeDetail.toggleComments('update', '${update.id}')"
+                >
+                  <span>💬</span>
+                  <span class="comment-count-text">${update.commentCount || 0} comment${update.commentCount !== 1 ? 's' : ''}</span>
+                </button>
               </div>
+
+              <!-- Right: Vote buttons -->
+              <div class="flex-shrink-0">
+                ${this.renderVoteButtons(update, 'update')}
+              </div>
+            </div>
+
+            <!-- Comment section (collapsible) -->
+            <div class="comment-container hidden mt-3 pl-7" data-content-type="update" data-content-id="${update.id}">
             </div>
           </div>
         `;
@@ -1276,7 +1349,7 @@ const LakeDetail = {
   // ==================== VOTING METHODS ====================
 
   /**
-   * Render vote buttons with current counts
+   * Render vote buttons with current counts (vertical compact style)
    * @param {Object} item - Content item (report or update)
    * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
    * @returns {string} HTML for vote buttons
@@ -1287,36 +1360,38 @@ const LakeDetail = {
     if (!isAuthenticated) {
       // Show counts only (no interactive buttons)
       return `
-        <div class="flex items-center gap-3 text-sm text-secondary">
-          <span class="flex items-center gap-1">
-            ↑ ${item.upvotes || 0}
-          </span>
-          <span class="flex items-center gap-1">
-            ↓ ${item.downvotes || 0}
-          </span>
+        <div class="flex flex-col items-center gap-1">
+          <div class="text-xs text-secondary flex items-center gap-1">
+            <span>↑</span><span>${item.upvotes || 0}</span>
+          </div>
+          <div class="text-xs text-secondary flex items-center gap-1">
+            <span>↓</span><span>${item.downvotes || 0}</span>
+          </div>
         </div>
       `;
     }
 
     return `
-      <div class="flex items-center gap-3 text-sm">
+      <div class="flex flex-col items-center gap-1">
         <button
-          class="vote-btn flex items-center gap-1 hover:text-evergreen transition-colors text-secondary"
+          class="vote-btn flex items-center justify-center gap-1 px-2 py-1 rounded text-xs hover:bg-evergreen/10 hover:text-evergreen transition-colors text-secondary"
           data-content-type="${contentType}"
           data-content-id="${item.id}"
           data-vote-type="up"
           onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'up')"
+          title="Upvote"
         >
-          ↑ <span class="vote-count-up">${item.upvotes || 0}</span>
+          <span>↑</span><span class="vote-count-up font-medium">${item.upvotes || 0}</span>
         </button>
         <button
-          class="vote-btn flex items-center gap-1 hover:text-danger transition-colors text-secondary"
+          class="vote-btn flex items-center justify-center gap-1 px-2 py-1 rounded text-xs hover:bg-danger/10 hover:text-danger transition-colors text-secondary"
           data-content-type="${contentType}"
           data-content-id="${item.id}"
           data-vote-type="down"
           onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'down')"
+          title="Downvote"
         >
-          ↓ <span class="vote-count-down">${item.downvotes || 0}</span>
+          <span>↓</span><span class="vote-count-down font-medium">${item.downvotes || 0}</span>
         </button>
       </div>
     `;
@@ -1406,85 +1481,63 @@ const LakeDetail = {
   // ==================== COMMENT METHODS ====================
 
   /**
-   * Render comment section for a content item
+   * Render comment section content (without toggle button)
    * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
    * @param {string} contentId - Content item ID
-   * @param {number} commentCount - Total comment count
-   * @returns {string} HTML for comment section
+   * @returns {string} HTML for comment section content
    */
-  renderCommentSection(contentType, contentId, commentCount) {
+  renderCommentSectionContent(contentType, contentId) {
     const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
 
     return `
-      <div class="comment-section mt-3 border-t border-grayPanel pt-3">
-        <!-- Comment Toggle Button -->
-        <button
-          class="comment-toggle-btn flex items-center gap-2 text-sm text-secondary hover:text-primary transition-colors w-full"
-          onclick="LakeDetail.toggleComments('${contentType}', '${contentId}')"
-        >
-          <span>💬</span>
-          <span class="comment-count-text">${commentCount} comment${commentCount !== 1 ? 's' : ''}</span>
-          <svg class="w-4 h-4 transform transition-transform comment-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
-        </button>
-
-        <!-- Comment Container (initially hidden) -->
-        <div
-          class="comment-container hidden mt-3"
-          data-content-type="${contentType}"
-          data-content-id="${contentId}"
-        >
-          <!-- Sort Toggle -->
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex gap-2 text-xs">
-              <button
-                class="sort-btn active px-2 py-1 rounded hover:bg-frost transition-colors"
-                data-sort="newest"
-                onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'newest')"
-              >
-                Newest
-              </button>
-              <button
-                class="sort-btn px-2 py-1 rounded hover:bg-frost transition-colors"
-                data-sort="liked"
-                onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'liked')"
-              >
-                Most Liked
-              </button>
-            </div>
-          </div>
-
-          <!-- Comments List (scrollable) -->
-          <div class="comments-list space-y-2 max-h-80 overflow-y-auto">
-            <p class="text-xs text-secondary">Loading comments...</p>
-          </div>
-
-          ${isAuthenticated ? `
-            <!-- Comment Input -->
-            <div class="comment-input-section mt-3 pt-3 border-t border-grayPanel">
-              <textarea
-                class="comment-input w-full p-2 text-sm border border-grayPanel rounded-lg resize-none focus:outline-none focus:border-primary"
-                placeholder="Add a comment... (144 characters max)"
-                maxlength="144"
-                rows="2"
-                data-content-type="${contentType}"
-                data-content-id="${contentId}"
-                oninput="LakeDetail.updateCharCount(this)"
-              ></textarea>
-              <div class="flex items-center justify-between mt-2">
-                <span class="text-xs text-secondary char-count">0/144</span>
-                <button
-                  class="btn-sm btn-primary"
-                  onclick="LakeDetail.postComment('${contentType}', '${contentId}')"
-                >
-                  Post Comment
-                </button>
-              </div>
-            </div>
-          ` : ''}
+      <!-- Sort Toggle -->
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex gap-2 text-xs">
+          <button
+            class="sort-btn active px-2 py-1 rounded bg-primary/10 text-primary font-medium transition-colors"
+            data-sort="newest"
+            onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'newest')"
+          >
+            Newest
+          </button>
+          <button
+            class="sort-btn px-2 py-1 rounded hover:bg-frost transition-colors"
+            data-sort="liked"
+            onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'liked')"
+          >
+            Most Liked
+          </button>
         </div>
       </div>
+
+      <!-- Comments List (scrollable) -->
+      <div class="comments-list space-y-2 max-h-64 overflow-y-auto pr-2">
+        <p class="text-xs text-secondary">Loading comments...</p>
+      </div>
+
+      ${isAuthenticated ? `
+        <!-- Comment Input -->
+        <div class="comment-input-section mt-3 pt-2 border-t border-grayPanel">
+          <textarea
+            class="comment-input w-full p-2 text-sm border border-grayPanel rounded-lg resize-none focus:outline-none focus:border-primary"
+            placeholder="Add a comment... (144 characters max)"
+            maxlength="144"
+            rows="2"
+            data-content-type="${contentType}"
+            data-content-id="${contentId}"
+            oninput="LakeDetail.updateCharCount(this)"
+          ></textarea>
+          <div class="flex items-center justify-between mt-2">
+            <span class="text-xs text-secondary char-count">0/144</span>
+            <button
+              class="btn-sm btn-primary"
+              onclick="LakeDetail.postComment('${contentType}', '${contentId}')"
+            >
+              Post
+            </button>
+          </div>
+        </div>
+      ` : ''}
     `;
   },
 
@@ -1501,22 +1554,20 @@ const LakeDetail = {
     if (!container) return;
 
     const isHidden = container.classList.contains('hidden');
-    const chevron = container.previousElementSibling?.querySelector('.comment-chevron');
 
     if (isHidden) {
       // Expand - load comments
       container.classList.remove('hidden');
-      if (chevron) chevron.classList.add('rotate-180');
 
-      // Load comments if not already loaded
+      // Render comment section UI if first time
       if (!container.dataset.loaded) {
+        container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
         await this.loadComments(contentType, contentId, 'newest');
         container.dataset.loaded = 'true';
       }
     } else {
       // Collapse
       container.classList.add('hidden');
-      if (chevron) chevron.classList.remove('rotate-180');
     }
   },
 
@@ -1698,10 +1749,10 @@ const LakeDetail = {
       const sortBy = sortBtn?.dataset.sort || 'newest';
       await this.loadComments(contentType, contentId, sortBy);
 
-      // Update comment count in toggle button
-      const toggleBtn = container?.previousElementSibling;
-      if (toggleBtn) {
-        const countSpan = toggleBtn.querySelector('.comment-count-text');
+      // Update comment count - find within the parent card
+      const card = container?.closest('.bg-frost');
+      if (card) {
+        const countSpan = card.querySelector('.comment-count-text');
         if (countSpan) {
           const currentCount = parseInt(countSpan.textContent);
           countSpan.textContent = `${currentCount + 1} comment${currentCount + 1 !== 1 ? 's' : ''}`;
