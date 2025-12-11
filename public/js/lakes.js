@@ -397,29 +397,42 @@ class LakesList {
   }
 
   /**
-   * Fetch lakes within current map viewport from API
+   * Fetch lakes within current map viewport from API (ice lakes prioritized)
    * @returns {Promise<Array>} Lakes in viewport
    */
   async fetchViewportLakes() {
     if (!this.map) return [];
 
     const bounds = this.map.getBounds();
-    const params = new URLSearchParams({
+    const baseParams = {
       north: bounds.getNorth(),
       south: bounds.getSouth(),
       east: bounds.getEast(),
-      west: bounds.getWest(),
-      limit: 500  // Still paginate within viewport
-    });
+      west: bounds.getWest()
+    };
 
     try {
-      const response = await fetch(`/api/lakes?${params}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // First fetch ice lakes in viewport
+      const iceParams = new URLSearchParams({
+        ...baseParams,
+        minThickness: 1,
+        limit: 300
+      });
+      const iceResponse = await fetch(`/api/lakes?${iceParams}`);
+      const iceData = await iceResponse.json();
+      const lakesWithIce = iceData.success ? (iceData.lakes || []) : [];
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.message || 'Failed to fetch lakes');
+      // Then fetch general lakes to fill up
+      const generalParams = new URLSearchParams({
+        ...baseParams,
+        limit: Math.max(200 - lakesWithIce.length, 0)
+      });
+      const generalResponse = await fetch(`/api/lakes?${generalParams}`);
+      const generalData = await generalResponse.json();
+      const generalLakes = generalData.success ? (generalData.lakes || []) : [];
 
-      return data.lakes;
+      // Combine: ice lakes first
+      return [...lakesWithIce, ...generalLakes];
     } catch (error) {
       console.error('Error fetching viewport lakes:', error);
       return [];
