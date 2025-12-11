@@ -35,18 +35,16 @@ const ChartRenderer = (() => {
 
     const dpr = window.devicePixelRatio || 1;
 
-    // Get parent container size
-    const parent = canvas.parentElement;
-    const width = parent.clientWidth;
-    const height = parent.clientHeight;
+    // Wait for canvas to have dimensions from CSS
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width || canvas.offsetWidth || 800;
+    const height = rect.height || canvas.offsetHeight || 400;
 
-    console.log('[ChartRenderer] Canvas dimensions:', { width, height, dpr });
+    console.log('[ChartRenderer] Canvas dimensions:', { width, height, dpr, rect });
 
-    // Set canvas size for retina displays
+    // Set canvas bitmap size for retina displays (don't override CSS styles)
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
     ctx.scale(dpr, dpr);
 
     // Padding
@@ -293,16 +291,16 @@ const ChartRenderer = (() => {
 
     const dpr = window.devicePixelRatio || 1;
 
-    // Get canvas size from parent or attributes
-    const parent = canvas.parentElement;
-    const width = parent.clientWidth;
-    const height = parent.clientHeight || 64;
+    // Get canvas size from CSS or use defaults
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width || canvas.offsetWidth || parseInt(canvas.getAttribute('width')) || 300;
+    const height = rect.height || canvas.offsetHeight || parseInt(canvas.getAttribute('height')) || 64;
 
-    // Set canvas dimensions
+    console.log('[ChartRenderer] Sparkline dimensions:', { width, height, species: canvas.dataset.species });
+
+    // Set canvas bitmap size (don't override CSS display size)
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
     ctx.scale(dpr, dpr);
 
     // Clear
