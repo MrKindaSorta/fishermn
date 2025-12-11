@@ -358,7 +358,7 @@ export async function getCurrentIceStatus(db, lakeId) {
           reported_at as updatedAt
         FROM ice_reports
         WHERE lake_id = ?
-          AND reported_at > datetime('now', '-24 hours')
+          AND reported_at > datetime('now', '-7 days')
         ORDER BY reported_at DESC
         LIMIT 1
       `)
@@ -428,7 +428,7 @@ export async function getAllCurrentIceStatus(db, lakeIds) {
   try {
     const placeholders = lakeIds.map(() => '?').join(',');
 
-    // Get most recent ice report per lake from last 24 hours
+    // Get most recent ice report per lake from last 7 days
     const query = `
       SELECT
         lake_id,
@@ -437,12 +437,12 @@ export async function getAllCurrentIceStatus(db, lakeIds) {
         reported_at as updatedAt
       FROM ice_reports ir1
       WHERE lake_id IN (${placeholders})
-        AND reported_at > datetime('now', '-24 hours')
+        AND reported_at > datetime('now', '-7 days')
         AND reported_at = (
           SELECT MAX(reported_at)
           FROM ice_reports ir2
           WHERE ir2.lake_id = ir1.lake_id
-            AND ir2.reported_at > datetime('now', '-24 hours')
+            AND ir2.reported_at > datetime('now', '-7 days')
         )
     `;
 

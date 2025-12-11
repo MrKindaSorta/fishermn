@@ -33,7 +33,8 @@ class LakesList {
       this.initFilters();
       this.initInfiniteScroll(); // Set up scroll detection
 
-      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, showing ${initialMarkers.length} markers (${lakesWithIce.slice(0, 100).length} with ice data)`);
+      const lakesWithIce = this.lakes.filter(l => l.officialIce?.thickness);
+      console.log(`Initialized with ${this.lakes.length}/${this.totalLakes} lakes, ${lakesWithIce.length} with ice data`);
     } catch (error) {
       console.error('Failed to initialize lakes page:', error);
       this.showError('Failed to load lakes. Please refresh the page.');
