@@ -74,14 +74,38 @@ const LakeDetail = {
       return;
     }
 
-    // Initialize tabs
-    this.initTabs();
+    // Initialize tabs with auth-based visibility
+    this.initTabsWithAuth();
 
     // Initialize button handlers
     this.initButtons();
 
     // Load all data
     await this.loadLakeData(slug);
+  },
+
+  /**
+   * Initialize tabs with authentication-based visibility
+   */
+  initTabsWithAuth() {
+    const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
+
+    // Get all tab buttons
+    const activityTab = document.querySelector('[data-tab="activity"]');
+    const discussionsTab = document.querySelector('[data-tab="discussions"]');
+
+    if (!isAuthenticated) {
+      // Hide Activity and Discussions tabs for logged-out users
+      if (activityTab) activityTab.style.display = 'none';
+      if (discussionsTab) discussionsTab.style.display = 'none';
+    } else {
+      // Show all tabs for authenticated users
+      if (activityTab) activityTab.style.display = '';
+      if (discussionsTab) discussionsTab.style.display = '';
+    }
+
+    // Initialize regular tab switching
+    this.initTabs();
   },
 
   /**
@@ -547,10 +571,14 @@ const LakeDetail = {
           ${report.condition ? `<span class="text-sm text-secondary capitalize">${report.condition}</span>` : ''}
         </div>
         ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs mb-2">
           <span class="font-medium">${report.user.displayName}</span>
           <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
         </div>
+        <div class="flex items-center justify-between border-t border-grayPanel pt-2">
+          ${this.renderVoteButtons(report, 'ice')}
+        </div>
+        ${this.renderCommentSection('ice', report.id, report.commentCount || 0)}
       </div>
     `;
   },
@@ -574,10 +602,14 @@ const LakeDetail = {
         </div>
         ${this.renderCatchDetails(report)}
         ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs mb-2">
           <span class="font-medium">${report.user.displayName}</span>
           <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
         </div>
+        <div class="flex items-center justify-between border-t border-grayPanel pt-2">
+          ${this.renderVoteButtons(report, 'catch')}
+        </div>
+        ${this.renderCommentSection('catch', report.id, report.commentCount || 0)}
       </div>
     `;
   },
@@ -601,10 +633,14 @@ const LakeDetail = {
           <span class="text-sm text-secondary capitalize">${report.coverage}</span>
         </div>
         ${report.locationNotes ? `<p class="text-sm text-secondary mb-2">${report.locationNotes}</p>` : ''}
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs mb-2">
           <span class="font-medium">${report.user.displayName}</span>
           <span class="badge bg-secondary text-white">${report.user.rankTier}</span>
         </div>
+        <div class="flex items-center justify-between border-t border-grayPanel pt-2">
+          ${this.renderVoteButtons(report, 'snow')}
+        </div>
+        ${this.renderCommentSection('snow', report.id, report.commentCount || 0)}
       </div>
     `;
   },
@@ -691,54 +727,38 @@ const LakeDetail = {
     const container = document.getElementById('activity-feed');
     if (!container) return;
 
-    // Build activity from all sources
+    // Build activity from all sources with full report data
     const activity = [];
 
     this.iceReports.forEach(report => {
       activity.push({
         type: 'ice',
-        user: report.user.displayName,
-        timestamp: this.formatDate(report.reportedAt),
-        rawTimestamp: new Date(report.reportedAt),
-        content: `Reported ${report.thicknessInches}" ice thickness (${report.condition || 'condition unknown'})${report.locationNotes ? '. ' + report.locationNotes : ''}`,
-        likes: 0,
-        comments: 0
+        data: report,
+        rawTimestamp: new Date(report.reportedAt)
       });
     });
 
     this.catchReports.forEach(report => {
       activity.push({
         type: 'catch',
-        user: report.user.displayName,
-        timestamp: this.formatDate(report.caughtAt),
-        rawTimestamp: new Date(report.caughtAt),
-        content: `Caught ${report.fishCount > 1 ? report.fishCount + ' ' : ''}${report.fishSpecies}${report.largestSizeInches ? ' (' + report.largestSizeInches + '")' : ''}${report.baitUsed ? ' using ' + report.baitUsed : ''}`,
-        likes: 0,
-        comments: 0
+        data: report,
+        rawTimestamp: new Date(report.caughtAt)
       });
     });
 
     this.snowReports.forEach(report => {
       activity.push({
         type: 'snow',
-        user: report.user.displayName,
-        timestamp: this.formatDate(report.reportedAt),
-        rawTimestamp: new Date(report.reportedAt),
-        content: `Reported ${report.thicknessInches}" of snow (${report.snowType}, ${report.coverage} coverage)${report.locationNotes ? '. ' + report.locationNotes : ''}`,
-        likes: 0,
-        comments: 0
+        data: report,
+        rawTimestamp: new Date(report.reportedAt)
       });
     });
 
     this.lakeUpdates.forEach(update => {
       activity.push({
         type: 'general',
-        user: update.user.displayName,
-        timestamp: this.formatDate(update.createdAt),
-        rawTimestamp: new Date(update.createdAt),
-        content: update.content,
-        likes: 0,
-        comments: 0
+        data: update,
+        rawTimestamp: new Date(update.createdAt)
       });
     });
 
@@ -759,39 +779,39 @@ const LakeDetail = {
       return;
     }
 
-    container.innerHTML = filtered.map(post => {
-      const typeInfo = this.ACTIVITY_TYPES[post.type] || this.ACTIVITY_TYPES.general;
-      const initials = post.user.substring(0, 2).toUpperCase();
-
-      return `
-        <div class="card activity-post">
-          <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-              ${initials}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-semibold">${post.user}</span>
-                <span class="text-xs text-secondary">${post.timestamp}</span>
+    container.innerHTML = filtered.map(item => {
+      // Render full cards based on type
+      if (item.type === 'ice') {
+        return this.renderIceReportCard(item.data);
+      } else if (item.type === 'catch') {
+        return this.renderCatchReportCard(item.data);
+      } else if (item.type === 'snow') {
+        return this.renderSnowReportCard(item.data);
+      } else if (item.type === 'general') {
+        // Render general update card with votes/comments
+        const update = item.data;
+        const initials = update.user.displayName.substring(0, 2).toUpperCase();
+        return `
+          <div class="bg-frost rounded-lg p-4">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs flex-shrink-0">
+                ${initials}
               </div>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: ${typeInfo.color}20; color: ${typeInfo.color};">
-                  ${typeInfo.icon} ${typeInfo.label}
-                </span>
-              </div>
-              <p class="text-sm mb-3">${post.content}</p>
-              <div class="flex items-center gap-4 text-xs text-secondary">
-                <button class="flex items-center gap-1 hover:text-primary transition-colors">
-                  <span>👍</span> ${post.likes} likes
-                </button>
-                <button class="flex items-center gap-1 hover:text-primary transition-colors">
-                  <span>💬</span> ${post.comments} comments
-                </button>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-semibold text-sm">${update.user.displayName}</span>
+                  <span class="text-xs text-secondary">${this.formatDate(update.createdAt)}</span>
+                </div>
+                <p class="text-sm mb-2">${update.content}</p>
+                <div class="flex items-center justify-between border-t border-grayPanel pt-2">
+                  ${this.renderVoteButtons(update, 'update')}
+                </div>
+                ${this.renderCommentSection('update', update.id, update.commentCount || 0)}
               </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
+      }
     }).join('');
   },
 
@@ -1251,6 +1271,544 @@ const LakeDetail = {
     if (diffDays < 7) return `${diffDays}d ago`;
 
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  },
+
+  // ==================== VOTING METHODS ====================
+
+  /**
+   * Render vote buttons with current counts
+   * @param {Object} item - Content item (report or update)
+   * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
+   * @returns {string} HTML for vote buttons
+   */
+  renderVoteButtons(item, contentType) {
+    const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
+
+    if (!isAuthenticated) {
+      // Show counts only (no interactive buttons)
+      return `
+        <div class="flex items-center gap-3 text-sm text-secondary">
+          <span class="flex items-center gap-1">
+            ↑ ${item.upvotes || 0}
+          </span>
+          <span class="flex items-center gap-1">
+            ↓ ${item.downvotes || 0}
+          </span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="flex items-center gap-3 text-sm">
+        <button
+          class="vote-btn flex items-center gap-1 hover:text-evergreen transition-colors text-secondary"
+          data-content-type="${contentType}"
+          data-content-id="${item.id}"
+          data-vote-type="up"
+          onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'up')"
+        >
+          ↑ <span class="vote-count-up">${item.upvotes || 0}</span>
+        </button>
+        <button
+          class="vote-btn flex items-center gap-1 hover:text-danger transition-colors text-secondary"
+          data-content-type="${contentType}"
+          data-content-id="${item.id}"
+          data-vote-type="down"
+          onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'down')"
+        >
+          ↓ <span class="vote-count-down">${item.downvotes || 0}</span>
+        </button>
+      </div>
+    `;
+  },
+
+  /**
+   * Handle vote button click
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   * @param {string} voteType - 'up' or 'down'
+   */
+  async handleVote(contentType, contentId, voteType) {
+    if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
+      if (typeof AuthModal !== 'undefined') AuthModal.open();
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('fishermn_auth_token');
+      const response = await fetch(`/api/votes/${contentType}/${contentId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ voteType })
+      });
+
+      if (!response.ok) {
+        throw new Error('Vote request failed');
+      }
+
+      const data = await response.json();
+
+      // Optimistic UI update
+      this.updateVoteUI(contentType, contentId, data.action, voteType);
+
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Failed to record vote. Please try again.');
+    }
+  },
+
+  /**
+   * Update vote UI after vote action
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   * @param {string} action - 'created', 'changed', 'removed'
+   * @param {string} voteType - 'up' or 'down'
+   */
+  updateVoteUI(contentType, contentId, action, voteType) {
+    // Find vote buttons for this content
+    const upBtn = document.querySelector(`[data-content-id="${contentId}"][data-vote-type="up"]`);
+    const downBtn = document.querySelector(`[data-content-id="${contentId}"][data-vote-type="down"]`);
+
+    if (!upBtn || !downBtn) return;
+
+    const upCount = upBtn.querySelector('.vote-count-up');
+    const downCount = downBtn.querySelector('.vote-count-down');
+
+    if (action === 'created') {
+      // New vote - increment count
+      if (voteType === 'up') {
+        upCount.textContent = parseInt(upCount.textContent) + 1;
+      } else {
+        downCount.textContent = parseInt(downCount.textContent) + 1;
+      }
+    } else if (action === 'removed') {
+      // Removed vote - decrement count
+      if (voteType === 'up') {
+        upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+      } else {
+        downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+      }
+    } else if (action === 'changed') {
+      // Changed vote - decrement old, increment new
+      if (voteType === 'up') {
+        downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+        upCount.textContent = parseInt(upCount.textContent) + 1;
+      } else {
+        upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+        downCount.textContent = parseInt(downCount.textContent) + 1;
+      }
+    }
+  },
+
+  // ==================== COMMENT METHODS ====================
+
+  /**
+   * Render comment section for a content item
+   * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
+   * @param {string} contentId - Content item ID
+   * @param {number} commentCount - Total comment count
+   * @returns {string} HTML for comment section
+   */
+  renderCommentSection(contentType, contentId, commentCount) {
+    const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
+
+    return `
+      <div class="comment-section mt-3 border-t border-grayPanel pt-3">
+        <!-- Comment Toggle Button -->
+        <button
+          class="comment-toggle-btn flex items-center gap-2 text-sm text-secondary hover:text-primary transition-colors w-full"
+          onclick="LakeDetail.toggleComments('${contentType}', '${contentId}')"
+        >
+          <span>💬</span>
+          <span class="comment-count-text">${commentCount} comment${commentCount !== 1 ? 's' : ''}</span>
+          <svg class="w-4 h-4 transform transition-transform comment-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+
+        <!-- Comment Container (initially hidden) -->
+        <div
+          class="comment-container hidden mt-3"
+          data-content-type="${contentType}"
+          data-content-id="${contentId}"
+        >
+          <!-- Sort Toggle -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex gap-2 text-xs">
+              <button
+                class="sort-btn active px-2 py-1 rounded hover:bg-frost transition-colors"
+                data-sort="newest"
+                onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'newest')"
+              >
+                Newest
+              </button>
+              <button
+                class="sort-btn px-2 py-1 rounded hover:bg-frost transition-colors"
+                data-sort="liked"
+                onclick="LakeDetail.changeCommentSort('${contentType}', '${contentId}', 'liked')"
+              >
+                Most Liked
+              </button>
+            </div>
+          </div>
+
+          <!-- Comments List (scrollable) -->
+          <div class="comments-list space-y-2 max-h-80 overflow-y-auto">
+            <p class="text-xs text-secondary">Loading comments...</p>
+          </div>
+
+          ${isAuthenticated ? `
+            <!-- Comment Input -->
+            <div class="comment-input-section mt-3 pt-3 border-t border-grayPanel">
+              <textarea
+                class="comment-input w-full p-2 text-sm border border-grayPanel rounded-lg resize-none focus:outline-none focus:border-primary"
+                placeholder="Add a comment... (144 characters max)"
+                maxlength="144"
+                rows="2"
+                data-content-type="${contentType}"
+                data-content-id="${contentId}"
+                oninput="LakeDetail.updateCharCount(this)"
+              ></textarea>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xs text-secondary char-count">0/144</span>
+                <button
+                  class="btn-sm btn-primary"
+                  onclick="LakeDetail.postComment('${contentType}', '${contentId}')"
+                >
+                  Post Comment
+                </button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Toggle comment section visibility
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   */
+  async toggleComments(contentType, contentId) {
+    const container = document.querySelector(
+      `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!container) return;
+
+    const isHidden = container.classList.contains('hidden');
+    const chevron = container.previousElementSibling?.querySelector('.comment-chevron');
+
+    if (isHidden) {
+      // Expand - load comments
+      container.classList.remove('hidden');
+      if (chevron) chevron.classList.add('rotate-180');
+
+      // Load comments if not already loaded
+      if (!container.dataset.loaded) {
+        await this.loadComments(contentType, contentId, 'newest');
+        container.dataset.loaded = 'true';
+      }
+    } else {
+      // Collapse
+      container.classList.add('hidden');
+      if (chevron) chevron.classList.remove('rotate-180');
+    }
+  },
+
+  /**
+   * Load comments for content
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   * @param {string} sortBy - 'newest' or 'liked'
+   * @param {number} offset - Offset for pagination
+   */
+  async loadComments(contentType, contentId, sortBy = 'newest', offset = 0) {
+    const container = document.querySelector(
+      `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!container) return;
+
+    const commentsList = container.querySelector('.comments-list');
+
+    try {
+      const response = await fetch(
+        `/api/comments/${contentType}/${contentId}?sortBy=${sortBy}&limit=10&offset=${offset}`
+      );
+
+      if (!response.ok) throw new Error('Failed to load comments');
+
+      const data = await response.json();
+
+      if (data.comments.length === 0 && offset === 0) {
+        commentsList.innerHTML = '<p class="text-xs text-secondary">No comments yet. Be the first!</p>';
+        return;
+      }
+
+      // Render comments
+      const commentsHTML = data.comments.map(comment => this.renderComment(comment)).join('');
+
+      if (offset === 0) {
+        commentsList.innerHTML = commentsHTML;
+      } else {
+        const loadMoreBtn = commentsList.querySelector('.load-more-btn');
+        if (loadMoreBtn) loadMoreBtn.remove();
+        commentsList.innerHTML += commentsHTML;
+      }
+
+      // Add "Load More" button if there are more comments
+      if (data.hasMore) {
+        const loadMoreBtn = `
+          <button
+            class="load-more-btn w-full text-xs text-primary hover:underline py-2"
+            onclick="LakeDetail.loadComments('${contentType}', '${contentId}', '${sortBy}', ${offset + 10})"
+          >
+            View ${data.totalCount - (offset + data.count)} more comment${data.totalCount - (offset + data.count) !== 1 ? 's' : ''}
+          </button>
+        `;
+        commentsList.innerHTML += loadMoreBtn;
+      }
+
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      commentsList.innerHTML = '<p class="text-xs text-danger">Failed to load comments</p>';
+    }
+  },
+
+  /**
+   * Render individual comment
+   * @param {Object} comment - Comment object
+   * @returns {string} HTML for comment
+   */
+  renderComment(comment) {
+    const initials = comment.user.displayName.substring(0, 2).toUpperCase();
+
+    return `
+      <div class="comment bg-frost/50 rounded-lg p-2">
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-white text-xs flex-shrink-0">
+            ${initials}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-semibold">${comment.user.displayName}</span>
+              <span class="text-xs text-secondary">${this.formatDate(comment.createdAt)}</span>
+            </div>
+            <p class="text-sm mb-2">${comment.body}</p>
+            <div class="flex items-center gap-3">
+              ${this.renderCommentVoteButtons(comment)}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render vote buttons for comments
+   * @param {Object} comment - Comment object
+   * @returns {string} HTML for comment vote buttons
+   */
+  renderCommentVoteButtons(comment) {
+    const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
+
+    if (!isAuthenticated) {
+      return `
+        <div class="flex items-center gap-2 text-xs text-secondary">
+          <span>↑ ${comment.upvotes || 0}</span>
+          <span>↓ ${comment.downvotes || 0}</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="flex items-center gap-2 text-xs">
+        <button
+          class="comment-vote-btn flex items-center gap-1 hover:text-evergreen transition-colors text-secondary"
+          onclick="LakeDetail.voteOnComment('${comment.id}', 'up')"
+        >
+          ↑ <span class="comment-vote-up-${comment.id}">${comment.upvotes || 0}</span>
+        </button>
+        <button
+          class="comment-vote-btn flex items-center gap-1 hover:text-danger transition-colors text-secondary"
+          onclick="LakeDetail.voteOnComment('${comment.id}', 'down')"
+        >
+          ↓ <span class="comment-vote-down-${comment.id}">${comment.downvotes || 0}</span>
+        </button>
+      </div>
+    `;
+  },
+
+  /**
+   * Post a new comment
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   */
+  async postComment(contentType, contentId) {
+    if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
+      if (typeof AuthModal !== 'undefined') AuthModal.open();
+      return;
+    }
+
+    const textarea = document.querySelector(
+      `textarea[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!textarea) return;
+
+    const body = textarea.value.trim();
+
+    if (!body) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    if (body.length > 144) {
+      alert('Comment must be 144 characters or less');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('fishermn_auth_token');
+      const response = await fetch(`/api/comments/${contentType}/${contentId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ body })
+      });
+
+      if (!response.ok) throw new Error('Failed to post comment');
+
+      // Clear textarea
+      textarea.value = '';
+      this.updateCharCount(textarea);
+
+      // Reload comments
+      const container = document.querySelector(
+        `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+      );
+      const sortBtn = container?.querySelector('.sort-btn.active');
+      const sortBy = sortBtn?.dataset.sort || 'newest';
+      await this.loadComments(contentType, contentId, sortBy);
+
+      // Update comment count in toggle button
+      const toggleBtn = container?.previousElementSibling;
+      if (toggleBtn) {
+        const countSpan = toggleBtn.querySelector('.comment-count-text');
+        if (countSpan) {
+          const currentCount = parseInt(countSpan.textContent);
+          countSpan.textContent = `${currentCount + 1} comment${currentCount + 1 !== 1 ? 's' : ''}`;
+        }
+      }
+
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      alert('Failed to post comment. Please try again.');
+    }
+  },
+
+  /**
+   * Vote on a comment
+   * @param {string} commentId - Comment ID
+   * @param {string} voteType - 'up' or 'down'
+   */
+  async voteOnComment(commentId, voteType) {
+    if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
+      if (typeof AuthModal !== 'undefined') AuthModal.open();
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('fishermn_auth_token');
+      const response = await fetch(`/api/comments/${commentId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ voteType })
+      });
+
+      if (!response.ok) throw new Error('Failed to vote on comment');
+
+      const data = await response.json();
+
+      // Update UI
+      const upSpan = document.querySelector(`.comment-vote-up-${commentId}`);
+      const downSpan = document.querySelector(`.comment-vote-down-${commentId}`);
+
+      if (upSpan && downSpan) {
+        if (data.action === 'created') {
+          if (voteType === 'up') {
+            upSpan.textContent = parseInt(upSpan.textContent) + 1;
+          } else {
+            downSpan.textContent = parseInt(downSpan.textContent) + 1;
+          }
+        } else if (data.action === 'removed') {
+          if (voteType === 'up') {
+            upSpan.textContent = Math.max(0, parseInt(upSpan.textContent) - 1);
+          } else {
+            downSpan.textContent = Math.max(0, parseInt(downSpan.textContent) - 1);
+          }
+        } else if (data.action === 'changed') {
+          if (voteType === 'up') {
+            downSpan.textContent = Math.max(0, parseInt(downSpan.textContent) - 1);
+            upSpan.textContent = parseInt(upSpan.textContent) + 1;
+          } else {
+            upSpan.textContent = Math.max(0, parseInt(upSpan.textContent) - 1);
+            downSpan.textContent = parseInt(downSpan.textContent) + 1;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error voting on comment:', error);
+      alert('Failed to record vote. Please try again.');
+    }
+  },
+
+  /**
+   * Update character count display
+   * @param {HTMLTextAreaElement} textarea - Textarea element
+   */
+  updateCharCount(textarea) {
+    const charCount = textarea.closest('.comment-input-section')?.querySelector('.char-count');
+    if (charCount) {
+      charCount.textContent = `${textarea.value.length}/144`;
+    }
+  },
+
+  /**
+   * Change comment sort order
+   * @param {string} contentType - Content type
+   * @param {string} contentId - Content ID
+   * @param {string} sortBy - 'newest' or 'liked'
+   */
+  async changeCommentSort(contentType, contentId, sortBy) {
+    const container = document.querySelector(
+      `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
+    );
+
+    if (!container) return;
+
+    // Update sort button states
+    container.querySelectorAll('.sort-btn').forEach(btn => {
+      if (btn.dataset.sort === sortBy) {
+        btn.classList.add('active', 'bg-primary/10', 'text-primary', 'font-medium');
+      } else {
+        btn.classList.remove('active', 'bg-primary/10', 'text-primary', 'font-medium');
+      }
+    });
+
+    // Reload comments with new sort
+    await this.loadComments(contentType, contentId, sortBy);
   }
 };
 

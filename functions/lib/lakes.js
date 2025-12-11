@@ -75,7 +75,8 @@ export async function getIceReportsForLake(db, lakeId, limit = 20) {
           ir.*,
           u.display_name as user_display_name,
           u.rank_tier as user_rank_tier,
-          u.reliability_score as user_reliability
+          u.reliability_score as user_reliability,
+          (SELECT COUNT(*) FROM comments WHERE content_type = 'ice' AND content_id = ir.id) as comment_count
         FROM ice_reports ir
         JOIN users u ON ir.user_id = u.id
         WHERE ir.lake_id = ?
@@ -106,7 +107,8 @@ export async function getCatchReportsForLake(db, lakeId, limit = 20) {
         SELECT
           cr.*,
           u.display_name as user_display_name,
-          u.rank_tier as user_rank_tier
+          u.rank_tier as user_rank_tier,
+          (SELECT COUNT(*) FROM comments WHERE content_type = 'catch' AND content_id = cr.id) as comment_count
         FROM catch_reports cr
         JOIN users u ON cr.user_id = u.id
         WHERE cr.lake_id = ?
@@ -530,6 +532,9 @@ export function formatIceReportForResponse(report) {
     longitude: report.longitude,
     reportedAt: report.reported_at,
     createdAt: report.created_at,
+    upvotes: report.upvotes || 0,
+    downvotes: report.downvotes || 0,
+    commentCount: report.comment_count || 0,
     user: {
       displayName: report.user_display_name,
       rankTier: report.user_rank_tier,
@@ -559,6 +564,9 @@ export function formatCatchReportForResponse(report) {
     photoUrl: report.photo_url,
     caughtAt: report.caught_at,
     createdAt: report.created_at,
+    upvotes: report.upvotes || 0,
+    downvotes: report.downvotes || 0,
+    commentCount: report.comment_count || 0,
     user: {
       displayName: report.user_display_name,
       rankTier: report.user_rank_tier
@@ -581,7 +589,8 @@ export async function getSnowReportsForLake(db, lakeId, limit = 20) {
           sr.*,
           u.display_name as user_display_name,
           u.rank_tier as user_rank_tier,
-          u.reliability_score as user_reliability
+          u.reliability_score as user_reliability,
+          (SELECT COUNT(*) FROM comments WHERE content_type = 'snow' AND content_id = sr.id) as comment_count
         FROM snow_reports sr
         JOIN users u ON sr.user_id = u.id
         WHERE sr.lake_id = ?
@@ -662,8 +671,9 @@ export function formatSnowReportForResponse(report) {
     locationNotes: report.location_notes,
     reportedAt: report.reported_at,
     createdAt: report.created_at,
-    upvotes: report.upvotes,
-    downvotes: report.downvotes,
+    upvotes: report.upvotes || 0,
+    downvotes: report.downvotes || 0,
+    commentCount: report.comment_count || 0,
     user: {
       displayName: report.user_display_name,
       rankTier: report.user_rank_tier,
@@ -687,7 +697,8 @@ export async function getLakeUpdates(db, lakeId, limit = 20) {
           lu.*,
           u.display_name as user_display_name,
           u.rank_tier as user_rank_tier,
-          u.reliability_score as user_reliability
+          u.reliability_score as user_reliability,
+          (SELECT COUNT(*) FROM comments WHERE content_type = 'update' AND content_id = lu.id) as comment_count
         FROM lake_updates lu
         JOIN users u ON lu.user_id = u.id
         WHERE lu.lake_id = ?
@@ -753,10 +764,268 @@ export function formatLakeUpdateForResponse(update) {
     lakeId: update.lake_id,
     content: update.content,
     createdAt: update.created_at,
+    upvotes: update.upvotes || 0,
+    downvotes: update.downvotes || 0,
+    commentCount: update.comment_count || 0,
     user: {
       displayName: update.user_display_name,
       rankTier: update.user_rank_tier,
       reliabilityScore: update.user_reliability
+    }
+  };
+}
+
+// ==================== VOTING FUNCTIONS ====================
+
+/**
+ * Get user's vote on a specific content item
+ * @param {D1Database} db - Database instance
+ * @param {string} userId - User ID
+ * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
+ * @param {string} contentId - Content item ID
+ * @returns {Promise<Object|null>} Vote object or null
+ */
+export async function getUserVote(db, userId, contentType, contentId) {
+  try {
+    const result = await db
+      .prepare('SELECT * FROM votes WHERE user_id = ? AND report_type = ? AND report_id = ?')
+      .bind(userId, contentType, contentId)
+      .first();
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user vote:', error);
+    return null;
+  }
+}
+
+/**
+ * Create or update a vote (handles vote changes and removal)
+ * @param {D1Database} db - Database instance
+ * @param {string} userId - User ID
+ * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
+ * @param {string} contentId - Content item ID
+ * @param {string} voteType - 'up' or 'down'
+ * @returns {Promise<Object>} Result with action and vote state
+ */
+export async function upsertVote(db, userId, contentType, contentId, voteType) {
+  const now = new Date().toISOString();
+  const voteId = `vote-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Check for existing vote
+  const existingVote = await getUserVote(db, userId, contentType, contentId);
+
+  // Determine table name from content type
+  const tableName = contentType === 'ice' ? 'ice_reports'
+    : contentType === 'catch' ? 'catch_reports'
+    : contentType === 'snow' ? 'snow_reports'
+    : 'lake_updates';
+
+  try {
+    if (!existingVote) {
+      // New vote - insert and increment count
+      await db.batch([
+        db.prepare('INSERT INTO votes (id, user_id, report_type, report_id, vote_type, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(voteId, userId, contentType, contentId, voteType, now),
+        db.prepare(`UPDATE ${tableName} SET ${voteType === 'up' ? 'upvotes' : 'downvotes'} = ${voteType === 'up' ? 'upvotes' : 'downvotes'} + 1 WHERE id = ?`)
+          .bind(contentId)
+      ]);
+
+      return { action: 'created', previousVote: null, newVote: voteType };
+    } else if (existingVote.vote_type === voteType) {
+      // Same vote - remove it (toggle off)
+      await db.batch([
+        db.prepare('DELETE FROM votes WHERE user_id = ? AND report_type = ? AND report_id = ?')
+          .bind(userId, contentType, contentId),
+        db.prepare(`UPDATE ${tableName} SET ${voteType === 'up' ? 'upvotes' : 'downvotes'} = MAX(0, ${voteType === 'up' ? 'upvotes' : 'downvotes'} - 1) WHERE id = ?`)
+          .bind(contentId)
+      ]);
+
+      return { action: 'removed', previousVote: voteType, newVote: null };
+    } else {
+      // Different vote - change it (decrement old, increment new)
+      const oldType = existingVote.vote_type;
+      const oldColumn = oldType === 'up' ? 'upvotes' : 'downvotes';
+      const newColumn = voteType === 'up' ? 'upvotes' : 'downvotes';
+
+      await db.batch([
+        db.prepare('UPDATE votes SET vote_type = ? WHERE user_id = ? AND report_type = ? AND report_id = ?')
+          .bind(voteType, userId, contentType, contentId),
+        db.prepare(`UPDATE ${tableName} SET ${oldColumn} = MAX(0, ${oldColumn} - 1), ${newColumn} = ${newColumn} + 1 WHERE id = ?`)
+          .bind(contentId)
+      ]);
+
+      return { action: 'changed', previousVote: oldType, newVote: voteType };
+    }
+  } catch (error) {
+    console.error('Error upserting vote:', error);
+    throw new Error('Failed to update vote');
+  }
+}
+
+// ==================== COMMENT FUNCTIONS ====================
+
+/**
+ * Get comments for content with pagination and sorting
+ * @param {D1Database} db - Database instance
+ * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
+ * @param {string} contentId - Content item ID
+ * @param {Object} options - { sortBy: 'newest'|'liked', limit: 10, offset: 0 }
+ * @returns {Promise<Array>} Array of comments with user info
+ */
+export async function getComments(db, contentType, contentId, options = {}) {
+  const { sortBy = 'newest', limit = 10, offset = 0 } = options;
+
+  const orderBy = sortBy === 'liked'
+    ? 'c.upvotes DESC, c.created_at DESC'  // Most liked, then newest
+    : 'c.created_at DESC';                  // Newest first
+
+  try {
+    const result = await db
+      .prepare(`
+        SELECT
+          c.*,
+          u.display_name as user_display_name,
+          u.rank_tier as user_rank_tier
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.content_type = ? AND c.content_id = ?
+        ORDER BY ${orderBy}
+        LIMIT ? OFFSET ?
+      `)
+      .bind(contentType, contentId, limit, offset)
+      .all();
+
+    return result.results || [];
+  } catch (error) {
+    console.error('Error getting comments:', error);
+    throw new Error('Database query failed');
+  }
+}
+
+/**
+ * Get comment count for content
+ * @param {D1Database} db - Database instance
+ * @param {string} contentType - Content type
+ * @param {string} contentId - Content ID
+ * @returns {Promise<number>} Comment count
+ */
+export async function getCommentCount(db, contentType, contentId) {
+  try {
+    const result = await db
+      .prepare('SELECT COUNT(*) as count FROM comments WHERE content_type = ? AND content_id = ?')
+      .bind(contentType, contentId)
+      .first();
+    return result?.count || 0;
+  } catch (error) {
+    console.error('Error getting comment count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Create a comment
+ * @param {D1Database} db - Database instance
+ * @param {Object} commentData - Comment data
+ * @returns {Promise<Object>} Created comment
+ */
+export async function createComment(db, commentData) {
+  const { id, userId, contentType, contentId, body, createdAt } = commentData;
+
+  try {
+    await db
+      .prepare(`
+        INSERT INTO comments (id, user_id, content_type, content_id, body, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+      .bind(id, userId, contentType, contentId, body, createdAt)
+      .run();
+
+    return await db
+      .prepare('SELECT * FROM comments WHERE id = ?')
+      .bind(id)
+      .first();
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    throw new Error('Failed to create comment');
+  }
+}
+
+/**
+ * Vote on a comment
+ * @param {D1Database} db - Database instance
+ * @param {string} userId - User ID
+ * @param {string} commentId - Comment ID
+ * @param {string} voteType - 'up' or 'down'
+ * @returns {Promise<Object>} Vote result
+ */
+export async function voteOnComment(db, userId, commentId, voteType) {
+  const now = new Date().toISOString();
+  const voteId = `cvote-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  try {
+    // Check existing vote
+    const existingVote = await db
+      .prepare('SELECT * FROM comment_votes WHERE user_id = ? AND comment_id = ?')
+      .bind(userId, commentId)
+      .first();
+
+    if (!existingVote) {
+      // New vote
+      await db.batch([
+        db.prepare('INSERT INTO comment_votes (id, user_id, comment_id, vote_type, created_at) VALUES (?, ?, ?, ?, ?)')
+          .bind(voteId, userId, commentId, voteType, now),
+        db.prepare(`UPDATE comments SET ${voteType === 'up' ? 'upvotes' : 'downvotes'} = ${voteType === 'up' ? 'upvotes' : 'downvotes'} + 1 WHERE id = ?`)
+          .bind(commentId)
+      ]);
+      return { action: 'created', newVote: voteType };
+    } else if (existingVote.vote_type === voteType) {
+      // Remove vote
+      await db.batch([
+        db.prepare('DELETE FROM comment_votes WHERE user_id = ? AND comment_id = ?')
+          .bind(userId, commentId),
+        db.prepare(`UPDATE comments SET ${voteType === 'up' ? 'upvotes' : 'downvotes'} = MAX(0, ${voteType === 'up' ? 'upvotes' : 'downvotes'} - 1) WHERE id = ?`)
+          .bind(commentId)
+      ]);
+      return { action: 'removed', newVote: null };
+    } else {
+      // Change vote
+      const oldType = existingVote.vote_type;
+      const oldColumn = oldType === 'up' ? 'upvotes' : 'downvotes';
+      const newColumn = voteType === 'up' ? 'upvotes' : 'downvotes';
+
+      await db.batch([
+        db.prepare('UPDATE comment_votes SET vote_type = ? WHERE user_id = ? AND comment_id = ?')
+          .bind(voteType, userId, commentId),
+        db.prepare(`UPDATE comments SET ${oldColumn} = MAX(0, ${oldColumn} - 1), ${newColumn} = ${newColumn} + 1 WHERE id = ?`)
+          .bind(commentId)
+      ]);
+      return { action: 'changed', newVote: voteType };
+    }
+  } catch (error) {
+    console.error('Error voting on comment:', error);
+    throw new Error('Failed to vote on comment');
+  }
+}
+
+/**
+ * Format comment for API response
+ * @param {Object} comment - Comment from database
+ * @returns {Object} Formatted comment
+ */
+export function formatCommentForResponse(comment) {
+  if (!comment) return null;
+
+  return {
+    id: comment.id,
+    contentType: comment.content_type,
+    contentId: comment.content_id,
+    body: comment.body,
+    upvotes: comment.upvotes || 0,
+    downvotes: comment.downvotes || 0,
+    createdAt: comment.created_at,
+    user: {
+      displayName: comment.user_display_name,
+      rankTier: comment.user_rank_tier
     }
   };
 }
