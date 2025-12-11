@@ -319,8 +319,8 @@ const LakeDetail = {
       dailyData[dayKey].icons.push(item.weather[0]?.icon);
     });
 
-    // Convert to array and take first 3 days
-    const days = Object.values(dailyData).slice(0, 3);
+    // Convert to array and take first 5 days
+    const days = Object.values(dailyData).slice(0, 5);
 
     return days.map(day => {
       const dayName = day.date.toLocaleDateString('en-US', { weekday: 'short' });
