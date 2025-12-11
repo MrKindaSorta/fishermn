@@ -41,13 +41,10 @@ const BiteForecast = (() => {
       const saved = localStorage.getItem('fishermn_favorite_species');
       if (saved) {
         state.favoriteSpecies = JSON.parse(saved);
-        console.log('[BiteForecast] Loaded favorites:', state.favoriteSpecies);
       } else {
-        // Default favorites if none saved
         state.favoriteSpecies = ['yellowPerch', 'walleye', 'blackCrappie'];
       }
     } catch (error) {
-      console.warn('[BiteForecast] Could not load favorites:', error);
       state.favoriteSpecies = ['yellowPerch', 'walleye', 'blackCrappie'];
     }
   }
@@ -58,7 +55,6 @@ const BiteForecast = (() => {
   function saveFavorites() {
     try {
       localStorage.setItem('fishermn_favorite_species', JSON.stringify(state.favoriteSpecies));
-      console.log('[BiteForecast] Saved favorites:', state.favoriteSpecies);
     } catch (error) {
       console.warn('[BiteForecast] Could not save favorites:', error);
     }
@@ -80,7 +76,6 @@ const BiteForecast = (() => {
 
     saveFavorites();
     renderSpeciesCards(); // Re-render to update star icons
-    console.log('[BiteForecast] Toggled favorite:', speciesId, 'Favorites:', state.favoriteSpecies);
   }
 
   /**
@@ -97,19 +92,15 @@ const BiteForecast = (() => {
     const index = state.selectedSpecies.indexOf(speciesId);
 
     if (index > -1) {
-      // Remove from graph
       state.selectedSpecies.splice(index, 1);
     } else {
-      // Add to graph
       state.selectedSpecies.push(speciesId);
     }
-
-    console.log('[BiteForecast] Selected species:', state.selectedSpecies);
 
     // Re-render main graph and species selector
     renderSpeciesSelector();
     renderMainGraph();
-    renderSpeciesCards(); // Update button states
+    renderSpeciesCards();
   }
 
   /**
@@ -189,12 +180,9 @@ const BiteForecast = (() => {
    * @param {object} weatherData - Weather data from lake-detail.js
    */
   async function init(lakeData, weatherData) {
-    console.log('[BiteForecast] Initializing...');
-
     // Check if already initialized with same data (cache check)
     const newCacheKey = generateCacheKey(weatherData);
     if (state.initialized && state.cacheKey === newCacheKey) {
-      console.log('[BiteForecast] Using cached data');
       showContent();
       return;
     }
@@ -219,8 +207,7 @@ const BiteForecast = (() => {
       state.weatherData = weatherData;
       state.cacheKey = newCacheKey;
 
-      // Step 1: Interpolate 3-hour forecast to hourly data
-      console.log('[BiteForecast] Interpolating weather data...');
+      // Interpolate weather data
       state.hourlyWeather = WeatherInterpolator.interpolate(
         weatherData.forecast.list,
         Date.now()
@@ -230,58 +217,41 @@ const BiteForecast = (() => {
         throw new Error('Weather interpolation failed');
       }
 
-      // Step 2: Calculate sunrise/sunset times
-      console.log('[BiteForecast] Calculating sun times...');
+      // Calculate sun times
       state.sunTimes = WeatherAnalyzer.calculateSunTimes(
         lakeData.latitude,
         lakeData.longitude,
         new Date()
       );
 
-      // Step 3: Detect storm events
-      console.log('[BiteForecast] Detecting storm events...');
+      // Detect storm events
       state.stormEvents = WeatherAnalyzer.detectStormEvents(state.hourlyWeather);
-      console.log(`[BiteForecast] Found ${state.stormEvents.length} storm events`);
 
-      // Step 4: Find lake's weather region
-      console.log('[BiteForecast] Finding lake region...');
+      // Find weather region
       let region = null;
       try {
         const regionRes = await fetch(`/api/regions/find?lat=${lakeData.latitude}&lon=${lakeData.longitude}`);
         if (regionRes.ok) {
           region = await regionRes.json();
-          console.log(`[BiteForecast] Lake is in region ${region.code} (${region.name})`);
-        } else {
-          console.warn('[BiteForecast] Could not determine region');
         }
       } catch (err) {
         console.warn('[BiteForecast] Region lookup failed:', err.message);
       }
 
-      // Step 5: Fetch weather history for this region
-      console.log('[BiteForecast] Fetching regional weather history...');
+      // Fetch weather history
       try {
         if (region) {
           const historyRes = await fetch(`/api/weather-history?region_id=${region.region_id}&days=7`);
           if (historyRes.ok) {
             state.weatherHistory = await historyRes.json();
-            console.log(`[BiteForecast] Loaded ${state.weatherHistory?.length || 0} regional historical records`);
-          } else {
-            console.warn('[BiteForecast] Weather history not available');
-            state.weatherHistory = null;
           }
-        } else {
-          state.weatherHistory = null;
         }
       } catch (err) {
-        console.warn('[BiteForecast] Could not fetch weather history:', err.message);
-        state.weatherHistory = null;
+        console.warn('[BiteForecast] Weather history unavailable');
       }
 
-      // Step 5: Calculate scores for all 20 species × 24 hours (480 scores)
-      console.log('[BiteForecast] Calculating bite scores for 20 species...');
+      // Calculate scores
       const speciesIds = SpeciesProfiles.getSpeciesIds();
-
       speciesIds.forEach(speciesId => {
         state.forecastScores[speciesId] = ScoringEngine.calculateDailyScores(
           speciesId,
@@ -293,34 +263,26 @@ const BiteForecast = (() => {
         );
       });
 
-      console.log('[BiteForecast] Calculated 480 scores (20 species × 24 hours)');
-
-      // Step 6: Load favorites and use as default selected species
+      // Load favorites
       loadFavorites();
-      state.selectedSpecies = [...state.favoriteSpecies]; // Use favorites as default
+      state.selectedSpecies = [...state.favoriteSpecies];
 
-      console.log('[BiteForecast] Top 3 species:', state.selectedSpecies.map(id => {
-        const profile = SpeciesProfiles.getProfile(id);
-        return `${profile.name} (${state.forecastScores[id][0].score})`;
-      }));
+      // Set current hour
+      state.currentHour = 0;
 
-      // Step 7: Determine current hour (for NOW marker)
-      state.currentHour = 0; // Always start at current time
-
-      // Step 8: Render UI
-      console.log('[BiteForecast] Rendering UI...');
+      // Render UI
       render();
 
-      // Step 9: Initialize view toggle
+      // Initialize view toggle
       initViewToggle();
 
-      // Step 10: Start background loading of 5-day data
+      // Start background loading
       startBackgroundLoading();
 
       state.initialized = true;
       showContent();
 
-      console.log('[BiteForecast] Initialization complete!');
+      console.log('[BiteForecast] ✓ Ready');
 
     } catch (error) {
       console.error('[BiteForecast] Initialization error:', error);
@@ -367,46 +329,29 @@ const BiteForecast = (() => {
    * Render main graph (shows selected species in current view)
    */
   function renderMainGraph() {
-    console.log('[BiteForecast] renderMainGraph called for view:', state.currentView);
-
     const canvas = document.getElementById('bite-forecast-chart');
-    if (!canvas) {
-      console.warn('[BiteForecast] Main graph canvas not found');
-      return;
-    }
-
-    console.log('[BiteForecast] Canvas found:', canvas);
+    if (!canvas) return;
 
     // Prepare data based on current view
     const selectedScores = {};
 
     if (state.currentView === '24h') {
-      // Use 24-hour hourly data
       state.selectedSpecies.forEach(speciesId => {
         selectedScores[speciesId] = state.forecastScores[speciesId];
       });
     } else {
-      // Use 5-day 3-hour data
       state.selectedSpecies.forEach(speciesId => {
         if (state.forecast5Day[speciesId]) {
           selectedScores[speciesId] = state.forecast5Day[speciesId];
-        } else {
-          // Data not loaded yet - show loading placeholder or skip
-          console.warn(`[BiteForecast] 5-day data not ready for ${speciesId}`);
         }
       });
     }
 
-    console.log('[BiteForecast] Selected scores prepared for species:', Object.keys(selectedScores));
-    console.log('[BiteForecast] ChartRenderer available:', typeof ChartRenderer !== 'undefined');
-
     // Use ChartRenderer to draw
     if (typeof ChartRenderer !== 'undefined') {
-      console.log('[BiteForecast] Calling ChartRenderer.renderMainChart...');
       ChartRenderer.renderMainChart(canvas, selectedScores, state.currentHour, state.currentView);
-      console.log('[BiteForecast] ChartRenderer.renderMainChart completed');
     } else {
-      console.error('[BiteForecast] ChartRenderer not loaded!');
+      console.error('[BiteForecast] ChartRenderer not loaded');
     }
   }
 
@@ -601,7 +546,6 @@ const BiteForecast = (() => {
    * Returns all 120 hourly data points for extended view
    */
   function calculate5DayScores(speciesId) {
-    console.log(`[BiteForecast] Calculating 120-hour forecast for ${speciesId}...`);
 
     const forecast3h = state.weatherData.forecast.list;
 

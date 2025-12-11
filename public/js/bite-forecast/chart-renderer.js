@@ -49,10 +49,8 @@ const ChartRenderer = (() => {
    * @param {string} view - '24h' or '5day'
    */
   function renderMainChart(canvas, speciesScores, currentHour, view = '24h') {
-    console.log('[ChartRenderer] renderMainChart called with Chart.js', { speciesScores, currentHour, view });
-
     if (!canvas) {
-      console.error('[ChartRenderer] Canvas element not found');
+      console.error('[ChartRenderer] Canvas not found');
       return;
     }
 
@@ -145,7 +143,6 @@ const ChartRenderer = (() => {
           dayGroups.push(currentGroup);
         }
 
-        console.log('[ChartRenderer] Day groups:', dayGroups.length, dayGroups.map(d => d.date.toDateString()));
 
         // Draw alternating day backgrounds
         dayGroups.forEach((group, dayIndex) => {
@@ -389,7 +386,6 @@ const ChartRenderer = (() => {
     }
 
     const speciesId = canvas.dataset.species;
-    console.log('[ChartRenderer] renderSparkline for', speciesId);
 
     // Destroy existing chart if it exists
     if (chartInstances.sparklines[speciesId]) {
