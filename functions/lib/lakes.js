@@ -373,6 +373,50 @@ export async function getCurrentIceStatus(db, lakeId) {
 }
 
 /**
+ * Get ice statistics for a lake (average, max, min)
+ * @param {D1Database} db - Database instance
+ * @param {string} lakeId - Lake ID
+ * @returns {Promise<Object>} Ice statistics
+ */
+export async function getIceStatistics(db, lakeId) {
+  try {
+    // Get average thickness from last 7 days
+    const avgResult = await db
+      .prepare(`
+        SELECT AVG(thickness_inches) as average, COUNT(*) as count
+        FROM ice_reports
+        WHERE lake_id = ?
+          AND reported_at > datetime('now', '-7 days')
+      `)
+      .bind(lakeId)
+      .first();
+
+    // Get max and min thickness from last 3 days
+    const extremesResult = await db
+      .prepare(`
+        SELECT
+          MAX(thickness_inches) as max,
+          MIN(thickness_inches) as min
+        FROM ice_reports
+        WHERE lake_id = ?
+          AND reported_at > datetime('now', '-3 days')
+      `)
+      .bind(lakeId)
+      .first();
+
+    return {
+      average: avgResult?.average ? Math.round(avgResult.average) : null,
+      max: extremesResult?.max || null,
+      min: extremesResult?.min || null,
+      reportCount: avgResult?.count || 0
+    };
+  } catch (error) {
+    console.error('Error getting ice statistics:', error);
+    return { average: null, max: null, min: null, reportCount: 0 };
+  }
+}
+
+/**
  * Get current ice status from most recent reports (batch version)
  * @param {D1Database} db - Database instance
  * @param {Array<string>} lakeIds - Array of lake IDs

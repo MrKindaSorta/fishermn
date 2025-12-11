@@ -325,21 +325,35 @@ const LakeDetail = {
     document.getElementById('map-lake-name').textContent = lake.name;
     document.getElementById('map-lake-region').textContent = lake.region || 'Minnesota';
 
-    // Ice thickness
-    document.getElementById('stat-thickness').textContent = ice.thickness ? `${ice.thickness}"` : 'Unknown';
+    // Ice statistics
+    const iceStats = lake.iceStats || { average: null, max: null, min: null, reportCount: 0 };
 
-    // Ice condition badge
-    const badge = document.getElementById('lake-badge');
-    const condition = ice.condition || 'unknown';
-    badge.textContent = condition.charAt(0).toUpperCase() + condition.slice(1);
-    badge.className = `badge ${this.getConditionBadgeClass(condition)} text-sm px-4 py-2`;
+    // Average thickness (7 days)
+    const avgEl = document.getElementById('stat-avg-thickness');
+    if (avgEl) {
+      avgEl.textContent = iceStats.average ? `${iceStats.average}"` : '--';
+    }
 
-    // Ice updated date
-    const iceUpdated = document.getElementById('ice-updated');
-    if (ice.updatedAt) {
-      iceUpdated.textContent = `Last updated: ${this.formatDate(ice.updatedAt)}`;
-    } else {
-      iceUpdated.textContent = '';
+    // Max thickness (3 days)
+    const maxEl = document.getElementById('stat-max-thickness');
+    if (maxEl) {
+      maxEl.textContent = iceStats.max ? `${iceStats.max}"` : '--';
+    }
+
+    // Min thickness (3 days)
+    const minEl = document.getElementById('stat-min-thickness');
+    if (minEl) {
+      minEl.textContent = iceStats.min ? `${iceStats.min}"` : '--';
+    }
+
+    // Stats note
+    const noteEl = document.getElementById('ice-stats-note');
+    if (noteEl) {
+      if (iceStats.reportCount > 0) {
+        noteEl.textContent = `Based on ${iceStats.reportCount} report${iceStats.reportCount !== 1 ? 's' : ''} in the last 7 days`;
+      } else {
+        noteEl.textContent = 'No recent ice reports available';
+      }
     }
   },
 

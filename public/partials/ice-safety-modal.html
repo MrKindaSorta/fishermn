@@ -1,0 +1,156 @@
+<!-- Ice Safety Information Modal -->
+<div id="ice-safety-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="IceSafetyModal.close()"></div>
+
+  <!-- Modal Content -->
+  <div class="flex min-h-screen items-center justify-center p-4">
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full transform transition-all">
+
+      <!-- Close Button -->
+      <button
+        onclick="IceSafetyModal.close()"
+        class="absolute top-4 right-4 text-secondary hover:text-primary p-2 rounded-lg hover:bg-frost transition-colors z-10"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Header -->
+      <div class="px-6 pt-8 pb-6 border-b border-grayPanel">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-danger/10 rounded-full flex items-center justify-center">
+            <svg class="w-6 h-6 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-primary">Ice Safety Best Practices</h2>
+            <p class="text-sm text-secondary">Minnesota Ice Fishing Guidelines</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+
+        <!-- Minimum Guidelines -->
+        <div>
+          <h3 class="font-bold text-lg mb-3 text-primary">Minimum Ice Thickness Guidelines</h3>
+          <div class="space-y-2">
+            <div class="flex items-start gap-3 p-3 bg-frost rounded-lg">
+              <span class="font-bold text-primary min-w-[60px]">4"+</span>
+              <span class="text-sm">Clear ice for foot travel (single person)</span>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-frost rounded-lg">
+              <span class="font-bold text-primary min-w-[60px]">5-7"</span>
+              <span class="text-sm">ATVs and snowmobiles</span>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-frost rounded-lg">
+              <span class="font-bold text-primary min-w-[60px]">8-12"+</span>
+              <span class="text-sm">Small cars or light trucks</span>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-frost rounded-lg">
+              <span class="font-bold text-primary min-w-[60px]">12-15"+</span>
+              <span class="text-sm">Full-size pickup trucks</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ice Quality -->
+        <div>
+          <h3 class="font-bold text-lg mb-3 text-primary">Ice Quality Matters</h3>
+          <div class="space-y-3">
+            <p class="text-sm"><strong class="text-evergreen">Prioritize:</strong> New, clear, blue ice for maximum strength</p>
+            <p class="text-sm"><strong class="text-danger">Avoid:</strong> White ice, candled ice, slush layers, and refrozen breaklines</p>
+            <p class="text-sm text-secondary">Snow on ice can hide cracks, insulate weak spots, and slow freezing—don't assume thick ice under deep snow.</p>
+          </div>
+        </div>
+
+        <!-- Hazard Areas -->
+        <div>
+          <h3 class="font-bold text-lg mb-3 text-primary">High-Risk Areas</h3>
+          <p class="text-sm mb-2">Stay clear of these areas which remain unstable all season:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="text-sm p-2 bg-danger/10 rounded text-danger">• Inlets & outlets</div>
+            <div class="text-sm p-2 bg-danger/10 rounded text-danger">• Culverts & dams</div>
+            <div class="text-sm p-2 bg-danger/10 rounded text-danger">• Channels & narrows</div>
+            <div class="text-sm p-2 bg-danger/10 rounded text-danger">• River-fed bays</div>
+            <div class="text-sm p-2 bg-danger/10 rounded text-danger">• Moving water</div>
+            <div class="text-sm p-2 bg-danger/10 rounded text-danger">• Pressure ridges</div>
+          </div>
+        </div>
+
+        <!-- Warning Signs -->
+        <div>
+          <h3 class="font-bold text-lg mb-3 text-primary">Warning Signs</h3>
+          <p class="text-sm">Watch for these indicators of unsafe ice:</p>
+          <ul class="text-sm space-y-1 mt-2 ml-4">
+            <li>• Pressure ridges and heaves</li>
+            <li>• Wet cracks or seeping water</li>
+            <li>• Ice that sounds hollow or boomy</li>
+            <li>• Visible cracks or dark spots</li>
+            <li>• Open water nearby</li>
+          </ul>
+        </div>
+
+        <!-- Safety Equipment -->
+        <div>
+          <h3 class="font-bold text-lg mb-3 text-primary">Essential Safety Equipment</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex items-center gap-2 text-sm">
+              <svg class="w-5 h-5 text-evergreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              Spud bar to test ice
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <svg class="w-5 h-5 text-evergreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              Ice picks
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <svg class="w-5 h-5 text-evergreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              Throw rope
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <svg class="w-5 h-5 text-evergreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              Flotation gear
+            </div>
+          </div>
+          <p class="text-sm text-secondary mt-3">Check ice every few steps with a spud bar. Keep distance between people and machines.</p>
+        </div>
+
+        <!-- Seasonal Warning -->
+        <div class="bg-gold/10 border border-gold/20 rounded-lg p-4">
+          <h3 class="font-bold text-sm mb-2 text-gold">⚠️ Early & Late Season</h3>
+          <p class="text-sm">Early and late season ice is the most unpredictable—treat it with extra caution. Never drive fast on ice.</p>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="bg-danger/10 border-2 border-danger/20 rounded-lg p-4">
+          <h3 class="font-bold text-lg mb-3 text-danger">Disclaimer</h3>
+          <div class="text-sm space-y-2">
+            <p>FisherMN provides ice thickness, condition reports, and related information based on user submissions, community data, and publicly available sources. <strong>FisherMN does not always verify ice measurements, conditions, or user-reported data.</strong></p>
+
+            <p>Ice thickness varies by location, weather, pressure ridges, current, snow cover, and other natural factors. <strong>Conditions can change rapidly and may be unsafe even when reports appear favorable.</strong></p>
+
+            <p class="font-semibold">By using this app, you acknowledge that traveling on or near frozen lakes carries inherent risks, and you assume full responsibility for your own safety and decisions.</p>
+
+            <p>Always verify conditions firsthand, follow local regulations, and use proper safety equipment. <strong>FisherMN and its contributors are not liable for injuries, damages, or losses resulting from ice travel or fishing activities.</strong></p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 pb-6 border-t border-grayPanel pt-4">
+        <button
+          onclick="IceSafetyModal.close()"
+          class="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          I Understand
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -8,6 +8,7 @@ import {
   findLakeBySlug,
   formatLakeForResponse,
   getCurrentIceStatus,
+  getIceStatistics,
   getLakeReportCounts,
   getIceReportsForLake,
   getCatchReportsForLake,
@@ -37,6 +38,9 @@ export async function onRequestGet(context) {
 
     // Get current ice status from real reports
     const currentIce = await getCurrentIceStatus(env.DB, lake.id);
+
+    // Get ice statistics (average, max, min)
+    const iceStats = await getIceStatistics(env.DB, lake.id);
 
     // Format lake data with computed ice status
     const formattedLake = formatLakeForResponse(lake, currentIce);
@@ -75,7 +79,8 @@ export async function onRequestGet(context) {
       lake: {
         ...formattedLake,
         reportCounts,
-        isFavorited
+        isFavorited,
+        iceStats
       },
       iceReports: formattedIceReports,
       catchReports: formattedCatchReports,
