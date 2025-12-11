@@ -494,9 +494,20 @@
           <!-- Main Graph Card -->
           <div class="card">
             <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-bold text-xl">24-Hour Bite Forecast</h3>
-                <p class="text-xs text-secondary mt-1">Top species by current conditions</p>
+              <div class="flex items-center gap-4">
+                <div>
+                  <h3 class="font-bold text-xl">Bite Forecast</h3>
+                  <p class="text-xs text-secondary mt-1">Interactive weather-based predictions</p>
+                </div>
+                <!-- View Toggle -->
+                <div class="flex bg-frost rounded-lg p-1 border border-grayPanel">
+                  <button id="view-24h" class="view-toggle-btn px-4 py-2 rounded-md text-sm font-medium transition-all bg-primary text-white">
+                    24 Hours
+                  </button>
+                  <button id="view-5day" class="view-toggle-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-secondary hover:text-primary">
+                    5 Days
+                  </button>
+                </div>
               </div>
               <div id="species-selector" class="flex gap-2 flex-wrap">
                 <!-- Populated by JavaScript -->

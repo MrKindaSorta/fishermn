@@ -44,11 +44,12 @@ const ChartRenderer = (() => {
    * Render main forecast chart with Chart.js (interactive)
    *
    * @param {HTMLCanvasElement} canvas - Canvas element
-   * @param {object} speciesScores - { speciesId: [24 scores], ... }
+   * @param {object} speciesScores - { speciesId: [scores], ... }
    * @param {number} currentHour - Hour index for NOW marker (0-23)
+   * @param {string} view - '24h' or '5day'
    */
-  function renderMainChart(canvas, speciesScores, currentHour) {
-    console.log('[ChartRenderer] renderMainChart called with Chart.js', { speciesScores, currentHour });
+  function renderMainChart(canvas, speciesScores, currentHour, view = '24h') {
+    console.log('[ChartRenderer] renderMainChart called with Chart.js', { speciesScores, currentHour, view });
 
     if (!canvas) {
       console.error('[ChartRenderer] Canvas element not found');
@@ -84,12 +85,21 @@ const ChartRenderer = (() => {
       });
     });
 
-    // Create time labels (24 hours)
+    // Create time labels based on view
     const labels = [];
-    for (let hour = 0; hour < 24; hour++) {
-      const time = new Date(now);
-      time.setHours(now.getHours() + hour, 0, 0, 0);
-      labels.push(time);
+    const firstScores = Object.values(speciesScores)[0];
+
+    if (firstScores && firstScores.length > 0) {
+      firstScores.forEach(score => {
+        labels.push(score.time);
+      });
+    } else {
+      // Fallback for 24h view
+      for (let hour = 0; hour < 24; hour++) {
+        const time = new Date(now);
+        time.setHours(now.getHours() + hour, 0, 0, 0);
+        labels.push(time);
+      }
     }
 
     // Create Chart.js configuration
@@ -201,20 +211,35 @@ const ChartRenderer = (() => {
             },
             ticks: {
               callback: function(value, index) {
-                // Show all 24 hours
                 const time = new Date(labels[index]);
-                return time.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  hour12: true
-                });
+
+                if (view === '24h') {
+                  // 24h view: show all hours
+                  return time.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    hour12: true
+                  });
+                } else {
+                  // 5day view: show date + time every 8th point (once per day)
+                  if (index % 8 === 0) {
+                    return time.toLocaleDateString('en-US', { weekday: 'short' }) + ' ' +
+                           time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+                  }
+                  // Show time for noon and midnight
+                  const hours = time.getHours();
+                  if (hours === 0 || hours === 12) {
+                    return time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+                  }
+                  return '';
+                }
               },
               font: {
                 family: 'Inter, sans-serif',
-                size: 10
+                size: view === '24h' ? 10 : 9
               },
               color: '#4B5563',
-              maxRotation: 45,
-              minRotation: 45
+              maxRotation: view === '24h' ? 45 : 45,
+              minRotation: view === '24h' ? 45 : 0
             },
             grid: {
               color: '#E5E7EB',

@@ -23,11 +23,14 @@ const BiteForecast = (() => {
     hourlyWeather: null,
     sunTimes: null,
     stormEvents: null,
-    forecastScores: {},      // { species: [24 hourly scores] }
+    forecastScores: {},       // { species: [24 hourly scores] } - 24h view
+    forecast5Day: {},         // { species: [40 3-hour scores] } - 5day view
     selectedSpecies: [],      // Species shown on main graph
     favoriteSpecies: [],      // User's favorite species (saved to localStorage)
     currentHour: 0,           // 0-23 index for NOW
-    cacheKey: null
+    currentView: '24h',       // '24h' or '5day'
+    cacheKey: null,
+    loadingStatus: {}         // Track which species 5-day data is loaded: { speciesId: 'loading'|'loaded'|'error' }
   };
 
   /**
@@ -308,6 +311,12 @@ const BiteForecast = (() => {
       console.log('[BiteForecast] Rendering UI...');
       render();
 
+      // Step 9: Initialize view toggle
+      initViewToggle();
+
+      // Step 10: Start background loading of 5-day data
+      startBackgroundLoading();
+
       state.initialized = true;
       showContent();
 
@@ -355,10 +364,10 @@ const BiteForecast = (() => {
   }
 
   /**
-   * Render main graph (shows 2-3 selected species)
+   * Render main graph (shows selected species in current view)
    */
   function renderMainGraph() {
-    console.log('[BiteForecast] renderMainGraph called');
+    console.log('[BiteForecast] renderMainGraph called for view:', state.currentView);
 
     const canvas = document.getElementById('bite-forecast-chart');
     if (!canvas) {
@@ -368,11 +377,25 @@ const BiteForecast = (() => {
 
     console.log('[BiteForecast] Canvas found:', canvas);
 
-    // Prepare data for selected species
+    // Prepare data based on current view
     const selectedScores = {};
-    state.selectedSpecies.forEach(speciesId => {
-      selectedScores[speciesId] = state.forecastScores[speciesId];
-    });
+
+    if (state.currentView === '24h') {
+      // Use 24-hour hourly data
+      state.selectedSpecies.forEach(speciesId => {
+        selectedScores[speciesId] = state.forecastScores[speciesId];
+      });
+    } else {
+      // Use 5-day 3-hour data
+      state.selectedSpecies.forEach(speciesId => {
+        if (state.forecast5Day[speciesId]) {
+          selectedScores[speciesId] = state.forecast5Day[speciesId];
+        } else {
+          // Data not loaded yet - show loading placeholder or skip
+          console.warn(`[BiteForecast] 5-day data not ready for ${speciesId}`);
+        }
+      });
+    }
 
     console.log('[BiteForecast] Selected scores prepared for species:', Object.keys(selectedScores));
     console.log('[BiteForecast] ChartRenderer available:', typeof ChartRenderer !== 'undefined');
@@ -380,18 +403,10 @@ const BiteForecast = (() => {
     // Use ChartRenderer to draw
     if (typeof ChartRenderer !== 'undefined') {
       console.log('[BiteForecast] Calling ChartRenderer.renderMainChart...');
-      ChartRenderer.renderMainChart(canvas, selectedScores, state.currentHour);
+      ChartRenderer.renderMainChart(canvas, selectedScores, state.currentHour, state.currentView);
       console.log('[BiteForecast] ChartRenderer.renderMainChart completed');
     } else {
       console.error('[BiteForecast] ChartRenderer not loaded!');
-      // Placeholder until ChartRenderer is implemented
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#0A3A60';
-        ctx.font = '16px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText('Chart Renderer Not Loaded', canvas.width / 2, canvas.height / 2);
-      }
     }
   }
 
@@ -582,6 +597,165 @@ const BiteForecast = (() => {
   }
 
   /**
+   * Calculate 5-day scores using 3-hour intervals (no interpolation)
+   * Returns 40 data points (8 per day × 5 days)
+   */
+  function calculate5DayScores(speciesId) {
+    console.log(`[BiteForecast] Calculating 5-day forecast for ${speciesId}...`);
+
+    const forecast3h = state.weatherData.forecast.list;
+    const scores = [];
+
+    // Use up to 40 forecast points (5 days × 8 points/day)
+    const pointsToUse = Math.min(40, forecast3h.length);
+
+    for (let i = 0; i < pointsToUse; i++) {
+      const weather = forecast3h[i];
+      const time = new Date(weather.dt * 1000);
+
+      // Calculate sun times for this day
+      const sunTimes = WeatherAnalyzer.calculateSunTimes(
+        state.lake.latitude,
+        state.lake.longitude,
+        time
+      );
+
+      // Create hourly-like weather object for scoring engine
+      const weatherPoint = {
+        dt: weather.dt,
+        time: time,
+        temp: weather.main.temp,
+        pressure: weather.main.pressure,
+        humidity: weather.main.humidity,
+        clouds: weather.clouds.all,
+        windSpeed: weather.wind.speed,
+        windDir: weather.wind.deg,
+        pop: weather.pop || 0,
+        weather: weather.weather[0],
+        rain: weather.rain?.['3h'] || 0,
+        snow: weather.snow?.['3h'] || 0
+      };
+
+      // Calculate bite score for this 3-hour interval
+      // We'll treat this as a mini hourly array for the scoring engine
+      const miniHourly = [weatherPoint];
+      const score = ScoringEngine.calculateBiteScore(
+        speciesId,
+        0,
+        miniHourly,
+        sunTimes,
+        [],  // Storm events calculated separately if needed
+        state.lake.id,
+        state.weatherHistory
+      );
+
+      score.time = time; // Override with actual forecast time
+      scores.push(score);
+    }
+
+    console.log(`[BiteForecast] Calculated ${scores.length} 3-hour scores for ${speciesId}`);
+    return scores;
+  }
+
+  /**
+   * Load 5-day data for a species in background
+   */
+  async function loadSpecies5DayData(speciesId) {
+    if (state.loadingStatus[speciesId] === 'loaded' || state.loadingStatus[speciesId] === 'loading') {
+      return; // Already loaded or loading
+    }
+
+    state.loadingStatus[speciesId] = 'loading';
+
+    // Use setTimeout to not block UI
+    setTimeout(() => {
+      try {
+        state.forecast5Day[speciesId] = calculate5DayScores(speciesId);
+        state.loadingStatus[speciesId] = 'loaded';
+        console.log(`[BiteForecast] 5-day data loaded for ${speciesId}`);
+
+        // If currently in 5-day view and this species is selected, update graph
+        if (state.currentView === '5day' && state.selectedSpecies.includes(speciesId)) {
+          renderMainGraph();
+        }
+      } catch (error) {
+        console.error(`[BiteForecast] Error loading 5-day data for ${speciesId}:`, error);
+        state.loadingStatus[speciesId] = 'error';
+      }
+    }, 10);
+  }
+
+  /**
+   * Start background loading for selected species
+   */
+  function startBackgroundLoading() {
+    console.log('[BiteForecast] Starting background 5-day data loading for selected species...');
+
+    // Load selected species first (priority)
+    state.selectedSpecies.forEach((speciesId, index) => {
+      setTimeout(() => loadSpecies5DayData(speciesId), index * 50);
+    });
+
+    // Load all other species in background (lower priority)
+    const allSpecies = SpeciesProfiles.getSpeciesIds();
+    const otherSpecies = allSpecies.filter(id => !state.selectedSpecies.includes(id));
+
+    otherSpecies.forEach((speciesId, index) => {
+      setTimeout(() => loadSpecies5DayData(speciesId), 500 + index * 100);
+    });
+  }
+
+  /**
+   * Switch between 24h and 5day views
+   */
+  function switchView(newView) {
+    if (newView !== '24h' && newView !== '5day') {
+      console.error('[BiteForecast] Invalid view:', newView);
+      return;
+    }
+
+    console.log(`[BiteForecast] Switching to ${newView} view`);
+    state.currentView = newView;
+
+    // Update button states
+    const btn24h = document.getElementById('view-24h');
+    const btn5day = document.getElementById('view-5day');
+
+    if (btn24h && btn5day) {
+      if (newView === '24h') {
+        btn24h.classList.add('bg-primary', 'text-white');
+        btn24h.classList.remove('text-secondary');
+        btn5day.classList.remove('bg-primary', 'text-white');
+        btn5day.classList.add('text-secondary');
+      } else {
+        btn5day.classList.add('bg-primary', 'text-white');
+        btn5day.classList.remove('text-secondary');
+        btn24h.classList.remove('bg-primary', 'text-white');
+        btn24h.classList.add('text-secondary');
+      }
+    }
+
+    // Re-render main graph with new view
+    renderMainGraph();
+  }
+
+  /**
+   * Initialize view toggle buttons
+   */
+  function initViewToggle() {
+    const btn24h = document.getElementById('view-24h');
+    const btn5day = document.getElementById('view-5day');
+
+    if (btn24h) {
+      btn24h.addEventListener('click', () => switchView('24h'));
+    }
+
+    if (btn5day) {
+      btn5day.addEventListener('click', () => switchView('5day'));
+    }
+  }
+
+  /**
    * Refresh forecast (re-fetch weather and recalculate)
    */
   async function refresh() {
@@ -608,6 +782,11 @@ const BiteForecast = (() => {
      * Refresh forecast data
      */
     refresh,
+
+    /**
+     * Switch view (24h or 5day)
+     */
+    switchView,
 
     /**
      * Toggle species on main graph
