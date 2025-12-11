@@ -3,9 +3,9 @@
  * Get or create comments for content
  */
 
-import { createErrorResponse, createSuccessResponse, sanitizeInput } from '../../../../lib/validation.js';
-import { getComments, createComment, getCommentCount, formatCommentForResponse } from '../../../../lib/lakes.js';
-import { verifyToken } from '../../../../lib/auth.js';
+import { createErrorResponse, createSuccessResponse, sanitizeInput } from '../../../lib/validation.js';
+import { getComments, createComment, getCommentCount, formatCommentForResponse } from '../../../lib/lakes.js';
+import { verifyToken } from '../../../lib/auth.js';
 
 // GET - List comments
 export async function onRequestGet(context) {
