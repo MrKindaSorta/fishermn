@@ -118,13 +118,16 @@
           <h2 class="text-lg font-bold">My Favorite Lakes</h2>
         </div>
 
-        <!-- Empty State -->
-        <div class="card text-center py-12">
-          <svg class="w-16 h-16 mx-auto text-grayPanel mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-          </svg>
-          <p class="text-secondary text-sm">No favorite lakes yet</p>
-          <a href="/lakes.html" class="text-primary text-sm hover:underline mt-2 inline-block">Explore lakes →</a>
+        <!-- Empty State & Content Container -->
+        <div id="favorite-lakes-container" class="space-y-2">
+          <!-- Empty State (shown by default, replaced by JS if lakes exist) -->
+          <div class="card text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-grayPanel mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+            </svg>
+            <p class="text-secondary text-sm">No favorite lakes yet</p>
+            <a href="/lakes.html" class="text-primary text-sm hover:underline mt-2 inline-block">Explore lakes →</a>
+          </div>
         </div>
 
         <!-- Season Challenge -->
