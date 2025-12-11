@@ -597,11 +597,11 @@ const BiteForecast = (() => {
   }
 
   /**
-   * Calculate 5-day scores properly using full hourly interpolation
-   * Returns sampled data points (every 3rd hour) from 120-hour calculation
+   * Calculate 120-hour scores properly using full hourly interpolation
+   * Returns all 120 hourly data points for extended view
    */
   function calculate5DayScores(speciesId) {
-    console.log(`[BiteForecast] Calculating 5-day forecast for ${speciesId}...`);
+    console.log(`[BiteForecast] Calculating 120-hour forecast for ${speciesId}...`);
 
     const forecast3h = state.weatherData.forecast.list;
 
@@ -638,7 +638,7 @@ const BiteForecast = (() => {
       }
     }
 
-    console.log(`[BiteForecast] Interpolated ${hourlyData.length} hours for 5-day view`);
+    console.log(`[BiteForecast] Interpolated ${hourlyData.length} hours for 120-hour view`);
 
     // Step 2: Calculate scores for ALL hours (same as 24h view method)
     const allScores = [];
@@ -716,7 +716,7 @@ const BiteForecast = (() => {
    * Start background loading for selected species
    */
   function startBackgroundLoading() {
-    console.log('[BiteForecast] Starting background 5-day data loading for selected species...');
+    console.log('[BiteForecast] Starting background 120-hour data loading for selected species...');
 
     // Load selected species first (priority)
     state.selectedSpecies.forEach((speciesId, index) => {
