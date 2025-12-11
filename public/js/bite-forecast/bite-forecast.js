@@ -186,11 +186,8 @@ const BiteForecast = (() => {
 
       console.log('[BiteForecast] Calculated 480 scores (20 species × 24 hours)');
 
-      // Step 6: Select default species for main graph (top 3 by current score)
-      const sortedSpecies = speciesIds.sort((a, b) =>
-        state.forecastScores[b][0].score - state.forecastScores[a][0].score
-      );
-      state.selectedSpecies = sortedSpecies.slice(0, 3);
+      // Step 6: Select default species for main graph (Perch, Walleye, Black Crappie)
+      state.selectedSpecies = ['yellowPerch', 'walleye', 'blackCrappie'];
 
       console.log('[BiteForecast] Top 3 species:', state.selectedSpecies.map(id => {
         const profile = SpeciesProfiles.getProfile(id);

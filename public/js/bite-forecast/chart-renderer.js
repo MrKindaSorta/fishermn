@@ -20,19 +20,30 @@ const ChartRenderer = (() => {
    * @param {number} currentHour - Hour index for NOW marker (0-23)
    */
   function renderMainChart(canvas, speciesScores, currentHour) {
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('[ChartRenderer] Canvas element not found');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('[ChartRenderer] Could not get 2D context');
+      return;
+    }
+
     const dpr = window.devicePixelRatio || 1;
 
-    // Set canvas size for retina displays
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    // Get parent container size
+    const parent = canvas.parentElement;
+    const width = parent.clientWidth;
+    const height = parent.clientHeight;
 
-    const width = rect.width;
-    const height = rect.height;
+    // Set canvas size for retina displays
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.scale(dpr, dpr);
 
     // Padding
     const padding = {
@@ -266,15 +277,21 @@ const ChartRenderer = (() => {
     if (!canvas || !scores) return;
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
 
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    // Get canvas size from parent or attributes
+    const parent = canvas.parentElement;
+    const width = parent.clientWidth;
+    const height = parent.clientHeight || 64;
 
-    const width = rect.width;
-    const height = rect.height;
+    // Set canvas dimensions
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.scale(dpr, dpr);
 
     // Clear
     ctx.clearRect(0, 0, width, height);
@@ -336,15 +353,21 @@ const ChartRenderer = (() => {
     if (!canvas || !scores) return;
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
 
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    // Get parent size
+    const parent = canvas.parentElement;
+    const width = parent.clientWidth;
+    const height = parent.clientHeight || 128;
 
-    const width = rect.width;
-    const height = rect.height;
+    // Set canvas dimensions
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.scale(dpr, dpr);
 
     const padding = { top: 10, right: 10, bottom: 25, left: 40 };
     const chartWidth = width - padding.left - padding.right;
