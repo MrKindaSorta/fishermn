@@ -323,22 +323,82 @@
 
       <!-- Tab: Recent Activity -->
       <div id="tab-activity" class="tab-content">
-        <div class="max-w-3xl">
-          <!-- Post Input -->
-          <div class="card mb-6">
-            <div class="flex items-center gap-3">
-              <div id="activity-user-avatar" class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                ?
+        <div class="grid grid-cols-4 gap-6">
+          <!-- Left Sidebar: Activity Filters -->
+          <div class="col-span-1">
+            <div class="card p-4">
+              <h3 class="font-bold text-sm mb-3">Filter Activity</h3>
+              <div class="space-y-1">
+                <button
+                  class="activity-filter-btn w-full text-left px-3 py-2 rounded-lg text-sm transition-colors bg-primary/10 text-primary font-medium"
+                  data-filter="all"
+                  onclick="LakeDetail.filterActivity('all')"
+                >
+                  All Activity
+                </button>
+                <button
+                  class="activity-filter-btn w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-frost"
+                  data-filter="general"
+                  onclick="LakeDetail.filterActivity('general')"
+                >
+                  💬 General
+                </button>
+                <button
+                  class="activity-filter-btn w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-frost"
+                  data-filter="ice"
+                  onclick="LakeDetail.filterActivity('ice')"
+                >
+                  ❄️ Ice Reports
+                </button>
+                <button
+                  class="activity-filter-btn w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-frost"
+                  data-filter="catch"
+                  onclick="LakeDetail.filterActivity('catch')"
+                >
+                  🐟 Catch Reports
+                </button>
+                <button
+                  class="activity-filter-btn w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-frost"
+                  data-filter="snow"
+                  onclick="LakeDetail.filterActivity('snow')"
+                >
+                  ❅ Snow Reports
+                </button>
               </div>
-              <input type="text" placeholder="Share an update about this lake..." class="flex-1 px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary bg-frost">
-              <button class="btn-primary px-4 py-2 rounded-lg">Post</button>
             </div>
           </div>
 
-          <!-- Activity Feed -->
-          <div id="activity-feed" class="space-y-4">
-            <div class="card text-center text-secondary py-8">
-              <p>Loading activity...</p>
+          <!-- Right Content: Post Input + Feed -->
+          <div class="col-span-3">
+            <!-- Post Input -->
+            <div class="card mb-6">
+              <div class="flex items-center gap-3">
+                <div id="activity-user-avatar" class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
+                  ?
+                </div>
+                <input
+                  id="update-input"
+                  type="text"
+                  placeholder="Share an update about this lake..."
+                  class="flex-1 px-4 py-2 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary bg-frost"
+                  maxlength="500"
+                >
+                <button
+                  id="post-update-btn"
+                  class="btn-primary px-4 py-2 rounded-lg"
+                  onclick="LakeDetail.postUpdate()"
+                >
+                  Post
+                </button>
+              </div>
+              <p id="update-error" class="hidden text-xs text-danger mt-2"></p>
+            </div>
+
+            <!-- Activity Feed -->
+            <div id="activity-feed" class="space-y-4">
+              <div class="card text-center text-secondary py-8">
+                <p>Loading activity...</p>
+              </div>
             </div>
           </div>
         </div>

@@ -671,3 +671,92 @@ export function formatSnowReportForResponse(report) {
     }
   };
 }
+
+/**
+ * Get lake updates (general comments)
+ * @param {D1Database} db - D1 database instance
+ * @param {string} lakeId - Lake ID
+ * @param {number} limit - Maximum number of updates to return
+ * @returns {Promise<Array>} Array of lake update objects with user info
+ */
+export async function getLakeUpdates(db, lakeId, limit = 20) {
+  try {
+    const result = await db
+      .prepare(`
+        SELECT
+          lu.*,
+          u.display_name as user_display_name,
+          u.rank_tier as user_rank_tier,
+          u.reliability_score as user_reliability
+        FROM lake_updates lu
+        JOIN users u ON lu.user_id = u.id
+        WHERE lu.lake_id = ?
+        ORDER BY lu.created_at DESC
+        LIMIT ?
+      `)
+      .bind(lakeId, limit)
+      .all();
+
+    return result.results || [];
+  } catch (error) {
+    console.error('Error getting lake updates:', error);
+    throw new Error('Database query failed');
+  }
+}
+
+/**
+ * Create a lake update
+ * @param {D1Database} db - D1 database instance
+ * @param {Object} updateData - Lake update data
+ * @returns {Promise<Object>} Created lake update
+ */
+export async function createLakeUpdate(db, updateData) {
+  const {
+    id,
+    lakeId,
+    userId,
+    content,
+    createdAt
+  } = updateData;
+
+  try {
+    await db
+      .prepare(`
+        INSERT INTO lake_updates (
+          id, lake_id, user_id, content, created_at
+        ) VALUES (?, ?, ?, ?, ?)
+      `)
+      .bind(id, lakeId, userId, content, createdAt)
+      .run();
+
+    // Return the created update
+    return await db
+      .prepare('SELECT * FROM lake_updates WHERE id = ?')
+      .bind(id)
+      .first();
+  } catch (error) {
+    console.error('Error creating lake update:', error);
+    throw new Error('Failed to create lake update');
+  }
+}
+
+/**
+ * Format lake update for API response
+ * @param {Object} update - Lake update from database
+ * @returns {Object} Formatted lake update
+ */
+export function formatLakeUpdateForResponse(update) {
+  if (!update) return null;
+
+  return {
+    id: update.id,
+    lakeId: update.lake_id,
+    content: update.content,
+    createdAt: update.created_at,
+    user: {
+      displayName: update.user_display_name,
+      rankTier: update.user_rank_tier,
+      reliabilityScore: update.user_reliability
+    }
+  };
+}

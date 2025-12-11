@@ -9,12 +9,14 @@ const LakeDetail = {
   iceReports: [],
   catchReports: [],
   snowReports: [],
+  lakeUpdates: [],
   businesses: [],
   discussions: [],
   weather: null,
   map: null,
   markers: {},
   currentThread: null,
+  currentActivityFilter: 'all',
 
   // Weather API base URL
   WEATHER_API_URL: 'https://weather-api-proxy.joshua-r-klimek.workers.dev',
@@ -136,11 +138,12 @@ const LakeDetail = {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      // Load lake data, businesses, and discussions in parallel
-      const [lakeResponse, businessesResponse, discussionsResponse] = await Promise.all([
+      // Load lake data, businesses, discussions, and updates in parallel
+      const [lakeResponse, businessesResponse, discussionsResponse, updatesResponse] = await Promise.all([
         fetch(`/api/lakes/${slug}`, { headers }),
         fetch(`/api/lakes/${slug}/businesses`, { headers }),
-        fetch(`/api/lakes/${slug}/discussions`, { headers })
+        fetch(`/api/lakes/${slug}/discussions`, { headers }),
+        fetch(`/api/lakes/${slug}/updates`, { headers })
       ]);
 
       if (!lakeResponse.ok) {
@@ -174,6 +177,14 @@ const LakeDetail = {
         const discussionsData = await discussionsResponse.json();
         if (discussionsData.success) {
           this.discussions = discussionsData.threads || [];
+        }
+      }
+
+      // Load lake updates
+      if (updatesResponse.ok) {
+        const updatesData = await updatesResponse.json();
+        if (updatesData.success) {
+          this.lakeUpdates = updatesData.updates || [];
         }
       }
 
@@ -674,13 +685,13 @@ const LakeDetail = {
   },
 
   /**
-   * Render activity feed (builds from reports)
+   * Render activity feed (builds from reports and updates)
    */
   renderActivity() {
     const container = document.getElementById('activity-feed');
     if (!container) return;
 
-    // Build activity from reports
+    // Build activity from all sources
     const activity = [];
 
     this.iceReports.forEach(report => {
@@ -688,6 +699,7 @@ const LakeDetail = {
         type: 'ice',
         user: report.user.displayName,
         timestamp: this.formatDate(report.reportedAt),
+        rawTimestamp: new Date(report.reportedAt),
         content: `Reported ${report.thicknessInches}" ice thickness (${report.condition || 'condition unknown'})${report.locationNotes ? '. ' + report.locationNotes : ''}`,
         likes: 0,
         comments: 0
@@ -699,6 +711,7 @@ const LakeDetail = {
         type: 'catch',
         user: report.user.displayName,
         timestamp: this.formatDate(report.caughtAt),
+        rawTimestamp: new Date(report.caughtAt),
         content: `Caught ${report.fishCount > 1 ? report.fishCount + ' ' : ''}${report.fishSpecies}${report.largestSizeInches ? ' (' + report.largestSizeInches + '")' : ''}${report.baitUsed ? ' using ' + report.baitUsed : ''}`,
         likes: 0,
         comments: 0
@@ -710,22 +723,43 @@ const LakeDetail = {
         type: 'snow',
         user: report.user.displayName,
         timestamp: this.formatDate(report.reportedAt),
+        rawTimestamp: new Date(report.reportedAt),
         content: `Reported ${report.thicknessInches}" of snow (${report.snowType}, ${report.coverage} coverage)${report.locationNotes ? '. ' + report.locationNotes : ''}`,
         likes: 0,
         comments: 0
       });
     });
 
-    if (activity.length === 0) {
+    this.lakeUpdates.forEach(update => {
+      activity.push({
+        type: 'general',
+        user: update.user.displayName,
+        timestamp: this.formatDate(update.createdAt),
+        rawTimestamp: new Date(update.createdAt),
+        content: update.content,
+        likes: 0,
+        comments: 0
+      });
+    });
+
+    // Sort by timestamp (most recent first)
+    activity.sort((a, b) => b.rawTimestamp - a.rawTimestamp);
+
+    // Apply filter
+    const filtered = this.currentActivityFilter === 'all'
+      ? activity
+      : activity.filter(item => item.type === this.currentActivityFilter);
+
+    if (filtered.length === 0) {
       container.innerHTML = `
         <div class="card text-center text-secondary py-8">
-          <p>No recent activity for this lake.</p>
+          <p>No ${this.currentActivityFilter === 'all' ? '' : this.currentActivityFilter + ' '}activity for this lake.</p>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = activity.map(post => {
+    container.innerHTML = filtered.map(post => {
       const typeInfo = this.ACTIVITY_TYPES[post.type] || this.ACTIVITY_TYPES.general;
       const initials = post.user.substring(0, 2).toUpperCase();
 
@@ -1103,6 +1137,102 @@ const LakeDetail = {
     if (!thickness || thickness < 6) return 'bg-danger';
     if (thickness < 12) return 'bg-gold';
     return 'bg-evergreen';
+  },
+
+  /**
+   * Filter activity feed by type
+   */
+  filterActivity(type) {
+    this.currentActivityFilter = type;
+
+    // Update filter button styles
+    document.querySelectorAll('.activity-filter-btn').forEach(btn => {
+      if (btn.dataset.filter === type) {
+        btn.classList.add('bg-primary/10', 'text-primary', 'font-medium');
+        btn.classList.remove('hover:bg-frost');
+      } else {
+        btn.classList.remove('bg-primary/10', 'text-primary', 'font-medium');
+        btn.classList.add('hover:bg-frost');
+      }
+    });
+
+    // Re-render activity with new filter
+    this.renderActivity();
+  },
+
+  /**
+   * Post a general update about the lake
+   */
+  async postUpdate() {
+    // Check authentication
+    if (typeof Auth === 'undefined' || !Auth.isAuthenticated()) {
+      if (typeof AuthModal !== 'undefined') AuthModal.open();
+      return;
+    }
+
+    const input = document.getElementById('update-input');
+    const errorEl = document.getElementById('update-error');
+    const btn = document.getElementById('post-update-btn');
+
+    const content = input.value.trim();
+
+    // Validate
+    if (!content) {
+      errorEl.textContent = 'Please enter a message';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    // Clear error
+    errorEl.classList.add('hidden');
+
+    // Disable button
+    btn.disabled = true;
+    btn.textContent = 'Posting...';
+
+    try {
+      const token = localStorage.getItem('fishermn_auth_token');
+      const response = await fetch(`/api/lakes/${this.lake.slug}/updates`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (response.ok) {
+        // Clear input
+        input.value = '';
+
+        // Reload lake updates
+        const updatesResponse = await fetch(`/api/lakes/${this.lake.slug}/updates`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (updatesResponse.ok) {
+          const data = await updatesResponse.json();
+          if (data.success) {
+            this.lakeUpdates = data.updates || [];
+            this.renderActivity();
+          }
+        }
+      } else {
+        const error = await response.json();
+        errorEl.textContent = error.message || 'Failed to post update';
+        errorEl.classList.remove('hidden');
+      }
+    } catch (error) {
+      console.error('Error posting update:', error);
+      errorEl.textContent = 'Network error. Please try again.';
+      errorEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Post';
+    }
   },
 
   /**
