@@ -1931,10 +1931,16 @@ const LakeDetail = {
     return `
       <div class="flex items-center gap-2 mt-3 pt-3 border-t border-grayPanel/50">
         <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-evergreen/10 hover:text-evergreen transition-colors text-xs text-secondary font-medium"
+                data-content-type="${contentType}"
+                data-content-id="${item.id}"
+                data-vote-type="up"
                 onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'up')">
           <span>↑</span><span class="vote-count-up">${item.upvotes || 0}</span>
         </button>
         <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-danger/10 hover:text-danger transition-colors text-xs text-secondary font-medium"
+                data-content-type="${contentType}"
+                data-content-id="${item.id}"
+                data-vote-type="down"
                 onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'down')">
           <span>↓</span><span class="vote-count-down">${item.downvotes || 0}</span>
         </button>
