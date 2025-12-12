@@ -1516,37 +1516,38 @@ const LakeDetail = {
 
     if (upBtns.length === 0 || downBtns.length === 0) return;
 
-    // Update all instances (Overview tab + Activity tab)
+    // Update all upvote buttons
     upBtns.forEach(upBtn => {
-      downBtns.forEach(downBtn => {
-        const upCount = upBtn.querySelector('.vote-count-up');
-        const downCount = downBtn.querySelector('.vote-count-down');
+      const upCount = upBtn.querySelector('.vote-count-up');
 
-        if (action === 'created') {
-          // New vote - increment count
-          if (voteType === 'up') {
-            upCount.textContent = parseInt(upCount.textContent) + 1;
-          } else {
-            downCount.textContent = parseInt(downCount.textContent) + 1;
-          }
-        } else if (action === 'removed') {
-          // Removed vote - decrement count
-          if (voteType === 'up') {
-            upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
-          } else {
-            downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
-          }
-        } else if (action === 'changed') {
-          // Changed vote - decrement old, increment new
-          if (voteType === 'up') {
-            downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
-            upCount.textContent = parseInt(upCount.textContent) + 1;
-          } else {
-            upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
-            downCount.textContent = parseInt(downCount.textContent) + 1;
-          }
+      if (action === 'created' && voteType === 'up') {
+        upCount.textContent = parseInt(upCount.textContent) + 1;
+      } else if (action === 'removed' && voteType === 'up') {
+        upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+      } else if (action === 'changed') {
+        if (voteType === 'up') {
+          upCount.textContent = parseInt(upCount.textContent) + 1;
+        } else {
+          upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
         }
-      });
+      }
+    });
+
+    // Update all downvote buttons
+    downBtns.forEach(downBtn => {
+      const downCount = downBtn.querySelector('.vote-count-down');
+
+      if (action === 'created' && voteType === 'down') {
+        downCount.textContent = parseInt(downCount.textContent) + 1;
+      } else if (action === 'removed' && voteType === 'down') {
+        downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+      } else if (action === 'changed') {
+        if (voteType === 'down') {
+          downCount.textContent = parseInt(downCount.textContent) + 1;
+        } else {
+          downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+        }
+      }
     });
   },
 
