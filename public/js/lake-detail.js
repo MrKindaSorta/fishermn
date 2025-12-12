@@ -1664,7 +1664,7 @@ const LakeDetail = {
         container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
         // Wait for next frame to ensure DOM is updated
         await new Promise(resolve => requestAnimationFrame(resolve));
-        await this.loadComments(contentType, contentId, 'newest');
+        await this.loadComments(contentType, contentId, 'newest', 0, container);
         container.dataset.loaded = 'true';
       }
     } else {
@@ -1703,7 +1703,7 @@ const LakeDetail = {
         container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
         // Wait for next frame to ensure DOM is updated
         await new Promise(resolve => requestAnimationFrame(resolve));
-        await this.loadComments(contentType, contentId, 'newest');
+        await this.loadComments(contentType, contentId, 'newest', 0, container);
         container.dataset.loaded = 'true';
       }
     } else {
@@ -1766,7 +1766,7 @@ const LakeDetail = {
       container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
       // Wait for next frame to ensure DOM is updated
       await new Promise(resolve => requestAnimationFrame(resolve));
-      await this.loadComments(contentType, contentId, 'newest');
+      await this.loadComments(contentType, contentId, 'newest', 0, container);
       container.dataset.loaded = 'true';
     }
   },
@@ -1777,18 +1777,23 @@ const LakeDetail = {
    * @param {string} contentId - Content ID
    * @param {string} sortBy - 'newest' or 'liked'
    * @param {number} offset - Offset for pagination
+   * @param {HTMLElement} containerElement - Optional container element (to avoid re-querying)
    */
-  async loadComments(contentType, contentId, sortBy = 'newest', offset = 0) {
-    const container = document.querySelector(
+  async loadComments(contentType, contentId, sortBy = 'newest', offset = 0, containerElement = null) {
+    // Use provided container or find it
+    const container = containerElement || document.querySelector(
       `.comment-container[data-content-type="${contentType}"][data-content-id="${contentId}"]`
     );
 
-    if (!container) return;
+    if (!container) {
+      console.error('Comment container not found');
+      return;
+    }
 
     const commentsList = container.querySelector('.comments-list');
 
     if (!commentsList) {
-      console.error('Comments list element not found in container');
+      console.error('Comments list element not found in container', container);
       return;
     }
 
@@ -1952,7 +1957,7 @@ const LakeDetail = {
       );
       const sortBtn = container?.querySelector('.sort-btn.active');
       const sortBy = sortBtn?.dataset.sort || 'newest';
-      await this.loadComments(contentType, contentId, sortBy);
+      await this.loadComments(contentType, contentId, sortBy, 0, container);
 
       // Update comment count - find within the parent card
       const card = container?.closest('.bg-frost');
@@ -2064,7 +2069,7 @@ const LakeDetail = {
     });
 
     // Reload comments with new sort
-    await this.loadComments(contentType, contentId, sortBy);
+    await this.loadComments(contentType, contentId, sortBy, 0, container);
   },
 
   /**
@@ -2097,7 +2102,7 @@ const LakeDetail = {
     });
 
     // Reload comments with new sort
-    await this.loadComments(contentType, contentId, sortBy);
+    await this.loadComments(contentType, contentId, sortBy, 0, container);
   },
 
   /**
