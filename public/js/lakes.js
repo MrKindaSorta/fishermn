@@ -1136,7 +1136,7 @@ const MobileViewController = {
 
     const listBtn = document.getElementById('mobile-nav-list');
     const mapBtn = document.getElementById('mobile-nav-map');
-    const listPanel = document.querySelector('.w-full.lg\\:w-\\[480px\\]'); // List panel
+    const listPanel = document.querySelector('[data-panel="lakes-list"]');
     const mapContainer = document.getElementById('map-container');
 
     listBtn?.addEventListener('click', () => this.showList());
@@ -1147,7 +1147,7 @@ const MobileViewController = {
     if (this.currentView === 'list') return;
     this.currentView = 'list';
 
-    const listPanel = document.querySelector('.w-full.lg\\:w-\\[480px\\]');
+    const listPanel = document.querySelector('[data-panel="lakes-list"]');
     const mapContainer = document.getElementById('map-container');
     const listBtn = document.getElementById('mobile-nav-list');
     const mapBtn = document.getElementById('mobile-nav-map');
@@ -1167,7 +1167,7 @@ const MobileViewController = {
     if (this.currentView === 'map') return;
     this.currentView = 'map';
 
-    const listPanel = document.querySelector('.w-full.lg\\:w-\\[480px\\]');
+    const listPanel = document.querySelector('[data-panel="lakes-list"]');
     const mapContainer = document.getElementById('map-container');
     const listBtn = document.getElementById('mobile-nav-list');
     const mapBtn = document.getElementById('mobile-nav-map');
