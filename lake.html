@@ -330,9 +330,22 @@
 
             <!-- POI Section -->
             <div class="card">
-              <h3 class="font-bold text-lg mb-4">Nearby Amenities</h3>
-              <div id="poi-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                <p class="text-secondary text-sm col-span-2">Loading businesses...</p>
+              <!-- Accordion Header -->
+              <div class="flex items-center justify-between cursor-pointer hover:bg-frost transition-colors p-3 -m-6 mb-0 rounded-t-lg"
+                   onclick="toggleSection('amenities-content')">
+                <h3 class="font-bold text-lg">Nearby Amenities</h3>
+                <svg id="amenities-chevron" class="w-5 h-5 text-secondary transition-transform duration-200"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+
+              <!-- Accordion Content (Hidden by default) -->
+              <div id="amenities-content" class="hidden mt-4">
+                <div id="poi-categories" class="space-y-3">
+                  <!-- Categories rendered here by JavaScript -->
+                  <p class="text-secondary text-sm">Loading businesses...</p>
+                </div>
               </div>
             </div>
 

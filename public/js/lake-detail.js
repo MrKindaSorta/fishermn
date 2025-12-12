@@ -474,11 +474,11 @@ const LakeDetail = {
    * Render POI grid
    */
   renderPOIs() {
-    const container = document.getElementById('poi-grid');
+    const container = document.getElementById('poi-categories');
     if (!container) return;
 
     if (this.businesses.length === 0) {
-      container.innerHTML = '<p class="text-secondary text-sm col-span-2">No nearby businesses listed yet.</p>';
+      container.innerHTML = '<p class="text-secondary text-sm">No nearby businesses listed yet.</p>';
       return;
     }
 
@@ -496,19 +496,30 @@ const LakeDetail = {
       if (grouped[type]) {
         const typeInfo = this.POI_TYPES[type] || this.POI_TYPES.OTHER;
         html += `
-          <div class="space-y-2">
-            <div class="flex items-center gap-2 text-sm font-semibold">
-              <span class="text-lg">${typeInfo.icon}</span>
-              <span>${typeInfo.label}s</span>
-              <span class="text-xs text-secondary font-normal">(${grouped[type].length})</span>
+          <div class="border border-grayPanel rounded-lg overflow-hidden">
+            <!-- Category Header -->
+            <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-frost transition-colors"
+                 onclick="togglePOICategory(this)">
+              <div class="flex items-center gap-2">
+                <span class="text-base">${typeInfo.icon}</span>
+                <span class="text-sm font-semibold">${typeInfo.label}s</span>
+                <span class="text-xs text-secondary">(${grouped[type].length})</span>
+              </div>
+              <svg class="w-4 h-4 text-secondary transition-transform duration-200 category-chevron"
+                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
             </div>
-            <div class="space-y-1">
+
+            <!-- POI Items (Collapsed by default) -->
+            <div class="poi-category-content hidden">
+              <div class="p-3 pt-0 space-y-2 border-t border-grayPanel bg-frost/30">
         `;
 
         grouped[type].forEach((biz, index) => {
           const poiId = `${type}-${index}`;
           html += `
-            <div class="poi-item p-2 rounded-lg border border-grayPanel bg-frost/50 hover:bg-frost"
+            <div class="poi-item p-2 rounded-lg border border-grayPanel bg-white hover:bg-frost"
                  data-poi-id="${poiId}"
                  onclick="LakeDetail.focusPOI('${poiId}', ${biz.latitude}, ${biz.longitude})">
               <p class="font-medium text-sm">${biz.name}</p>
@@ -518,7 +529,7 @@ const LakeDetail = {
           `;
         });
 
-        html += '</div></div>';
+        html += '</div></div></div>';
       }
     });
 
@@ -598,8 +609,14 @@ const LakeDetail = {
       return;
     }
 
+    // Mobile: limit to 3 reports
+    const isMobile = window.innerWidth < 768;
+    const displayLimit = isMobile ? 3 : allReports.length;
+    const displayedReports = allReports.slice(0, displayLimit);
+    const hasMore = allReports.length > displayLimit;
+
     // Render reports
-    container.innerHTML = allReports.map(report => {
+    let html = displayedReports.map(report => {
       if (report.type === 'ice') {
         return this.renderIceReportCard(report);
       } else if (report.type === 'catch') {
@@ -608,6 +625,25 @@ const LakeDetail = {
         return this.renderSnowReportCard(report);
       }
     }).join('');
+
+    // Add "View More" button on mobile if there are more reports
+    if (hasMore && isMobile) {
+      const remainingCount = allReports.length - displayLimit;
+      html += `
+        <div class="text-center py-4 border-t border-grayPanel mt-4">
+          <button
+            onclick="window.LakeDetail.switchToActivityTab()"
+            class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors text-sm">
+            View ${remainingCount} More Report${remainingCount > 1 ? 's' : ''}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
   },
 
   /**
@@ -2045,6 +2081,56 @@ const LakeDetail = {
 
     // Reload comments with new sort
     await this.loadComments(contentType, contentId, sortBy);
+  },
+
+  /**
+   * Switch to Activity tab (for "View More" button)
+   */
+  switchToActivityTab() {
+    // Mobile: update dropdown
+    const selector = document.getElementById('mobile-tab-selector');
+    if (selector && window.innerWidth < 1024) {
+      selector.value = 'activity';
+      selector.dispatchEvent(new Event('change'));
+      return;
+    }
+
+    // Desktop: click tab button
+    const activityTab = document.querySelector('[data-tab="activity"]');
+    if (activityTab) {
+      activityTab.click();
+    }
+  }
+};
+
+// Global helper functions
+window.toggleSection = function(sectionId) {
+  const section = document.getElementById(sectionId);
+  const chevron = document.getElementById(sectionId.replace('-content', '-chevron'));
+
+  if (section && chevron) {
+    if (section.classList.contains('hidden')) {
+      section.classList.remove('hidden');
+      chevron.classList.add('rotate-180');
+    } else {
+      section.classList.add('hidden');
+      chevron.classList.remove('rotate-180');
+    }
+  }
+};
+
+window.togglePOICategory = function(headerEl) {
+  const content = headerEl.nextElementSibling;
+  const chevron = headerEl.querySelector('.category-chevron');
+
+  if (content && chevron) {
+    if (content.classList.contains('hidden')) {
+      content.classList.remove('hidden');
+      chevron.classList.add('rotate-180');
+    } else {
+      content.classList.add('hidden');
+      chevron.classList.remove('rotate-180');
+    }
   }
 };
 
