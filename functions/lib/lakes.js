@@ -141,10 +141,12 @@ export async function createIceReport(db, reportData) {
     locationNotes = null,
     latitude = null,
     longitude = null,
-    reportedAt
+    reportedAt,
+    onLake = false
   } = reportData;
 
   const now = new Date().toISOString();
+  const onLakeValue = onLake ? 1 : 0;
 
   try {
     await db
@@ -153,14 +155,14 @@ export async function createIceReport(db, reportData) {
           id, lake_id, user_id,
           thickness_inches, condition, location_notes,
           latitude, longitude,
-          reported_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          reported_at, created_at, on_lake
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
         id, lakeId, userId,
         thicknessInches, condition, locationNotes,
         latitude, longitude,
-        reportedAt, now
+        reportedAt, now, onLakeValue
       )
       .run();
 
@@ -194,10 +196,12 @@ export async function createCatchReport(db, reportData) {
     baitUsed = null,
     locationNotes = null,
     photoUrl = null,
-    caughtAt
+    caughtAt,
+    reportedLater = false
   } = reportData;
 
   const now = new Date().toISOString();
+  const reportedLaterValue = reportedLater ? 1 : 0;
 
   try {
     await db
@@ -206,14 +210,14 @@ export async function createCatchReport(db, reportData) {
           id, lake_id, user_id,
           fish_species, fish_count, largest_size_inches, largest_weight_lbs,
           depth_feet, bait_used, location_notes,
-          photo_url, caught_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          photo_url, caught_at, created_at, reported_later
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
         id, lakeId, userId,
         fishSpecies, fishCount, largestSizeInches, largestWeightLbs,
         depthFeet, baitUsed, locationNotes,
-        photoUrl, caughtAt, now
+        photoUrl, caughtAt, now, reportedLaterValue
       )
       .run();
 
@@ -622,10 +626,12 @@ export async function createSnowReport(db, reportData) {
     snowType,
     coverage,
     locationNotes = null,
-    reportedAt
+    reportedAt,
+    onLake = false
   } = reportData;
 
   const now = new Date().toISOString();
+  const onLakeValue = onLake ? 1 : 0;
 
   try {
     await db
@@ -633,13 +639,13 @@ export async function createSnowReport(db, reportData) {
         INSERT INTO snow_reports (
           id, lake_id, user_id,
           thickness_inches, snow_type, coverage, location_notes,
-          reported_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          reported_at, created_at, on_lake
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
         id, lakeId, userId,
         thicknessInches, snowType, coverage, locationNotes,
-        reportedAt, now
+        reportedAt, now, onLakeValue
       )
       .run();
 

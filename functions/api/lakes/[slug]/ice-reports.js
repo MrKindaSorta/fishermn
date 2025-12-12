@@ -96,7 +96,7 @@ export async function onRequestPost(context) {
       return createErrorResponse('INVALID_REQUEST', 'Invalid JSON in request body', 400);
     }
 
-    const { thicknessInches, condition, locationNotes, latitude, longitude } = body;
+    const { thicknessInches, condition, locationNotes, latitude, longitude, onLake } = body;
 
     // Validate required fields
     if (typeof thicknessInches !== 'number' || thicknessInches < 0 || thicknessInches > 60) {
@@ -108,6 +108,9 @@ export async function onRequestPost(context) {
     if (condition && !validConditions.includes(condition)) {
       return createErrorResponse('VALIDATION_ERROR', 'Invalid ice condition', 422);
     }
+
+    // Convert onLake to boolean
+    const onLakeValue = onLake === true || onLake === 1;
 
     // Generate unique ID
     const reportId = `ice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -123,7 +126,8 @@ export async function onRequestPost(context) {
       locationNotes: locationNotes ? sanitizeInput(locationNotes) : null,
       latitude: latitude || null,
       longitude: longitude || null,
-      reportedAt: now
+      reportedAt: now,
+      onLake: onLakeValue
     });
 
     // Increment user's ice report count

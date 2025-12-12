@@ -96,7 +96,7 @@ export async function onRequestPost(context) {
       return createErrorResponse('INVALID_REQUEST', 'Invalid JSON in request body', 400);
     }
 
-    const { thicknessInches, snowType, coverage, locationNotes } = body;
+    const { thicknessInches, snowType, coverage, locationNotes, onLake } = body;
 
     // Validate thickness
     if (typeof thicknessInches !== 'number' || !Number.isInteger(thicknessInches) || thicknessInches < 1 || thicknessInches > 100) {
@@ -115,6 +115,9 @@ export async function onRequestPost(context) {
       return createErrorResponse('VALIDATION_ERROR', 'Invalid coverage. Must be one of: Even, Patchy, Drifted', 422);
     }
 
+    // Convert onLake to boolean
+    const onLakeValue = onLake === true || onLake === 1;
+
     // Generate unique ID
     const reportId = `snow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date().toISOString();
@@ -128,7 +131,8 @@ export async function onRequestPost(context) {
       snowType: snowType,
       coverage: coverage,
       locationNotes: locationNotes ? sanitizeInput(locationNotes) : null,
-      reportedAt: now
+      reportedAt: now,
+      onLake: onLakeValue
     });
 
     // Increment user's snow report count

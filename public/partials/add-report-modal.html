@@ -156,6 +156,19 @@
             class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           ></textarea>
         </div>
+
+        <!-- On Lake Checkbox -->
+        <div class="flex items-start gap-2 pt-2">
+          <input
+            type="checkbox"
+            id="ice-on-lake"
+            class="mt-1 w-4 h-4 text-primary bg-gray-100 border-grayPanel rounded focus:ring-primary focus:ring-2 cursor-pointer"
+          >
+          <label for="ice-on-lake" class="text-sm text-primary cursor-pointer select-none">
+            <span class="font-medium">On lake now?</span>
+            <span class="block text-xs text-secondary mt-0.5">Check if you're currently on the lake measuring this ice</span>
+          </label>
+        </div>
       </div>
 
       <!-- Step 3: Catch Report Form -->
@@ -166,6 +179,44 @@
             <option value="">-- Select a species --</option>
             <!-- Populated dynamically from API -->
           </select>
+        </div>
+
+        <!-- Timing Selection (Required) -->
+        <div>
+          <label class="block text-sm font-medium mb-2">When was this catch? *</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              id="timing-now-btn"
+              onclick="AddReportModal.selectTiming('now')"
+              class="timing-btn px-4 py-3 rounded-lg border-2 border-grayPanel text-sm font-medium hover:border-primary/50 transition-colors"
+            >
+              <div class="text-base mb-1">🎣</div>
+              <div>Just Now</div>
+              <div class="text-xs text-secondary mt-0.5">Current time</div>
+            </button>
+            <button
+              type="button"
+              id="timing-earlier-btn"
+              onclick="AddReportModal.selectTiming('earlier')"
+              class="timing-btn px-4 py-3 rounded-lg border-2 border-grayPanel text-sm font-medium hover:border-primary/50 transition-colors"
+            >
+              <div class="text-base mb-1">📅</div>
+              <div>Earlier</div>
+              <div class="text-xs text-secondary mt-0.5">Specify when</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Earlier Datetime Picker (Hidden by default) -->
+        <div id="earlier-datetime-container" class="hidden">
+          <label class="block text-sm font-medium mb-2">When did you catch it? (Optional)</label>
+          <input
+            type="datetime-local"
+            id="catch-datetime"
+            class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+          <p class="text-xs text-secondary mt-1">Leave blank if you don't remember the exact time</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -319,6 +370,19 @@
             rows="3"
             class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           ></textarea>
+        </div>
+
+        <!-- On Lake Checkbox -->
+        <div class="flex items-start gap-2 pt-2">
+          <input
+            type="checkbox"
+            id="snow-on-lake"
+            class="mt-1 w-4 h-4 text-primary bg-gray-100 border-grayPanel rounded focus:ring-primary focus:ring-2 cursor-pointer"
+          >
+          <label for="snow-on-lake" class="text-sm text-primary cursor-pointer select-none">
+            <span class="font-medium">On lake now?</span>
+            <span class="block text-xs text-secondary mt-0.5">Check if you're currently on the lake measuring this snow</span>
+          </label>
         </div>
       </div>
 

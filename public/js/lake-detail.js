@@ -671,6 +671,7 @@ const LakeDetail = {
               <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+              ${report.onLake ? '<span class="inline-flex items-center gap-0.5 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">📍 On Lake</span>' : ''}
             </div>
 
             <!-- Conversational Text -->
@@ -710,6 +711,7 @@ const LakeDetail = {
               <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
+              ${report.reportedLater ? '<span class="inline-flex items-center gap-0.5 text-xs bg-secondary/10 text-secondary px-1.5 py-0.5 rounded font-medium">⏱️ Reported Later</span>' : ''}
             </div>
 
             <p class="text-sm sm:text-base text-primary leading-snug">
@@ -752,6 +754,7 @@ const LakeDetail = {
               <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
+              ${report.onLake ? '<span class="inline-flex items-center gap-0.5 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">📍 On Lake</span>' : ''}
             </div>
 
             <p class="text-sm sm:text-base text-primary leading-snug">

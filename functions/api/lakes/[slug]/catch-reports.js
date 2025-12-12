@@ -104,12 +104,19 @@ export async function onRequestPost(context) {
       depthFeet,
       baitUsed,
       locationNotes,
-      photoUrl
+      photoUrl,
+      caughtAt,
+      reportedLater
     } = body;
 
     // Validate required fields
     if (!fishSpecies || typeof fishSpecies !== 'string') {
       return createErrorResponse('VALIDATION_ERROR', 'Fish species is required', 422);
+    }
+
+    // Validate caughtAt timestamp
+    if (!caughtAt || typeof caughtAt !== 'string') {
+      return createErrorResponse('VALIDATION_ERROR', 'Caught at timestamp is required', 422);
     }
 
     // Validate optional numeric fields
@@ -129,9 +136,11 @@ export async function onRequestPost(context) {
       return createErrorResponse('VALIDATION_ERROR', 'Depth must be between 0 and 500 feet', 422);
     }
 
+    // Convert reportedLater to boolean
+    const reportedLaterValue = reportedLater === true || reportedLater === 1;
+
     // Generate unique ID
     const reportId = `catch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date().toISOString();
 
     // Create the catch report
     const report = await createCatchReport(env.DB, {
@@ -146,7 +155,8 @@ export async function onRequestPost(context) {
       baitUsed: baitUsed ? sanitizeInput(baitUsed) : null,
       locationNotes: locationNotes ? sanitizeInput(locationNotes) : null,
       photoUrl: photoUrl || null,
-      caughtAt: now
+      caughtAt: caughtAt,
+      reportedLater: reportedLaterValue
     });
 
     // Increment user's catch report count

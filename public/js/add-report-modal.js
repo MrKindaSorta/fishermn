@@ -11,9 +11,9 @@ const AddReportModal = {
   fishSpecies: null,
   searchTimeout: null,
   formData: {
-    ice: { thickness: 12, condition: '', notes: '' },
-    catch: { species: '', count: 1, size: '', weight: '', depth: '', bait: '', notes: '' },
-    snow: { depth: 6, types: [], coverage: [], notes: '' }
+    ice: { thickness: 12, condition: '', notes: '', onLake: false },
+    catch: { species: '', count: 1, size: '', weight: '', depth: '', bait: '', notes: '', timing: null, catchDatetime: null },
+    snow: { depth: 6, types: [], coverage: [], notes: '', onLake: false }
   },
 
   /**
@@ -86,9 +86,9 @@ const AddReportModal = {
     this.selectedLake = null;
     this.selectedReportType = null;
     this.formData = {
-      ice: { thickness: 12, condition: '', notes: '' },
-      catch: { species: '', count: 1, size: '', weight: '', depth: '', bait: '', notes: '' },
-      snow: { depth: 6, types: [], coverage: [], notes: '' }
+      ice: { thickness: 12, condition: '', notes: '', onLake: false },
+      catch: { species: '', count: 1, size: '', weight: '', depth: '', bait: '', notes: '', timing: null, catchDatetime: null },
+      snow: { depth: 6, types: [], coverage: [], notes: '', onLake: false }
     };
 
     // Clear inputs
@@ -102,7 +102,7 @@ const AddReportModal = {
     document.getElementById('snow-depth-slider').value = 6;
 
     // Clear text inputs
-    document.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach(input => {
+    document.querySelectorAll('textarea, input[type="text"], input[type="number"], input[type="datetime-local"]').forEach(input => {
       if (input.id !== 'lake-search-input' && input.id !== 'fish-count') {
         input.value = '';
       }
@@ -111,6 +111,23 @@ const AddReportModal = {
     // Reset fish count to 1
     const fishCountInput = document.getElementById('fish-count');
     if (fishCountInput) fishCountInput.value = 1;
+
+    // Clear checkboxes
+    const iceOnLake = document.getElementById('ice-on-lake');
+    const snowOnLake = document.getElementById('snow-on-lake');
+    if (iceOnLake) iceOnLake.checked = false;
+    if (snowOnLake) snowOnLake.checked = false;
+
+    // Reset timing buttons
+    const nowBtn = document.getElementById('timing-now-btn');
+    const earlierBtn = document.getElementById('timing-earlier-btn');
+    const datetimeContainer = document.getElementById('earlier-datetime-container');
+
+    nowBtn?.classList.remove('border-primary', 'bg-primary/5', 'ring-2', 'ring-primary');
+    nowBtn?.classList.add('border-grayPanel');
+    earlierBtn?.classList.remove('border-primary', 'bg-primary/5', 'ring-2', 'ring-primary');
+    earlierBtn?.classList.add('border-grayPanel');
+    datetimeContainer?.classList.add('hidden');
 
     // Reset snow buttons
     document.querySelectorAll('.snow-type-btn, .snow-coverage-btn').forEach(btn => {
@@ -226,6 +243,10 @@ const AddReportModal = {
         const species = document.getElementById('fish-species')?.value;
         if (!species) {
           this.showError('Please select a fish species');
+          return false;
+        }
+        if (!this.formData.catch.timing) {
+          this.showError('Please select when you caught the fish (Now or Earlier)');
           return false;
         }
       } else if (this.selectedReportType === 'snow') {
@@ -485,6 +506,33 @@ const AddReportModal = {
   },
 
   /**
+   * Select catch timing (now or earlier)
+   */
+  selectTiming(timing) {
+    this.formData.catch.timing = timing;
+
+    const nowBtn = document.getElementById('timing-now-btn');
+    const earlierBtn = document.getElementById('timing-earlier-btn');
+    const datetimeContainer = document.getElementById('earlier-datetime-container');
+
+    if (timing === 'now') {
+      nowBtn?.classList.add('border-primary', 'bg-primary/5', 'ring-2', 'ring-primary');
+      nowBtn?.classList.remove('border-grayPanel');
+      earlierBtn?.classList.remove('border-primary', 'bg-primary/5', 'ring-2', 'ring-primary');
+      earlierBtn?.classList.add('border-grayPanel');
+      datetimeContainer?.classList.add('hidden');
+    } else if (timing === 'earlier') {
+      earlierBtn?.classList.add('border-primary', 'bg-primary/5', 'ring-2', 'ring-primary');
+      earlierBtn?.classList.remove('border-grayPanel');
+      nowBtn?.classList.remove('border-primary', 'bg-primary/5', 'ring-2', 'ring-primary');
+      nowBtn?.classList.add('border-grayPanel');
+      datetimeContainer?.classList.remove('hidden');
+    }
+
+    this.clearError();
+  },
+
+  /**
    * Submit report
    */
   async submitReport() {
@@ -499,10 +547,13 @@ const AddReportModal = {
     // Build payload based on report type
     if (this.selectedReportType === 'ice') {
       endpoint = `/api/lakes/${this.selectedLake.slug}/ice-reports`;
+      const onLake = document.getElementById('ice-on-lake')?.checked || false;
+
       payload = {
         thicknessInches: this.formData.ice.thickness,
         condition: document.getElementById('ice-condition')?.value || null,
-        locationNotes: document.getElementById('ice-notes')?.value || null
+        locationNotes: document.getElementById('ice-notes')?.value || null,
+        onLake: onLake
       };
     } else if (this.selectedReportType === 'catch') {
       endpoint = `/api/lakes/${this.selectedLake.slug}/catch-reports`;
@@ -511,6 +562,22 @@ const AddReportModal = {
       const fishWeight = parseFloat(document.getElementById('fish-weight')?.value);
       const fishDepth = parseFloat(document.getElementById('fish-depth')?.value);
 
+      // Determine timing
+      let caughtAt;
+      let reportedLater = false;
+
+      if (this.formData.catch.timing === 'now') {
+        caughtAt = new Date().toISOString();
+      } else if (this.formData.catch.timing === 'earlier') {
+        const catchDatetimeInput = document.getElementById('catch-datetime')?.value;
+        if (catchDatetimeInput) {
+          caughtAt = new Date(catchDatetimeInput).toISOString();
+        } else {
+          caughtAt = new Date().toISOString();
+          reportedLater = true;
+        }
+      }
+
       payload = {
         fishSpecies: document.getElementById('fish-species')?.value,
         fishCount: isNaN(fishCount) ? 1 : fishCount,
@@ -518,15 +585,20 @@ const AddReportModal = {
         largestWeightLbs: isNaN(fishWeight) ? null : fishWeight,
         depthFeet: isNaN(fishDepth) ? null : fishDepth,
         baitUsed: document.getElementById('bait-used')?.value || null,
-        locationNotes: document.getElementById('catch-notes')?.value || null
+        locationNotes: document.getElementById('catch-notes')?.value || null,
+        caughtAt: caughtAt,
+        reportedLater: reportedLater
       };
     } else if (this.selectedReportType === 'snow') {
       endpoint = `/api/lakes/${this.selectedLake.slug}/snow-reports`;
+      const onLake = document.getElementById('snow-on-lake')?.checked || false;
+
       payload = {
         thicknessInches: this.formData.snow.depth,
         snowType: this.formData.snow.types[0], // Take first selected type
         coverage: this.formData.snow.coverage[0], // Take first selected coverage
-        locationNotes: document.getElementById('snow-notes')?.value || null
+        locationNotes: document.getElementById('snow-notes')?.value || null,
+        onLake: onLake
       };
     }
 
