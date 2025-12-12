@@ -1662,6 +1662,8 @@ const LakeDetail = {
       // Render comment section UI if first time
       if (!container.dataset.loaded) {
         container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
+        // Wait for next frame to ensure DOM is updated
+        await new Promise(resolve => requestAnimationFrame(resolve));
         await this.loadComments(contentType, contentId, 'newest');
         container.dataset.loaded = 'true';
       }
@@ -1699,6 +1701,8 @@ const LakeDetail = {
       // Render comment section UI if first time
       if (!container.dataset.loaded) {
         container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
+        // Wait for next frame to ensure DOM is updated
+        await new Promise(resolve => requestAnimationFrame(resolve));
         await this.loadComments(contentType, contentId, 'newest');
         container.dataset.loaded = 'true';
       }
@@ -1760,6 +1764,8 @@ const LakeDetail = {
     // Render comment section UI if first time
     if (!container.dataset.loaded) {
       container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
+      // Wait for next frame to ensure DOM is updated
+      await new Promise(resolve => requestAnimationFrame(resolve));
       await this.loadComments(contentType, contentId, 'newest');
       container.dataset.loaded = 'true';
     }
@@ -1780,6 +1786,11 @@ const LakeDetail = {
     if (!container) return;
 
     const commentsList = container.querySelector('.comments-list');
+
+    if (!commentsList) {
+      console.error('Comments list element not found in container');
+      return;
+    }
 
     try {
       const response = await fetch(
