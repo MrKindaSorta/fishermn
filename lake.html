@@ -186,27 +186,28 @@
       </div>
     </div>
 
-    <!-- Weather Bar -->
-    <div id="weather-widget" class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-3 gap-3 border-b border-grayPanel bg-white">
-      <!-- Left: Current conditions -->
-      <div class="flex items-center gap-2 sm:gap-4">
-        <span class="text-2xl">🌡️</span>
-        <div>
-          <span id="weather-temp" class="text-xl font-bold text-primary">--°F</span>
-          <span class="text-sm text-secondary ml-2">Feels like <span id="weather-feels">--°F</span></span>
-        </div>
-        <span class="text-sm text-muted" id="weather-conditions">-- • --</span>
-      </div>
-
-      <!-- Right: 5-day forecast -->
-      <div id="forecast-container" class="flex gap-2 sm:gap-4 overflow-x-auto">
-        <p class="text-xs text-secondary">Loading forecast...</p>
-      </div>
-    </div>
-
     <div class="p-6">
       <!-- Tab: Overview -->
       <div id="tab-overview" class="tab-content active">
+
+        <!-- Weather Widget (Mobile Only - Overview Tab Only) -->
+        <div id="weather-widget" class="lg:hidden flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 gap-3 bg-white rounded-lg border border-grayPanel mb-6 shadow-sm">
+          <!-- Left: Current conditions -->
+          <div class="flex items-center gap-2 sm:gap-4">
+            <span class="text-2xl">🌡️</span>
+            <div>
+              <span id="weather-temp" class="text-xl font-bold text-primary">--°F</span>
+              <span class="text-sm text-secondary ml-2">Feels like <span id="weather-feels">--°F</span></span>
+            </div>
+            <span class="text-sm text-muted" id="weather-conditions">-- • --</span>
+          </div>
+
+          <!-- Right: 5-day forecast -->
+          <div id="forecast-container" class="flex gap-2 sm:gap-4 overflow-x-auto">
+            <p class="text-xs text-secondary">Loading forecast...</p>
+          </div>
+        </div>
+
         <!-- Main Grid: Left (Lake Info) + Right (Map) -->
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
           <!-- Left Column: Lake Data (60%) -->
@@ -248,11 +249,11 @@
                   </button>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                <div class="grid grid-cols-3 gap-1 sm:gap-3">
                   <!-- Reported (Average) -->
-                  <div class="text-center">
-                    <div class="flex items-center justify-center gap-1 mb-1">
-                      <p class="text-xs sm:text-sm text-secondary">Reported</p>
+                  <div class="text-center px-0.5 sm:px-0">
+                    <div class="flex items-center justify-center gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
+                      <p class="text-xs text-secondary">Reported</p>
                       <button
                         class="text-secondary hover:text-primary transition-colors"
                         title="Average of all ice reports from the last 7 days"
@@ -262,13 +263,13 @@
                         </svg>
                       </button>
                     </div>
-                    <p id="stat-avg-thickness" class="text-2xl sm:text-xl font-bold text-primary">--"</p>
+                    <p id="stat-avg-thickness" class="text-base sm:text-xl font-bold text-primary">--"</p>
                   </div>
 
                   <!-- Max (3 days) -->
-                  <div class="text-center">
-                    <div class="flex items-center justify-center gap-1 mb-1">
-                      <p class="text-xs sm:text-sm text-secondary">Max</p>
+                  <div class="text-center px-0.5 sm:px-0">
+                    <div class="flex items-center justify-center gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
+                      <p class="text-xs text-secondary">Max</p>
                       <button
                         class="text-secondary hover:text-primary transition-colors"
                         title="Thickest ice reported in the last 3 days"
@@ -278,13 +279,13 @@
                         </svg>
                       </button>
                     </div>
-                    <p id="stat-max-thickness" class="text-2xl sm:text-xl font-bold text-evergreen">--"</p>
+                    <p id="stat-max-thickness" class="text-base sm:text-xl font-bold text-evergreen">--"</p>
                   </div>
 
                   <!-- Min (3 days) -->
-                  <div class="text-center">
-                    <div class="flex items-center justify-between gap-1 mb-1">
-                      <p class="text-xs sm:text-sm text-secondary">Min</p>
+                  <div class="text-center px-0.5 sm:px-0">
+                    <div class="flex items-center justify-center gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
+                      <p class="text-xs text-secondary">Min</p>
                       <button
                         class="text-secondary hover:text-primary transition-colors"
                         title="Thinnest ice reported in the last 3 days"
@@ -294,7 +295,7 @@
                         </svg>
                       </button>
                     </div>
-                    <p id="stat-min-thickness" class="text-2xl sm:text-xl font-bold text-danger">--"</p>
+                    <p id="stat-min-thickness" class="text-base sm:text-xl font-bold text-danger">--"</p>
                   </div>
                 </div>
 
@@ -303,26 +304,26 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div class="card flex items-center gap-2 sm:gap-3">
-                <span class="text-2xl sm:text-3xl">📊</span>
-                <div>
-                  <p id="stat-ice-reports" class="text-xl sm:text-2xl font-bold">--</p>
-                  <p class="text-xs sm:text-sm text-secondary">Ice Reports</p>
+            <div class="grid grid-cols-3 gap-2 sm:gap-4">
+              <div class="card flex flex-col items-center justify-center gap-1 p-3 sm:p-6">
+                <span class="text-xl sm:text-3xl">📊</span>
+                <div class="text-center">
+                  <p id="stat-ice-reports" class="text-sm sm:text-2xl font-bold">--</p>
+                  <p class="text-xs text-secondary">Ice</p>
                 </div>
               </div>
-              <div class="card flex items-center gap-2 sm:gap-3">
-                <span class="text-2xl sm:text-3xl">🐟</span>
-                <div>
-                  <p id="stat-catch-reports" class="text-xl sm:text-2xl font-bold">--</p>
-                  <p class="text-xs sm:text-sm text-secondary">Catch Reports</p>
+              <div class="card flex flex-col items-center justify-center gap-1 p-3 sm:p-6">
+                <span class="text-xl sm:text-3xl">🐟</span>
+                <div class="text-center">
+                  <p id="stat-catch-reports" class="text-sm sm:text-2xl font-bold">--</p>
+                  <p class="text-xs text-secondary">Catch</p>
                 </div>
               </div>
-              <div class="card flex items-center gap-2 sm:gap-3">
-                <span class="text-2xl sm:text-3xl">📅</span>
-                <div>
-                  <p id="stat-last-report" class="text-xl sm:text-2xl font-bold">--</p>
-                  <p class="text-xs sm:text-sm text-secondary">Last Report</p>
+              <div class="card flex flex-col items-center justify-center gap-1 p-3 sm:p-6">
+                <span class="text-xl sm:text-3xl">📅</span>
+                <div class="text-center">
+                  <p id="stat-last-report" class="text-sm sm:text-2xl font-bold">--</p>
+                  <p class="text-xs text-secondary">Last</p>
                 </div>
               </div>
             </div>
