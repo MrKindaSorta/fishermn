@@ -519,6 +519,11 @@ class LakesList {
     });
 
     this.activeLakeId = lakeId;
+
+    // Auto-switch to map view on mobile
+    if (typeof MobileViewController !== 'undefined') {
+      MobileViewController.onLakeClick(lakeId);
+    }
   }
 
   /**
@@ -1113,30 +1118,83 @@ document.addEventListener('DOMContentLoaded', () => {
   window.lakesList = new LakesList();
   window.lakesList.init();
 
-  // Initialize mobile map toggle
-  initMobileMapToggle();
+  // Initialize mobile view controller
+  MobileViewController.init();
 });
 
 /**
- * Mobile Map Toggle
- * Handles showing/hiding the map on mobile devices
+ * Mobile View Controller
+ * Handles List/Map view switching with bottom navigation
  */
-function initMobileMapToggle() {
-  const toggleBtn = document.getElementById('mobile-map-toggle');
-  const closeBtn = document.getElementById('mobile-map-close');
-  const mapContainer = document.getElementById('map-container');
+const MobileViewController = {
+  currentView: 'list',
+  selectedLakeId: null,
 
-  toggleBtn?.addEventListener('click', () => {
+  init() {
+    // Only on mobile
+    if (window.innerWidth >= 1024) return;
+
+    const listBtn = document.getElementById('mobile-nav-list');
+    const mapBtn = document.getElementById('mobile-nav-map');
+    const listPanel = document.querySelector('.w-full.lg\\:w-\\[480px\\]'); // List panel
+    const mapContainer = document.getElementById('map-container');
+
+    listBtn?.addEventListener('click', () => this.showList());
+    mapBtn?.addEventListener('click', () => this.showMap());
+  },
+
+  showList() {
+    if (this.currentView === 'list') return;
+    this.currentView = 'list';
+
+    const listPanel = document.querySelector('.w-full.lg\\:w-\\[480px\\]');
+    const mapContainer = document.getElementById('map-container');
+    const listBtn = document.getElementById('mobile-nav-list');
+    const mapBtn = document.getElementById('mobile-nav-map');
+
+    // Show list, hide map
+    listPanel?.classList.remove('hidden');
+    mapContainer?.classList.add('hidden');
+
+    // Update button states
+    listBtn?.classList.add('text-primary', 'bg-primary/5', 'border-primary');
+    listBtn?.classList.remove('text-secondary');
+    mapBtn?.classList.remove('text-primary', 'bg-primary/5', 'border-primary');
+    mapBtn?.classList.add('text-secondary');
+  },
+
+  showMap() {
+    if (this.currentView === 'map') return;
+    this.currentView = 'map';
+
+    const listPanel = document.querySelector('.w-full.lg\\:w-\\[480px\\]');
+    const mapContainer = document.getElementById('map-container');
+    const listBtn = document.getElementById('mobile-nav-list');
+    const mapBtn = document.getElementById('mobile-nav-map');
+
+    // Hide list, show map
+    listPanel?.classList.add('hidden');
     mapContainer?.classList.remove('hidden');
-    // Force Leaflet to recalculate size
+
+    // Update button states
+    mapBtn?.classList.add('text-primary', 'bg-primary/5', 'border-primary');
+    mapBtn?.classList.remove('text-secondary');
+    listBtn?.classList.remove('text-primary', 'bg-primary/5', 'border-primary');
+    listBtn?.classList.add('text-secondary');
+
+    // Refresh map size
     setTimeout(() => {
       if (window.lakesMap?.map) {
         window.lakesMap.map.invalidateSize();
       }
     }, 100);
-  });
+  },
 
-  closeBtn?.addEventListener('click', () => {
-    mapContainer?.classList.add('hidden');
-  });
-}
+  onLakeClick(lakeId) {
+    this.selectedLakeId = lakeId;
+    // Auto-switch to map view on mobile
+    if (window.innerWidth < 1024) {
+      this.showMap();
+    }
+  }
+};

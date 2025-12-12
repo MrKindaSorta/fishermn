@@ -75,14 +75,6 @@
   <!-- Main Content Area -->
   <main class="ml-0 lg:ml-64 mt-16 flex flex-col lg:flex-row h-[calc(100vh-64px)]">
 
-    <!-- Map Toggle Button (mobile only) -->
-    <button id="mobile-map-toggle" class="lg:hidden fixed bottom-20 right-4 z-20 bg-primary text-white px-5 py-3 rounded-full shadow-xl flex items-center gap-2 font-semibold text-sm">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-      </svg>
-      <span class="font-semibold">Map</span>
-    </button>
-
     <!-- Left Panel: Lakes List -->
     <div class="w-full lg:w-[480px] bg-white border-r border-grayPanel flex flex-col h-full overflow-hidden">
       <div class="px-4 lg:px-6 py-3 border-b border-grayPanel bg-white flex-shrink-0">
@@ -197,7 +189,7 @@
 
       </div>
 
-      <div id="lakes-list" class="p-4 lg:p-6 space-y-3 overflow-y-auto flex-1 min-h-0">
+      <div id="lakes-list" class="p-4 lg:p-6 pb-20 lg:pb-6 space-y-3 overflow-y-auto flex-1 min-h-0">
         <!-- Loading state - will be replaced by dynamic content -->
         <div class="text-center py-8 text-secondary">
           <div class="animate-pulse">Loading lakes...</div>
@@ -206,14 +198,29 @@
     </div>
 
     <!-- Right Panel: Interactive Map -->
-    <div id="map-container" class="fixed inset-0 z-30 lg:relative lg:flex-1 lg:z-0 hidden lg:block">
-      <!-- Close button (mobile only) -->
-      <button id="mobile-map-close" class="lg:hidden absolute top-6 right-6 z-40 bg-white text-primary p-4 rounded-full shadow-2xl border-2 border-primary">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
+    <div id="map-container" class="fixed inset-0 pb-16 lg:pb-0 z-30 lg:relative lg:flex-1 lg:z-0 hidden lg:block">
       <div id="map" class="h-full w-full"></div>
+    </div>
+
+    <!-- Bottom Navigation (Mobile Only) -->
+    <div id="mobile-bottom-nav" class="lg:hidden fixed bottom-0 left-0 right-0 border-t-2 border-grayPanel bg-white shadow-2xl z-30">
+      <div class="flex items-stretch">
+        <button id="mobile-nav-list"
+                class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-primary bg-primary/5 border-b-2 border-primary transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+          <span class="text-xs font-semibold">List</span>
+        </button>
+        <button id="mobile-nav-map"
+                class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-secondary hover:bg-frost transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+          </svg>
+          <span class="text-xs font-semibold">Map</span>
+        </button>
+      </div>
     </div>
   </main>
 
