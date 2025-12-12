@@ -51,7 +51,7 @@
   </nav>
 
   <!-- User Info (Clickable) -->
-  <div class="p-4 border-t border-white/10 cursor-pointer hover:bg-white/5 transition-colors" id="sidebar-user-info" onclick="UserMenu.open()">
+  <div class="p-4 border-t border-white/10 cursor-pointer hover:bg-white/5 transition-colors" id="sidebar-user-info" onclick="event.stopPropagation(); UserMenu.open()">
     <div class="flex items-center gap-3">
       <div id="sidebar-initials" class="w-10 h-10 bg-gold rounded-full flex items-center justify-center text-primary font-bold">
         ?
@@ -170,16 +170,24 @@
   </div>
 </div>
 
+<!-- User Menu Backdrop (dedicated, separate from sidebar backdrop) -->
+<div id="user-menu-backdrop" class="hidden fixed inset-0 bg-black/50 z-45" onclick="UserMenu.close()"></div>
+
 <script>
 // User Menu Controller
 window.UserMenu = {
   open() {
     const menu = document.getElementById('user-menu');
-    const backdrop = document.getElementById('sidebar-backdrop');
+    const backdrop = document.getElementById('user-menu-backdrop');
 
     if (menu && backdrop) {
-      menu.classList.remove('translate-y-full');
       backdrop.classList.remove('hidden');
+
+      // Use RAF for Chrome-safe animation
+      requestAnimationFrame(() => {
+        menu.classList.remove('translate-y-full');
+      });
+
       document.body.style.overflow = 'hidden';
 
       // Sync user data to menu
@@ -197,12 +205,16 @@ window.UserMenu = {
 
   close() {
     const menu = document.getElementById('user-menu');
-    const backdrop = document.getElementById('sidebar-backdrop');
+    const backdrop = document.getElementById('user-menu-backdrop');
 
     if (menu && backdrop) {
       menu.classList.add('translate-y-full');
-      backdrop.classList.add('hidden');
-      document.body.style.overflow = '';
+
+      // Hide backdrop after animation completes
+      setTimeout(() => {
+        backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 300); // Match transition duration
     }
   },
 
@@ -228,9 +240,9 @@ window.UserMenu = {
   }
 };
 
-// Close menu when backdrop clicked (use event delegation for Chrome compatibility)
-document.addEventListener('click', (e) => {
-  if (e.target.id === 'sidebar-backdrop') {
+// ESC key to close menu (accessibility)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
     const menu = document.getElementById('user-menu');
     if (menu && !menu.classList.contains('translate-y-full')) {
       UserMenu.close();
