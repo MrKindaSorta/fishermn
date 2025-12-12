@@ -115,6 +115,11 @@
           <p id="menu-username" class="font-bold text-base text-primary">User</p>
           <p id="menu-level-xp" class="text-xs text-secondary">Level 1 • 0 XP</p>
         </div>
+        <button onclick="UserMenu.close()" class="p-2 hover:bg-frost rounded-lg transition-colors">
+          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -223,10 +228,13 @@ window.UserMenu = {
   }
 };
 
-// Close menu when backdrop clicked
+// Close menu when backdrop clicked (use event delegation for Chrome compatibility)
 document.addEventListener('click', (e) => {
-  if (e.target.id === 'sidebar-backdrop' && document.getElementById('user-menu').classList.contains('translate-y-full') === false) {
-    UserMenu.close();
+  if (e.target.id === 'sidebar-backdrop') {
+    const menu = document.getElementById('user-menu');
+    if (menu && !menu.classList.contains('translate-y-full')) {
+      UserMenu.close();
+    }
   }
 });
 </script>
