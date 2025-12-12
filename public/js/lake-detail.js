@@ -656,42 +656,38 @@ const LakeDetail = {
    * Render individual ice report card
    */
   renderIceReportCard(report) {
-    const thicknessClass = this.getThicknessClass(report.thicknessInches);
+    const conversationalText = this.getIceReportText(report);
+
     return `
-      <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'ice', '${report.id}')">
-        <div class="flex items-start gap-3">
-          <!-- Left: Content -->
+      <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+           onclick="LakeDetail.openCommentsFromCard(event, 'ice', '${report.id}')">
+        <div class="flex gap-3">
+          ${this.renderAvatar(report.user, 'lg')}
+
           <div class="flex-1 min-w-0">
-            <!-- Header -->
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <span class="text-lg">❄️</span>
-              <span class="badge bg-primary text-white text-xs">ICE</span>
-              <span class="badge ${thicknessClass} text-white text-xs">${report.thicknessInches}"</span>
-              ${report.condition ? `<span class="text-xs text-secondary capitalize">${report.condition}</span>` : ''}
-              <span class="text-xs text-secondary">•</span>
-              <span class="text-xs font-medium">${report.user.displayName}</span>
-              <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
+            <!-- Header: Name, Rank, Timestamp -->
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="font-semibold text-xs sm:text-sm text-primary">${report.user.displayName}</span>
+              <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
-              <span class="text-xs text-secondary">•</span>
-              <span class="text-xs text-secondary flex items-center gap-1">
-                <span>💬</span>
-                <span class="comment-count-text">${report.commentCount || 0}</span>
-              </span>
             </div>
 
-            <!-- Location notes -->
-            ${report.locationNotes ? `<p class="text-sm text-secondary">${report.locationNotes}</p>` : ''}
-          </div>
+            <!-- Conversational Text -->
+            <p class="text-sm sm:text-base text-primary leading-relaxed mb-2">
+              ${conversationalText}
+            </p>
 
-          <!-- Right: Vote buttons -->
-          <div class="flex-shrink-0" onclick="event.stopPropagation()">
-            ${this.renderVoteButtons(report, 'ice')}
+            <!-- Action Buttons -->
+            <div onclick="event.stopPropagation()">
+              ${this.renderActionButtons(report, 'ice')}
+            </div>
           </div>
         </div>
 
-        <!-- Comment section (collapsible) -->
-        <div class="comment-container hidden mt-3 pl-7" data-content-type="ice" data-content-id="${report.id}" onclick="event.stopPropagation()">
+        <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+             data-content-type="ice" data-content-id="${report.id}"
+             onclick="event.stopPropagation()">
         </div>
       </div>
     `;
@@ -701,43 +697,42 @@ const LakeDetail = {
    * Render individual catch report card
    */
   renderCatchReportCard(report) {
-    const details = this.renderCatchDetails(report);
+    const conversationalText = this.getCatchReportText(report);
+    const details = this.getCatchDetails(report);
+
     return `
-      <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'catch', '${report.id}')">
-        <div class="flex items-start gap-3">
-          <!-- Left: Content -->
+      <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+           onclick="LakeDetail.openCommentsFromCard(event, 'catch', '${report.id}')">
+        <div class="flex gap-3">
+          ${this.renderAvatar(report.user, 'lg')}
+
           <div class="flex-1 min-w-0">
-            <!-- Header -->
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <span class="text-lg">🐟</span>
-              <span class="badge bg-evergreen text-white text-xs">CATCH</span>
-              <span class="font-bold text-sm">${report.fishSpecies}</span>
-              ${report.fishCount > 1 ? `<span class="text-xs text-secondary">(${report.fishCount})</span>` : ''}
-              ${details ? `<span class="text-xs text-secondary">•</span>${details}` : ''}
-              <span class="text-xs text-secondary">•</span>
-              <span class="text-xs font-medium">${report.user.displayName}</span>
-              <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="font-semibold text-xs sm:text-sm text-primary">${report.user.displayName}</span>
+              <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
-              <span class="text-xs text-secondary">•</span>
-              <span class="text-xs text-secondary flex items-center gap-1">
-                <span>💬</span>
-                <span class="comment-count-text">${report.commentCount || 0}</span>
-              </span>
             </div>
 
-            <!-- Location notes -->
-            ${report.locationNotes ? `<p class="text-sm text-secondary">${report.locationNotes}</p>` : ''}
-          </div>
+            <p class="text-sm sm:text-base text-primary leading-relaxed">
+              ${conversationalText}
+            </p>
 
-          <!-- Right: Vote buttons -->
-          <div class="flex-shrink-0" onclick="event.stopPropagation()">
-            ${this.renderVoteButtons(report, 'catch')}
+            ${details ? `
+              <p class="text-xs sm:text-sm text-secondary mt-2">
+                ${details}
+              </p>
+            ` : ''}
+
+            <div onclick="event.stopPropagation()">
+              ${this.renderActionButtons(report, 'catch')}
+            </div>
           </div>
         </div>
 
-        <!-- Comment section (collapsible) -->
-        <div class="comment-container hidden mt-3 pl-7" data-content-type="catch" data-content-id="${report.id}" onclick="event.stopPropagation()">
+        <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+             data-content-type="catch" data-content-id="${report.id}"
+             onclick="event.stopPropagation()">
         </div>
       </div>
     `;
@@ -747,42 +742,35 @@ const LakeDetail = {
    * Render individual snow report card
    */
   renderSnowReportCard(report) {
+    const conversationalText = this.getSnowReportText(report);
+
     return `
-      <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'snow', '${report.id}')">
-        <div class="flex items-start gap-3">
-          <!-- Left: Content -->
+      <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+           onclick="LakeDetail.openCommentsFromCard(event, 'snow', '${report.id}')">
+        <div class="flex gap-3">
+          ${this.renderAvatar(report.user, 'lg')}
+
           <div class="flex-1 min-w-0">
-            <!-- Header -->
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <span class="text-lg">❅</span>
-              <span class="badge bg-ice text-white text-xs">SNOW</span>
-              <span class="badge bg-primary text-white text-xs">${report.thicknessInches}"</span>
-              <span class="text-xs text-secondary capitalize">${report.snowType}</span>
-              <span class="text-xs text-secondary capitalize">${report.coverage}</span>
-              <span class="text-xs text-secondary">•</span>
-              <span class="text-xs font-medium">${report.user.displayName}</span>
-              <span class="badge bg-secondary text-white text-xs">${report.user.rankTier}</span>
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <span class="font-semibold text-xs sm:text-sm text-primary">${report.user.displayName}</span>
+              <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
-              <span class="text-xs text-secondary">•</span>
-              <span class="text-xs text-secondary flex items-center gap-1">
-                <span>💬</span>
-                <span class="comment-count-text">${report.commentCount || 0}</span>
-              </span>
             </div>
 
-            <!-- Location notes -->
-            ${report.locationNotes ? `<p class="text-sm text-secondary">${report.locationNotes}</p>` : ''}
-          </div>
+            <p class="text-sm sm:text-base text-primary leading-relaxed mb-2">
+              ${conversationalText}
+            </p>
 
-          <!-- Right: Vote buttons -->
-          <div class="flex-shrink-0" onclick="event.stopPropagation()">
-            ${this.renderVoteButtons(report, 'snow')}
+            <div onclick="event.stopPropagation()">
+              ${this.renderActionButtons(report, 'snow')}
+            </div>
           </div>
         </div>
 
-        <!-- Comment section (collapsible) -->
-        <div class="comment-container hidden mt-3 pl-7" data-content-type="snow" data-content-id="${report.id}" onclick="event.stopPropagation()">
+        <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+             data-content-type="snow" data-content-id="${report.id}"
+             onclick="event.stopPropagation()">
         </div>
       </div>
     `;
@@ -931,40 +919,35 @@ const LakeDetail = {
       } else if (item.type === 'snow') {
         return this.renderSnowReportCard(item.data);
       } else if (item.type === 'general') {
-        // Render general update card with votes/comments
+        // Render general update card with Facebook-style layout
         const update = item.data;
         return `
-          <div class="bg-frost rounded-lg p-3 border cursor-pointer hover:bg-frost/80 transition-colors" style="border-color: rgba(59, 130, 246, .5);" onclick="LakeDetail.openCommentsFromCard(event, 'update', '${update.id}')">
-            <div class="flex items-start gap-3">
-              <!-- Left: Content -->
+          <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+               onclick="LakeDetail.openCommentsFromCard(event, 'update', '${update.id}')">
+            <div class="flex gap-3">
+              ${this.renderAvatar(update.user, 'lg')}
+
               <div class="flex-1 min-w-0">
-                <!-- Header -->
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                  <span class="text-lg">💬</span>
-                  <span class="badge bg-gold text-white text-xs">UPDATE</span>
-                  <span class="text-xs font-medium">${update.user.displayName}</span>
-                  <span class="badge bg-secondary text-white text-xs">${update.user.rankTier}</span>
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                  <span class="font-semibold text-xs sm:text-sm text-primary">${update.user.displayName}</span>
+                  <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${update.user.rankTier}</span>
                   <span class="text-xs text-secondary">•</span>
                   <span class="text-xs text-secondary">${this.formatDate(update.createdAt)}</span>
-                  <span class="text-xs text-secondary">•</span>
-                  <span class="text-xs text-secondary flex items-center gap-1">
-                    <span>💬</span>
-                    <span class="comment-count-text">${update.commentCount || 0}</span>
-                  </span>
                 </div>
 
-                <!-- Content -->
-                <p class="text-sm">${update.content}</p>
-              </div>
+                <p class="text-sm sm:text-base text-primary leading-relaxed">
+                  ${update.content}
+                </p>
 
-              <!-- Right: Vote buttons -->
-              <div class="flex-shrink-0" onclick="event.stopPropagation()">
-                ${this.renderVoteButtons(update, 'update')}
+                <div onclick="event.stopPropagation()">
+                  ${this.renderActionButtons(update, 'update')}
+                </div>
               </div>
             </div>
 
-            <!-- Comment section (collapsible) -->
-            <div class="comment-container hidden mt-3 pl-7" data-content-type="update" data-content-id="${update.id}" onclick="event.stopPropagation()">
+            <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+                 data-content-type="update" data-content-id="${update.id}"
+                 onclick="event.stopPropagation()">
             </div>
           </div>
         `;
@@ -1839,6 +1822,127 @@ const LakeDetail = {
       console.error('Error loading comments:', error);
       commentsList.innerHTML = '<p class="text-xs text-danger">Failed to load comments</p>';
     }
+  },
+
+  /**
+   * Render user avatar with initials
+   * @param {Object} user - User object with displayName
+   * @param {string} size - Size: 'sm', 'md', or 'lg'
+   * @returns {string} Avatar HTML
+   */
+  renderAvatar(user, size = 'md') {
+    const name = user.displayName || '?';
+    const initials = name.length >= 2
+      ? name.substring(0, 2).toUpperCase()
+      : name.charAt(0).toUpperCase();
+
+    const sizeClasses = {
+      'sm': 'w-6 h-6 text-xs',
+      'md': 'w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-base',
+      'lg': 'w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-base'
+    };
+
+    const sizeClass = sizeClasses[size] || sizeClasses['md'];
+
+    return `
+      <div class="${sizeClass} bg-gradient-to-br from-primary to-gold rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+        ${initials}
+      </div>
+    `;
+  },
+
+  /**
+   * Generate conversational text for ice report
+   * @param {Object} report - Ice report object
+   * @returns {string} Conversational text
+   */
+  getIceReportText(report) {
+    const thickness = `${report.thicknessInches} inches of ice`;
+    const condition = report.condition ? ` in ${report.condition} condition` : '';
+    const location = report.locationNotes ? ` Location: ${report.locationNotes}` : '';
+    return `${report.user.displayName} reports ${thickness}${condition}.${location}`;
+  },
+
+  /**
+   * Generate conversational text for catch report
+   * @param {Object} report - Catch report object
+   * @returns {string} Conversational text
+   */
+  getCatchReportText(report) {
+    if (report.fishCount === 0) {
+      return `${report.user.displayName} attempted to catch ${report.fishSpecies}`;
+    }
+    const count = report.fishCount > 1 ? report.fishCount : 'a';
+    return `${report.user.displayName} caught ${count} ${report.fishSpecies}`;
+  },
+
+  /**
+   * Generate catch details for display below main text
+   * @param {Object} report - Catch report object
+   * @returns {string} Details string (bullet-separated)
+   */
+  getCatchDetails(report) {
+    const details = [];
+    if (report.largestSizeInches) details.push(`Size: ${report.largestSizeInches}"`);
+    if (report.largestWeightLbs) details.push(`Weight: ${report.largestWeightLbs} lbs`);
+    if (report.depthFeet) details.push(`Depth: ${report.depthFeet}ft`);
+    if (report.baitUsed) details.push(`Bait: ${report.baitUsed}`);
+    if (report.locationNotes) details.push(`Location: ${report.locationNotes}`);
+    return details.length > 0 ? details.join(' • ') : '';
+  },
+
+  /**
+   * Generate conversational text for snow report
+   * @param {Object} report - Snow report object
+   * @returns {string} Conversational text
+   */
+  getSnowReportText(report) {
+    const amount = `${report.thicknessInches} inches of ${report.snowType} snow`;
+    const coverage = report.coverage ? ` with ${report.coverage} coverage` : '';
+    const location = report.locationNotes ? ` Location: ${report.locationNotes}` : '';
+    return `${report.user.displayName} reports ${amount}${coverage}.${location}`;
+  },
+
+  /**
+   * Render horizontal action buttons (votes + comments)
+   * @param {Object} item - Report/update object
+   * @param {string} contentType - 'ice', 'catch', 'snow', 'update'
+   * @returns {string} HTML for action buttons
+   */
+  renderActionButtons(item, contentType) {
+    const isAuthenticated = typeof Auth !== 'undefined' && Auth.isAuthenticated();
+
+    if (!isAuthenticated) {
+      return `
+        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-grayPanel/50">
+          <div class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-frost text-xs text-secondary">
+            <span>↑</span><span>${item.upvotes || 0}</span>
+          </div>
+          <div class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-frost text-xs text-secondary">
+            <span>↓</span><span>${item.downvotes || 0}</span>
+          </div>
+          <div class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-frost text-xs text-secondary">
+            <span>💬</span><span class="comment-count-text">${item.commentCount || 0}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="flex items-center gap-2 mt-3 pt-3 border-t border-grayPanel/50">
+        <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-evergreen/10 hover:text-evergreen transition-colors text-xs text-secondary font-medium"
+                onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'up')">
+          <span>↑</span><span class="vote-count-up">${item.upvotes || 0}</span>
+        </button>
+        <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-danger/10 hover:text-danger transition-colors text-xs text-secondary font-medium"
+                onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'down')">
+          <span>↓</span><span class="vote-count-down">${item.downvotes || 0}</span>
+        </button>
+        <button class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-xs text-secondary font-medium">
+          <span>💬</span><span class="comment-count-text">${item.commentCount || 0}</span>
+        </button>
+      </div>
+    `;
   },
 
   /**
