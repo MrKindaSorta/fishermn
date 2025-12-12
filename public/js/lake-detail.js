@@ -1510,39 +1510,44 @@ const LakeDetail = {
    * @param {string} voteType - 'up' or 'down'
    */
   updateVoteUI(contentType, contentId, action, voteType) {
-    // Find vote buttons for this content
-    const upBtn = document.querySelector(`[data-content-id="${contentId}"][data-vote-type="up"]`);
-    const downBtn = document.querySelector(`[data-content-id="${contentId}"][data-vote-type="down"]`);
+    // Find ALL vote buttons for this content (same report may appear in multiple tabs)
+    const upBtns = document.querySelectorAll(`[data-content-type="${contentType}"][data-content-id="${contentId}"][data-vote-type="up"]`);
+    const downBtns = document.querySelectorAll(`[data-content-type="${contentType}"][data-content-id="${contentId}"][data-vote-type="down"]`);
 
-    if (!upBtn || !downBtn) return;
+    if (upBtns.length === 0 || downBtns.length === 0) return;
 
-    const upCount = upBtn.querySelector('.vote-count-up');
-    const downCount = downBtn.querySelector('.vote-count-down');
+    // Update all instances (Overview tab + Activity tab)
+    upBtns.forEach(upBtn => {
+      downBtns.forEach(downBtn => {
+        const upCount = upBtn.querySelector('.vote-count-up');
+        const downCount = downBtn.querySelector('.vote-count-down');
 
-    if (action === 'created') {
-      // New vote - increment count
-      if (voteType === 'up') {
-        upCount.textContent = parseInt(upCount.textContent) + 1;
-      } else {
-        downCount.textContent = parseInt(downCount.textContent) + 1;
-      }
-    } else if (action === 'removed') {
-      // Removed vote - decrement count
-      if (voteType === 'up') {
-        upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
-      } else {
-        downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
-      }
-    } else if (action === 'changed') {
-      // Changed vote - decrement old, increment new
-      if (voteType === 'up') {
-        downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
-        upCount.textContent = parseInt(upCount.textContent) + 1;
-      } else {
-        upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
-        downCount.textContent = parseInt(downCount.textContent) + 1;
-      }
-    }
+        if (action === 'created') {
+          // New vote - increment count
+          if (voteType === 'up') {
+            upCount.textContent = parseInt(upCount.textContent) + 1;
+          } else {
+            downCount.textContent = parseInt(downCount.textContent) + 1;
+          }
+        } else if (action === 'removed') {
+          // Removed vote - decrement count
+          if (voteType === 'up') {
+            upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+          } else {
+            downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+          }
+        } else if (action === 'changed') {
+          // Changed vote - decrement old, increment new
+          if (voteType === 'up') {
+            downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+            upCount.textContent = parseInt(upCount.textContent) + 1;
+          } else {
+            upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+            downCount.textContent = parseInt(downCount.textContent) + 1;
+          }
+        }
+      });
+    });
   },
 
   // ==================== COMMENT METHODS ====================
