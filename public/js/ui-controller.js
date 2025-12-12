@@ -74,13 +74,12 @@ const UIController = {
       mainContent.style.pointerEvents = 'none';
       mainContent.style.userSelect = 'none';
 
-      // Create overlay - positioned to not block sidebar (left: 256px = w-64)
+      // Create overlay - responsive positioning (full width on mobile, offset on desktop)
       const overlay = document.createElement('div');
       overlay.id = 'auth-overlay';
-      overlay.className = 'fixed top-0 right-0 bottom-0 z-40 flex items-center justify-center bg-black/30';
-      overlay.style.left = '256px'; // Same as sidebar width (w-64)
+      overlay.className = 'fixed inset-0 lg:left-64 z-40 flex items-center justify-center bg-black/30 p-4';
       overlay.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 lg:p-8 max-w-md w-full text-center">
           <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
