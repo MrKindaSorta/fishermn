@@ -53,3 +53,13 @@ const MobileNav = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => MobileNav.init());
+
+// Re-initialize after HTMX loads sidebar and top-bar
+document.body.addEventListener('htmx:afterSwap', (event) => {
+  // Check if sidebar or top-bar was loaded
+  if (event.detail.target.id === 'sidebar-container' ||
+      event.target.querySelector('#mobile-menu-toggle') ||
+      event.target.querySelector('#mobile-sidebar')) {
+    setTimeout(() => MobileNav.init(), 100);
+  }
+});
