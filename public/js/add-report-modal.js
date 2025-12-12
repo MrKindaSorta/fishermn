@@ -129,6 +129,12 @@ const AddReportModal = {
     earlierBtn?.classList.add('border-grayPanel');
     datetimeContainer?.classList.add('hidden');
 
+    // Reset optional info accordion (close it)
+    const optionalContent = document.getElementById('optional-info-content');
+    const optionalChevron = document.getElementById('optional-info-chevron');
+    optionalContent?.classList.add('hidden');
+    optionalChevron?.classList.remove('rotate-180');
+
     // Reset snow buttons
     document.querySelectorAll('.snow-type-btn, .snow-coverage-btn').forEach(btn => {
       btn.classList.remove('bg-primary', 'text-white', 'border-primary');
@@ -530,6 +536,22 @@ const AddReportModal = {
     }
 
     this.clearError();
+  },
+
+  /**
+   * Toggle optional information section in catch form
+   */
+  toggleOptionalInfo() {
+    const content = document.getElementById('optional-info-content');
+    const chevron = document.getElementById('optional-info-chevron');
+
+    if (content?.classList.contains('hidden')) {
+      content.classList.remove('hidden');
+      chevron?.classList.add('rotate-180');
+    } else {
+      content?.classList.add('hidden');
+      chevron?.classList.remove('rotate-180');
+    }
   },
 
   /**
