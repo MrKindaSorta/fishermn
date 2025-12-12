@@ -153,6 +153,39 @@ const LakeDetail = {
         }
       });
     });
+
+    // Mobile dropdown tab selector
+    const mobileTabSelector = document.getElementById('mobile-tab-selector');
+    if (mobileTabSelector) {
+      mobileTabSelector.addEventListener('change', (e) => {
+        const tabId = e.target.value;
+
+        // Update button states (desktop tabs)
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Update content visibility
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+          if (content.id === `tab-${tabId}`) {
+            content.classList.add('active');
+          }
+        });
+
+        // Fix map display when switching to overview tab
+        if (tabId === 'overview' && this.map) {
+          setTimeout(() => this.map.invalidateSize(), 100);
+        }
+
+        // Initialize bite forecast on first activation
+        if (tabId === 'bite-forecast' && typeof BiteForecast !== 'undefined' && !BiteForecast.initialized) {
+          if (this.lake && this.weatherRaw) {
+            BiteForecast.init(this.lake, this.weatherRaw);
+          }
+        }
+      });
+    }
   },
 
   /**

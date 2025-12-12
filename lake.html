@@ -132,25 +132,49 @@
   <!-- Main Content Area -->
   <main class="ml-0 lg:ml-64 mt-16 h-[calc(100vh-64px)] overflow-y-auto bg-frost">
     <!-- Navigation Bar - Full Width -->
-    <div class="flex border-b border-grayPanel bg-white overflow-x-auto snap-x snap-mandatory lg:overflow-x-visible scrollbar-hide">
-      <a href="/lakes.html" class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6 flex items-center gap-2">
-        <span class="lg:hidden">←</span>
-        <svg class="hidden lg:block w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-        </svg>
-        <span class="hidden lg:inline">Back to Lakes</span>
-      </a>
-      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6 active" data-tab="overview">Overview</button>
-      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="activity">Activity</button>
-      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="discussions">Discuss</button>
-      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="bite-forecast">Forecast</button>
-      <button class="tab-btn flex-shrink-0 snap-start text-sm lg:text-base px-3 lg:px-6" data-tab="about">About</button>
+    <div class="border-b border-grayPanel bg-white">
+      <!-- Mobile: Back Button (always visible) -->
+      <div class="lg:hidden flex items-center border-b border-grayPanel/50">
+        <a href="/lakes.html" class="flex items-center gap-2 px-4 py-3 text-primary hover:bg-frost transition-colors w-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          <span class="font-medium">Back to Lakes</span>
+        </a>
+      </div>
+
+      <!-- Mobile: Dropdown Tab Selector -->
+      <div class="lg:hidden">
+        <select id="mobile-tab-selector"
+                class="w-full px-4 py-3 text-base font-semibold bg-white border-0 border-b-2 border-gold focus:outline-none focus:ring-0 appearance-none cursor-pointer">
+          <option value="overview">📊 Overview</option>
+          <option value="activity">📝 Recent Activity</option>
+          <option value="discussions">💬 Discussions</option>
+          <option value="bite-forecast">🎣 Bite Forecast</option>
+          <option value="about">ℹ️ About</option>
+        </select>
+      </div>
+
+      <!-- Desktop: Horizontal Tab Buttons -->
+      <div class="hidden lg:flex">
+        <a href="/lakes.html" class="tab-btn flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Back to Lakes
+        </a>
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="activity">Recent Activity</button>
+        <button class="tab-btn" data-tab="discussions">Discussions</button>
+        <button class="tab-btn" data-tab="bite-forecast">Bite Forecast</button>
+        <button class="tab-btn" data-tab="about">About</button>
+      </div>
     </div>
 
     <!-- Weather Bar -->
-    <div id="weather-widget" class="flex items-center justify-between px-6 py-3 border-b border-grayPanel bg-white">
+    <div id="weather-widget" class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-3 gap-3 border-b border-grayPanel bg-white">
       <!-- Left: Current conditions -->
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 sm:gap-4">
         <span class="text-2xl">🌡️</span>
         <div>
           <span id="weather-temp" class="text-xl font-bold text-primary">--°F</span>
@@ -160,7 +184,7 @@
       </div>
 
       <!-- Right: 5-day forecast -->
-      <div id="forecast-container" class="flex gap-4">
+      <div id="forecast-container" class="flex gap-2 sm:gap-4 overflow-x-auto">
         <p class="text-xs text-secondary">Loading forecast...</p>
       </div>
     </div>
@@ -209,11 +233,11 @@
                   </button>
                 </div>
 
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                   <!-- Reported (Average) -->
                   <div class="text-center">
                     <div class="flex items-center justify-center gap-1 mb-1">
-                      <p class="text-xs text-secondary">Reported</p>
+                      <p class="text-xs sm:text-sm text-secondary">Reported</p>
                       <button
                         class="text-secondary hover:text-primary transition-colors"
                         title="Average of all ice reports from the last 7 days"
@@ -223,13 +247,13 @@
                         </svg>
                       </button>
                     </div>
-                    <p id="stat-avg-thickness" class="text-xl font-bold text-primary">--"</p>
+                    <p id="stat-avg-thickness" class="text-2xl sm:text-xl font-bold text-primary">--"</p>
                   </div>
 
                   <!-- Max (3 days) -->
                   <div class="text-center">
                     <div class="flex items-center justify-center gap-1 mb-1">
-                      <p class="text-xs text-secondary">Max</p>
+                      <p class="text-xs sm:text-sm text-secondary">Max</p>
                       <button
                         class="text-secondary hover:text-primary transition-colors"
                         title="Thickest ice reported in the last 3 days"
@@ -239,13 +263,13 @@
                         </svg>
                       </button>
                     </div>
-                    <p id="stat-max-thickness" class="text-xl font-bold text-evergreen">--"</p>
+                    <p id="stat-max-thickness" class="text-2xl sm:text-xl font-bold text-evergreen">--"</p>
                   </div>
 
                   <!-- Min (3 days) -->
                   <div class="text-center">
                     <div class="flex items-center justify-between gap-1 mb-1">
-                      <p class="text-xs text-secondary">Min</p>
+                      <p class="text-xs sm:text-sm text-secondary">Min</p>
                       <button
                         class="text-secondary hover:text-primary transition-colors"
                         title="Thinnest ice reported in the last 3 days"
@@ -255,7 +279,7 @@
                         </svg>
                       </button>
                     </div>
-                    <p id="stat-min-thickness" class="text-xl font-bold text-danger">--"</p>
+                    <p id="stat-min-thickness" class="text-2xl sm:text-xl font-bold text-danger">--"</p>
                   </div>
                 </div>
 
@@ -264,26 +288,26 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-3 gap-4">
-              <div class="card flex items-center gap-3">
-                <span class="text-3xl">📊</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div class="card flex items-center gap-2 sm:gap-3">
+                <span class="text-2xl sm:text-3xl">📊</span>
                 <div>
-                  <p id="stat-ice-reports" class="text-2xl font-bold">--</p>
-                  <p class="text-sm text-secondary">Ice Reports</p>
+                  <p id="stat-ice-reports" class="text-xl sm:text-2xl font-bold">--</p>
+                  <p class="text-xs sm:text-sm text-secondary">Ice Reports</p>
                 </div>
               </div>
-              <div class="card flex items-center gap-3">
-                <span class="text-3xl">🐟</span>
+              <div class="card flex items-center gap-2 sm:gap-3">
+                <span class="text-2xl sm:text-3xl">🐟</span>
                 <div>
-                  <p id="stat-catch-reports" class="text-2xl font-bold">--</p>
-                  <p class="text-sm text-secondary">Catch Reports</p>
+                  <p id="stat-catch-reports" class="text-xl sm:text-2xl font-bold">--</p>
+                  <p class="text-xs sm:text-sm text-secondary">Catch Reports</p>
                 </div>
               </div>
-              <div class="card flex items-center gap-3">
-                <span class="text-3xl">📅</span>
+              <div class="card flex items-center gap-2 sm:gap-3">
+                <span class="text-2xl sm:text-3xl">📅</span>
                 <div>
-                  <p id="stat-last-report" class="text-2xl font-bold">--</p>
-                  <p class="text-sm text-secondary">Last Report</p>
+                  <p id="stat-last-report" class="text-xl sm:text-2xl font-bold">--</p>
+                  <p class="text-xs sm:text-sm text-secondary">Last Report</p>
                 </div>
               </div>
             </div>
@@ -291,7 +315,7 @@
             <!-- POI Section -->
             <div class="card">
               <h3 class="font-bold text-lg mb-4">Nearby Amenities</h3>
-              <div id="poi-grid" class="grid grid-cols-2 gap-4">
+              <div id="poi-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <p class="text-secondary text-sm col-span-2">Loading businesses...</p>
               </div>
             </div>
@@ -325,7 +349,7 @@
                 </div>
                 <p id="map-lake-region" class="text-sm text-secondary">--</p>
               </div>
-              <div id="lake-map" style="height: 500px;"></div>
+              <div id="lake-map" class="h-64 sm:h-80 lg:h-[500px]"></div>
               <!-- POI Legend -->
               <div id="poi-legend" class="p-4 border-t border-grayPanel bg-frost">
                 <p class="text-xs font-semibold text-secondary mb-2">Map Legend</p>
@@ -426,7 +450,7 @@
 
       <!-- Tab: Discussions -->
       <div id="tab-discussions" class="tab-content">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" style="min-height: 400px; lg:height: calc(100vh - 280px);">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 min-h-[400px] lg:h-[calc(100vh-280px)]">
           <!-- Left Panel: Thread List (~35%) -->
           <div class="col-span-1 card p-0 overflow-hidden flex flex-col">
             <div class="p-4 border-b border-grayPanel bg-white">
@@ -478,7 +502,7 @@
           <!-- Amenities Card -->
           <div class="card mt-6">
             <h3 class="font-bold text-xl mb-4">Amenities</h3>
-            <div id="amenities-list" class="grid grid-cols-2 gap-3">
+            <div id="amenities-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               <p class="text-secondary">Loading...</p>
             </div>
           </div>
