@@ -659,14 +659,14 @@ const LakeDetail = {
     const conversationalText = this.getIceReportText(report);
 
     return `
-      <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+      <div class="bg-white rounded-lg p-3 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
            onclick="LakeDetail.openCommentsFromCard(event, 'ice', '${report.id}')">
         <div class="flex gap-3">
           ${this.renderAvatar(report.user, 'lg')}
 
           <div class="flex-1 min-w-0">
             <!-- Header: Name, Rank, Timestamp -->
-            <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
               <span class="font-semibold text-xs sm:text-sm text-primary">${report.user.displayName}</span>
               <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
@@ -674,18 +674,16 @@ const LakeDetail = {
             </div>
 
             <!-- Conversational Text -->
-            <p class="text-sm sm:text-base text-primary leading-relaxed mb-2">
+            <p class="text-sm sm:text-base text-primary leading-snug">
               ${conversationalText}
             </p>
 
             <!-- Action Buttons -->
-            <div onclick="event.stopPropagation()">
-              ${this.renderActionButtons(report, 'ice')}
-            </div>
+            ${this.renderActionButtons(report, 'ice')}
           </div>
         </div>
 
-        <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+        <div class="comment-container hidden mt-3 pl-11 sm:pl-13"
              data-content-type="ice" data-content-id="${report.id}"
              onclick="event.stopPropagation()">
         </div>
@@ -701,36 +699,34 @@ const LakeDetail = {
     const details = this.getCatchDetails(report);
 
     return `
-      <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+      <div class="bg-white rounded-lg p-3 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
            onclick="LakeDetail.openCommentsFromCard(event, 'catch', '${report.id}')">
         <div class="flex gap-3">
           ${this.renderAvatar(report.user, 'lg')}
 
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
               <span class="font-semibold text-xs sm:text-sm text-primary">${report.user.displayName}</span>
               <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.caughtAt)}</span>
             </div>
 
-            <p class="text-sm sm:text-base text-primary leading-relaxed">
+            <p class="text-sm sm:text-base text-primary leading-snug">
               ${conversationalText}
             </p>
 
             ${details ? `
-              <p class="text-xs sm:text-sm text-secondary mt-2">
+              <p class="text-xs sm:text-sm text-secondary mt-1.5">
                 ${details}
               </p>
             ` : ''}
 
-            <div onclick="event.stopPropagation()">
-              ${this.renderActionButtons(report, 'catch')}
-            </div>
+            ${this.renderActionButtons(report, 'catch')}
           </div>
         </div>
 
-        <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+        <div class="comment-container hidden mt-3 pl-11 sm:pl-13"
              data-content-type="catch" data-content-id="${report.id}"
              onclick="event.stopPropagation()">
         </div>
@@ -745,30 +741,28 @@ const LakeDetail = {
     const conversationalText = this.getSnowReportText(report);
 
     return `
-      <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+      <div class="bg-white rounded-lg p-3 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
            onclick="LakeDetail.openCommentsFromCard(event, 'snow', '${report.id}')">
         <div class="flex gap-3">
           ${this.renderAvatar(report.user, 'lg')}
 
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
               <span class="font-semibold text-xs sm:text-sm text-primary">${report.user.displayName}</span>
               <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${report.user.rankTier}</span>
               <span class="text-xs text-secondary">•</span>
               <span class="text-xs text-secondary">${this.formatDate(report.reportedAt)}</span>
             </div>
 
-            <p class="text-sm sm:text-base text-primary leading-relaxed mb-2">
+            <p class="text-sm sm:text-base text-primary leading-snug">
               ${conversationalText}
             </p>
 
-            <div onclick="event.stopPropagation()">
-              ${this.renderActionButtons(report, 'snow')}
-            </div>
+            ${this.renderActionButtons(report, 'snow')}
           </div>
         </div>
 
-        <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+        <div class="comment-container hidden mt-3 pl-11 sm:pl-13"
              data-content-type="snow" data-content-id="${report.id}"
              onclick="event.stopPropagation()">
         </div>
@@ -922,30 +916,28 @@ const LakeDetail = {
         // Render general update card with Facebook-style layout
         const update = item.data;
         return `
-          <div class="bg-white rounded-lg p-3 sm:p-4 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
+          <div class="bg-white rounded-lg p-3 border border-grayPanel cursor-pointer hover:shadow-md transition-shadow"
                onclick="LakeDetail.openCommentsFromCard(event, 'update', '${update.id}')">
             <div class="flex gap-3">
               ${this.renderAvatar(update.user, 'lg')}
 
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span class="font-semibold text-xs sm:text-sm text-primary">${update.user.displayName}</span>
                   <span class="badge bg-secondary/80 text-white text-xs px-2 py-0.5">${update.user.rankTier}</span>
                   <span class="text-xs text-secondary">•</span>
                   <span class="text-xs text-secondary">${this.formatDate(update.createdAt)}</span>
                 </div>
 
-                <p class="text-sm sm:text-base text-primary leading-relaxed">
+                <p class="text-sm sm:text-base text-primary leading-snug">
                   ${update.content}
                 </p>
 
-                <div onclick="event.stopPropagation()">
-                  ${this.renderActionButtons(update, 'update')}
-                </div>
+                ${this.renderActionButtons(update, 'update')}
               </div>
             </div>
 
-            <div class="comment-container hidden mt-4 pl-11 sm:pl-13"
+            <div class="comment-container hidden mt-3 pl-11 sm:pl-13"
                  data-content-type="update" data-content-id="${update.id}"
                  onclick="event.stopPropagation()">
             </div>
@@ -1920,14 +1912,14 @@ const LakeDetail = {
 
     if (!isAuthenticated) {
       return `
-        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-grayPanel/50">
-          <div class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-frost text-xs text-secondary">
+        <div class="flex items-center gap-2 mt-2 pt-2 border-t border-grayPanel/30">
+          <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-frost text-xs text-secondary">
             <span>↑</span><span>${item.upvotes || 0}</span>
           </div>
-          <div class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-frost text-xs text-secondary">
+          <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-frost text-xs text-secondary">
             <span>↓</span><span>${item.downvotes || 0}</span>
           </div>
-          <div class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-frost text-xs text-secondary">
+          <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-frost text-xs text-secondary">
             <span>💬</span><span class="comment-count-text">${item.commentCount || 0}</span>
           </div>
         </div>
@@ -1935,22 +1927,22 @@ const LakeDetail = {
     }
 
     return `
-      <div class="flex items-center gap-2 mt-3 pt-3 border-t border-grayPanel/50">
-        <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-evergreen/10 hover:text-evergreen transition-colors text-xs text-secondary font-medium"
+      <div class="flex items-center gap-2 mt-2 pt-2 border-t border-grayPanel/30">
+        <button class="vote-btn flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-evergreen/10 hover:text-evergreen transition-colors text-xs text-secondary font-medium"
                 data-content-type="${contentType}"
                 data-content-id="${item.id}"
                 data-vote-type="up"
                 onclick="event.stopPropagation(); LakeDetail.handleVote('${contentType}', '${item.id}', 'up')">
           <span>↑</span><span class="vote-count-up">${item.upvotes || 0}</span>
         </button>
-        <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-danger/10 hover:text-danger transition-colors text-xs text-secondary font-medium"
+        <button class="vote-btn flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-danger/10 hover:text-danger transition-colors text-xs text-secondary font-medium"
                 data-content-type="${contentType}"
                 data-content-id="${item.id}"
                 data-vote-type="down"
                 onclick="event.stopPropagation(); LakeDetail.handleVote('${contentType}', '${item.id}', 'down')">
           <span>↓</span><span class="vote-count-down">${item.downvotes || 0}</span>
         </button>
-        <button class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-xs text-secondary font-medium">
+        <button class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-xs text-secondary font-medium">
           <span>💬</span><span class="comment-count-text">${item.commentCount || 0}</span>
         </button>
       </div>
