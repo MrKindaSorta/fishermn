@@ -570,6 +570,12 @@ const LakeDetail = {
       clickedItem.classList.add('active');
     }
 
+    // Auto-scroll to map on mobile
+    const mapElement = document.getElementById('lake-map');
+    if (mapElement && window.innerWidth < 1024) {
+      mapElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     // Pan to POI and open popup
     if (this.map) {
       this.map.flyTo([lat, lon], 14, { duration: 0.8 });
