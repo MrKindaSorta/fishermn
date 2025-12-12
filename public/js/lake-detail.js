@@ -83,8 +83,8 @@ const LakeDetail = {
 
     // Add global click listener to close comments when clicking outside
     document.addEventListener('click', (event) => {
-      // Close comment section if clicking outside any card
-      if (this.currentOpenCommentContainer && !event.target.closest('.bg-frost')) {
+      // Close comment section if clicking outside any card (bg-white for new cards, bg-frost for old)
+      if (this.currentOpenCommentContainer && !event.target.closest('.bg-white') && !event.target.closest('.bg-frost')) {
         this.currentOpenCommentContainer.classList.add('hidden');
         this.currentOpenCommentContainer = null;
       }
@@ -1744,8 +1744,8 @@ const LakeDetail = {
     container.classList.remove('hidden');
     this.currentOpenCommentContainer = container;
 
-    // Render comment section UI if first time
-    if (!container.dataset.loaded) {
+    // Render comment section UI if first time or if empty
+    if (!container.dataset.loaded || container.innerHTML.trim() === '') {
       container.innerHTML = this.renderCommentSectionContent(contentType, contentId);
       // Wait for next frame to ensure DOM is updated
       await new Promise(resolve => requestAnimationFrame(resolve));
@@ -1934,14 +1934,14 @@ const LakeDetail = {
                 data-content-type="${contentType}"
                 data-content-id="${item.id}"
                 data-vote-type="up"
-                onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'up')">
+                onclick="event.stopPropagation(); LakeDetail.handleVote('${contentType}', '${item.id}', 'up')">
           <span>↑</span><span class="vote-count-up">${item.upvotes || 0}</span>
         </button>
         <button class="vote-btn flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-danger/10 hover:text-danger transition-colors text-xs text-secondary font-medium"
                 data-content-type="${contentType}"
                 data-content-id="${item.id}"
                 data-vote-type="down"
-                onclick="LakeDetail.handleVote('${contentType}', '${item.id}', 'down')">
+                onclick="event.stopPropagation(); LakeDetail.handleVote('${contentType}', '${item.id}', 'down')">
           <span>↓</span><span class="vote-count-down">${item.downvotes || 0}</span>
         </button>
         <button class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-xs text-secondary font-medium">
