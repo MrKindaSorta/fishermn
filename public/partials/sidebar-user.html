@@ -219,10 +219,22 @@
 window.UserMenu = {
   open() {
     const isMobile = window.innerWidth < 1024;
+
+    // Toggle behavior: if menu is already open, close it
     if (isMobile) {
-      this.openMobile();
+      const mobileMenu = document.getElementById('user-menu-mobile');
+      if (mobileMenu && !mobileMenu.classList.contains('translate-y-full')) {
+        this.closeMobile();
+      } else {
+        this.openMobile();
+      }
     } else {
-      this.openDesktop();
+      const desktopMenu = document.getElementById('user-menu-desktop');
+      if (desktopMenu && desktopMenu.classList.contains('opacity-100')) {
+        this.closeDesktop();
+      } else {
+        this.openDesktop();
+      }
     }
   },
 
