@@ -294,12 +294,18 @@
 
             <div>
               <label class="block text-sm font-medium mb-2">Bait Used</label>
-              <input
-                type="text"
-                id="bait-used"
-                placeholder="e.g., Minnow, jig..."
-                class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
-              >
+              <div class="relative">
+                <input
+                  type="text"
+                  id="bait-used"
+                  placeholder="Start typing... (e.g., Minnow, jig)"
+                  autocomplete="off"
+                  class="w-full px-4 py-3 rounded-lg border border-grayPanel focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                <div id="bait-dropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-grayPanel rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+                  <!-- Suggestions inserted dynamically -->
+                </div>
+              </div>
             </div>
 
             <div>

@@ -10,6 +10,7 @@ const AddReportModal = {
   selectedReportType: null,
   fishSpecies: null,
   searchTimeout: null,
+  baitSearchTimeout: null,
   formData: {
     ice: { thickness: 12, condition: '', notes: '', onLake: false },
     catch: { species: '', count: 1, size: '', weight: '', depth: '', bait: '', notes: '', timing: null, catchDatetime: null },
@@ -53,6 +54,9 @@ const AddReportModal = {
         document.getElementById('lake-search-input')?.focus();
       }, 100);
     }
+
+    // Initialize bait autocomplete
+    this.initBaitSearch();
   },
 
   /**
@@ -536,6 +540,91 @@ const AddReportModal = {
     }
 
     this.clearError();
+  },
+
+  /**
+   * Initialize bait autocomplete with debouncing
+   */
+  initBaitSearch() {
+    const input = document.getElementById('bait-used');
+    if (!input) return;
+
+    input.addEventListener('input', (e) => {
+      clearTimeout(this.baitSearchTimeout);
+      const term = e.target.value.trim();
+
+      if (!term) {
+        document.getElementById('bait-dropdown')?.classList.add('hidden');
+        return;
+      }
+
+      // Debounce with 300ms delay (smooth, no lag)
+      this.baitSearchTimeout = setTimeout(() => {
+        this.searchBaits(term);
+      }, 300);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#bait-used') && !e.target.closest('#bait-dropdown')) {
+        document.getElementById('bait-dropdown')?.classList.add('hidden');
+      }
+    });
+  },
+
+  /**
+   * Search for bait suggestions from database
+   */
+  async searchBaits(term) {
+    const dropdown = document.getElementById('bait-dropdown');
+    if (!dropdown) return;
+
+    try {
+      dropdown.innerHTML = '<div class="p-2 text-center text-secondary text-xs"><span class="inline-block animate-pulse">Searching...</span></div>';
+      dropdown.classList.remove('hidden');
+
+      const response = await fetch(`/api/baits?search=${encodeURIComponent(term)}&limit=5`);
+      const data = await response.json();
+
+      this.renderBaitResults(data.baits || []);
+    } catch (error) {
+      console.error('Bait search error:', error);
+      dropdown.innerHTML = '<div class="p-2 text-danger text-xs">Search failed</div>';
+    }
+  },
+
+  /**
+   * Render bait suggestion dropdown
+   */
+  renderBaitResults(baits) {
+    const dropdown = document.getElementById('bait-dropdown');
+    if (!dropdown) return;
+
+    if (baits.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-secondary text-xs">No matches found. Type to add new bait!</div>';
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = baits.map(bait => `
+      <div class="px-3 py-2 hover:bg-frost cursor-pointer border-b border-grayPanel/30 last:border-0 text-sm"
+           onclick="AddReportModal.selectBait('${bait.name.replace(/'/g, "\\'")}')">
+        <span class="font-medium text-primary">${bait.name}</span>
+        <span class="text-xs text-secondary ml-2">(${bait.usage_count}x)</span>
+      </div>
+    `).join('');
+    dropdown.classList.remove('hidden');
+  },
+
+  /**
+   * Select a bait from suggestions
+   */
+  selectBait(baitName) {
+    const input = document.getElementById('bait-used');
+    const dropdown = document.getElementById('bait-dropdown');
+
+    if (input) input.value = baitName;
+    if (dropdown) dropdown.classList.add('hidden');
   },
 
   /**
